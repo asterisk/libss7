@@ -14,6 +14,7 @@
 /* Circuit group reset */
 #define ISUP_EVENT_GRS		10
 #define ISUP_EVENT_GRA		11
+#define ISUP_EVENT_CON		12
 
 /* Different SS7 types */
 #define SS7_ITU		(1 << 0)
@@ -57,6 +58,12 @@ typedef struct {
 	int e;
 	int cic;
 	struct isup_call *call;
+} ss7_event_con;
+
+typedef struct {
+	int e;
+	int cic;
+	struct isup_call *call;
 } ss7_event_anm;
 
 typedef struct {
@@ -92,6 +99,7 @@ typedef union {
 	ss7_event_rlc rlc;
 	ss7_event_anm anm;
 	ss7_event_acm acm;
+	ss7_event_con con;
 } ss7_event;
 
 void ss7_set_message(void (*func)(struct ss7 *ss7, char *message));
@@ -134,9 +142,7 @@ int isup_iam(struct ss7 *ss7, struct isup_call *c);
 
 int isup_anm(struct ss7 *ss7, struct isup_call *c);
 
-#if 0
-int isup_call_setcalled(struct isup_call *c, int cic);
-#endif
+int isup_con(struct ss7 *ss7, struct isup_call *c);
 
 struct isup_call * isup_new_call(struct ss7 *ss7);
 

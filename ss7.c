@@ -218,6 +218,8 @@ char * ss7_event2str(int event)
 			return "ISUP_EVENT_GRS";
 		case ISUP_EVENT_GRA:
 			return "ISUP_EVENT_GRA";
+		case ISUP_EVENT_CON:
+			return "ISUP_EVENT_CON";
 		default:
 			return "Unknown Event";
 	}

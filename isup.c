@@ -49,6 +49,8 @@ static int acm_params[] = {ISUP_PARM_BACKWARD_CALL_IND, -1};
 
 static int anm_params[] = { -1};
 
+static int con_params[] = { ISUP_PARM_BACKWARD_CALL_IND, -1};
+
 static int rel_params[] = { ISUP_PARM_CAUSE, -1};
 
 static int rlc_params[] = { -1};
@@ -65,6 +67,7 @@ static struct message_data {
 	{ISUP_IAM, 4, 1, 1, iam_params},
 	{ISUP_ACM, 1, 0, 1, acm_params},
 	{ISUP_ANM, 0, 0, 1, anm_params},
+	{ISUP_CON, 1, 0, 1, con_params},
 	{ISUP_REL, 0, 1, 1, rel_params},
 	{ISUP_RLC, 0, 0, 1, rlc_params},
 	{ISUP_GRS, 0, 1, 0, grs_params},
@@ -899,6 +902,11 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len
 			e->acm.cic = c->cic;
 			e->acm.call = c;
 			return 0;
+		case ISUP_CON:
+			e->e = ISUP_EVENT_CON;
+			e->con.cic = c->cic;
+			e->con.call = c;
+			return 0;
 		case ISUP_ANM:
 			e->e = ISUP_EVENT_ANM;
 			e->anm.cic = c->cic;
@@ -944,6 +952,11 @@ int isup_acm(struct ss7 *ss7, struct isup_call *c)
 int isup_anm(struct ss7 *ss7, struct isup_call *c)
 {
 	return isup_send_message(ss7, c, ISUP_ANM, anm_params);
+}
+
+int isup_con(struct ss7 *ss7, struct isup_call *c)
+{
+	return isup_send_message(ss7, c, ISUP_CON, con_params);
 }
 
 int isup_rel(struct ss7 *ss7, struct isup_call *c, int cause)
