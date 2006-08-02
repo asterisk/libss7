@@ -1,0 +1,21 @@
+libss7:
+=======
+
+libss7 is a userspace library that is used for providing SS7 protocol
+services to applications.  It has a working MTP2, MTP3, and ISUP for
+ITU style SS7, however it was written in a manner that will easily
+allow support for ANSI as well as the various national specific variants
+in the future.  For a working reference implementation, see the various
+link test programs, as well as the Asterisk Open Source PBX.
+
+TODO:
+=====
+ANSI-style signalling support
+Continuity check messages
+SCCP support
+
+For more information, please use the Asterisk-ss7 or Asterisk-dev mailing
+lists (I monitor those regularly) or email me personally.
+
+Matthew Fredrickson
+creslin@digium.com
