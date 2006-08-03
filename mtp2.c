@@ -404,7 +404,7 @@ int mtp2_setstate(struct mtp2 *link, int newstate)
 #endif
 	switch (link->state) {
 		case MTP_IDLE:
-			link->t2 = ss7_schedule_event(link->master, TIMER_T2, t2_expiry, link);
+			link->t2 = ss7_schedule_event(link->master, link->timers.t2, t2_expiry, link);
 			if (mtp2_lssu(link, LSSU_SIO)) {
 				mtp_error(link->master, "Unable to transmit initial LSSU\n");
 				return -1;
@@ -421,7 +421,7 @@ int mtp2_setstate(struct mtp2 *link, int newstate)
 				case MTP_ALIGNED:
 				case MTP_PROVING:
 					if (newstate == MTP_ALIGNED)
-						link->t3 = ss7_schedule_event(link->master, TIMER_T3, t3_expiry, link);
+						link->t3 = ss7_schedule_event(link->master, link->timers.t3, t3_expiry, link);
 					else
 						link->t4 = ss7_schedule_event(link->master, link->provingperiod, t4_expiry, link);
 					if (link->emergency) {
@@ -477,7 +477,7 @@ int mtp2_setstate(struct mtp2 *link, int newstate)
 					}
 					break;
 				case MTP_ALIGNEDREADY:
-					link->t1 = ss7_schedule_event(link->master, TIMER_T1, t1_expiry, link);
+					link->t1 = ss7_schedule_event(link->master, link->timers.t1, t1_expiry, link);
 					if (mtp2_fisu(link, 0)) {
 						mtp_error(link->master, "Could not transmit FISU\n");
 						return -1;
@@ -495,7 +495,7 @@ int mtp2_setstate(struct mtp2 *link, int newstate)
 						return -1;
 					break;
 				case MTP_ALIGNEDREADY:
-					link->t1 = ss7_schedule_event(link->master, TIMER_T1, t1_expiry, link);
+					link->t1 = ss7_schedule_event(link->master, link->timers.t1, t1_expiry, link);
 					if (mtp2_fisu(link, 0)) {
 						mtp_error(link->master, "Could not transmit FISU\n");
 						return -1;
@@ -551,9 +551,9 @@ static int lssu_rx(struct mtp2 *link, struct mtp_su_head *h, int len)
 				return mtp2_setstate(link, MTP_NOTALIGNED);
 
 			if ((link->emergency) || (lssutype == LSSU_SIE))
-				link->provingperiod = TIMER_T4_EMERGENCY;
+				link->provingperiod = link->timers.t4e;
 			else
-				link->provingperiod = TIMER_T4_NORMAL;
+				link->provingperiod = link->timers.t4;
 
 			if ((lssutype == LSSU_SIE) || (lssutype == LSSU_SIN))
 				return mtp2_setstate(link, MTP_PROVING);
@@ -564,12 +564,12 @@ static int lssu_rx(struct mtp2 *link, struct mtp_su_head *h, int len)
 				return mtp2_setstate(link, MTP_IDLE);
 
 			if ((link->emergency) || (lssutype == LSSU_SIE))
-				link->provingperiod = TIMER_T4_EMERGENCY;
+				link->provingperiod = link->timers.t4e;
 			else
-				link->provingperiod = TIMER_T4_NORMAL;
+				link->provingperiod = link->timers.t4;
 
-			if ((link->provingperiod == TIMER_T4_NORMAL) && ((link->emergency) || (lssutype == LSSU_SIE)))
-				link->provingperiod = TIMER_T4_EMERGENCY;
+			if ((link->provingperiod == link->timers.t4) && ((link->emergency) || (lssutype == LSSU_SIE)))
+				link->provingperiod = link->timers.t4e;
 
 			return mtp2_setstate(link, MTP_PROVING);
 		case MTP_PROVING:
@@ -641,7 +641,7 @@ int mtp2_stop(struct mtp2 *link)
 	return mtp2_setstate(link, MTP_IDLE);
 }
 
-struct mtp2 * mtp2_new(int fd)
+struct mtp2 * mtp2_new(int fd, unsigned int switchtype)
 {
 	struct mtp2 * new = calloc(1, sizeof(struct mtp2));
 
@@ -653,6 +653,20 @@ struct mtp2 * mtp2_new(int fd)
 	new->fd = fd;
 	new->autotxsutype = LSSU_SIOS;
 	new->lastsurxd = -1;
+
+	if (switchtype == SS7_ITU) {
+		new->timers.t1 = ITU_TIMER_T1;
+		new->timers.t2 = ITU_TIMER_T2;
+		new->timers.t3 = ITU_TIMER_T3;
+		new->timers.t4 = ITU_TIMER_T4_NORMAL;
+		new->timers.t4e = ITU_TIMER_T4_EMERGENCY;
+	} else if (switchtype == SS7_ANSI) {
+		new->timers.t1 = ANSI_TIMER_T1;
+		new->timers.t2 = ANSI_TIMER_T2;
+		new->timers.t3 = ANSI_TIMER_T3;
+		new->timers.t4 = ANSI_TIMER_T4_NORMAL;
+		new->timers.t4e = ANSI_TIMER_T4_EMERGENCY;
+	}
 
 	return new;
 }

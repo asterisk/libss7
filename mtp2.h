@@ -25,11 +25,18 @@ Software Foundation
 
 /* MTP2 Timers */
 /* 	For ITU 64kbps links */
-#define TIMER_T1		45000
-#define TIMER_T2		50000
-#define TIMER_T3		1500
-#define TIMER_T4_NORMAL		8500
-#define TIMER_T4_EMERGENCY	500
+#define ITU_TIMER_T1		45000
+#define ITU_TIMER_T2		50000
+#define ITU_TIMER_T3		1500
+#define ITU_TIMER_T4_NORMAL	8500
+#define ITU_TIMER_T4_EMERGENCY	500
+
+/* ANSI links */
+#define ANSI_TIMER_T1		16000
+#define ANSI_TIMER_T2		11500
+#define ANSI_TIMER_T3		11500
+#define ANSI_TIMER_T4_NORMAL	2300
+#define ANSI_TIMER_T4_EMERGENCY	600
 
 /* Bottom 3 bits in LSSU status field */
 #define LSSU_SIO	0	/* Out of alignment */
@@ -68,6 +75,14 @@ struct mtp_su_head {
 
 struct ss7;
 
+struct mtp2_timers {
+	int t1;
+	int t2;
+	int t3;
+	int t4;
+	int t4e;
+};
+
 struct mtp2 {
 	int state;
 	unsigned char curfsn:7;
@@ -89,6 +104,7 @@ struct mtp2 {
 	int autotxsutype;
 	int lastsurxd;
 	int lastsutxd;
+	struct mtp2_timers timers;
 
 	struct ss7_msg *tx_buf;
 	struct ss7_msg *tx_q;
@@ -99,7 +115,7 @@ struct mtp2 {
 int mtp2_start(struct mtp2 *link);
 int mtp2_stop(struct mtp2 *link);
 int mtp2_setstate(struct mtp2 *link, int state);
-struct mtp2 * mtp2_new(int fd);
+struct mtp2 * mtp2_new(int fd, unsigned int switchtype);
 int mtp2_transmit(struct mtp2 *link);
 int mtp2_receive(struct mtp2 *link, unsigned char *buf, int len);
 int mtp2_msu(struct mtp2 *link, struct ss7_msg *m);

@@ -147,7 +147,7 @@ int ss7_add_link(struct ss7 *ss7, int fd)
 	if (ss7->numlinks >= SS7_MAX_LINKS)
 		return -1;
 
-	m = mtp2_new(fd);
+	m = mtp2_new(fd, ss7->switchtype);
 	
 	if (!m)
 		return -1;
