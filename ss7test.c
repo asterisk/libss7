@@ -10,7 +10,7 @@
 #include <errno.h>
 #include <time.h>
 #ifdef LINUX
-#include <linux/zaptel.h>
+#include <zaptel/zaptel.h>
 #endif
 #include "libss7.h"
 
