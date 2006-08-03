@@ -30,7 +30,7 @@ static char * userpart2str(unsigned char userpart)
 		case SIG_ISUP:
 			return "ISUP";
 		default:
-			return "Unknown User part";
+			return "Unknown";
 	}
 }
 
@@ -68,6 +68,11 @@ static unsigned char get_userpart(unsigned char sio)
 static inline unsigned char get_ni(unsigned char sio)
 {
 	return (sio >> 6) & 0x3;
+}
+
+static inline unsigned char get_priority(unsigned char sio)
+{
+	return (sio >> 4) & 0x3;
 }
 
 int set_routinglabel(unsigned char *sif, struct routing_label *rl)
@@ -315,6 +320,7 @@ int mtp3_dump(struct ss7 *ss7, struct mtp2 *link, void *msg, int len)
 	unsigned char *sio = &buf[0];
 	unsigned char *sif = &buf[1];
 	unsigned char ni = get_ni(*sio);
+	unsigned char priority = get_priority(*sio);
 	unsigned char userpart = get_userpart(*sio);
 	struct routing_label rl;
 	unsigned int siflen = len - 1;
@@ -327,7 +333,7 @@ int mtp3_dump(struct ss7 *ss7, struct mtp2 *link, void *msg, int len)
 
 	ss7_message(ss7, "\tOPC 0x%x DPC 0x%x\n", rl.opc, rl.dpc);
 
-	ss7_message(ss7, "\tUser Part: %s (%x)\n", userpart2str(userpart), userpart);
+	ss7_message(ss7, "\tUser Part: %s (%x) Priority: %d\n", userpart2str(userpart), userpart, priority);
 
 	/* Pass it to the correct user part */
 	switch (userpart) {

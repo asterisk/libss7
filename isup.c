@@ -653,8 +653,8 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 		mh->cic[0] = c->cic & 0xff;
 		mh->cic[1] = (c->cic >> 8) & 0x0f;
 	} else {
-		ss7_error(ss7, "Incomplete support for non ITU style switchtypes\n");
-		return -1;
+		mh->cic[0] = c->cic & 0xff;
+		mh->cic[1] = (c->cic >> 8) & 0x03f;
 	}
 
 	mh->type = messagetype;
@@ -754,8 +754,7 @@ int isup_dump(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len)
 	if (ss7->switchtype == SS7_ITU) {
 		cic = mh->cic[0] | ((mh->cic[1] << 8) & 0x0f);
 	} else {
-		ss7_error(ss7, "Don't handle non ITU switchtypes yet\n");
-		return -1;
+		cic = mh->cic[0] | ((mh->cic[1] << 8) & 0x3f);
 	}
 	/* Find us in the message list */
 	for (x = 0; x < sizeof(messages)/sizeof(struct message_data); x++)
@@ -791,8 +790,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len
 	if (ss7->switchtype == SS7_ITU) {
 		cic = mh->cic[0] | ((mh->cic[1] << 8) & 0x0f);
 	} else {
-		ss7_error(ss7, "Don't handle non ITU switchtypes yet\n");
-		return -1;
+		cic = mh->cic[0] | ((mh->cic[1] << 8) & 0x3f);
 	}
 
 	/* Find us in the message list */
