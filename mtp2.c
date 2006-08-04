@@ -146,7 +146,7 @@ static int mtp2_queue_su(struct mtp2 *link, struct ss7_msg *m)
 	return 0;
 }
 
-static void make_lssu(struct mtp2 *link, unsigned char *buf, int *size, int lssu_status)
+static void make_lssu(struct mtp2 *link, unsigned char *buf, unsigned int *size, int lssu_status)
 {
 	struct mtp_su_head *head;
 
@@ -174,7 +174,7 @@ static void make_lssu(struct mtp2 *link, unsigned char *buf, int *size, int lssu
 	head->data[0] = lssu_status;
 }
 
-static void make_fisu(struct mtp2 *link, unsigned char *buf, int *size, int nack)
+static void make_fisu(struct mtp2 *link, unsigned char *buf, unsigned int *size, int nack)
 {
 	struct mtp_su_head *h;
 
@@ -203,7 +203,7 @@ int mtp2_transmit(struct mtp2 *link)
 	int res = 0;
 	unsigned char *h;
 	unsigned char buf[64];
-	int size;
+	unsigned int size;
 	struct ss7_msg *m = NULL;
 
 	if (link->tx_q)

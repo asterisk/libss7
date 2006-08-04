@@ -10,7 +10,7 @@
 #define mtp_error ss7_error
 #define mtp_message ss7_message
 
-unsigned char testmessage[] = "2564286288";
+char testmessage[] = "2564286288";
 
 #define mtp3_size(ss7) (((ss7)->switchtype == SS7_ITU) ? 5 : 8) 
 /* Routing label size */

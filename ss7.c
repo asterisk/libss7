@@ -269,7 +269,7 @@ int ss7_write(struct ss7 *ss7, int fd)
 
 int ss7_read(struct ss7 *ss7, int fd)
 {
-	char buf[1024];
+	unsigned char buf[1024];
 	int res;
 	int winner = -1;
 	int i;
