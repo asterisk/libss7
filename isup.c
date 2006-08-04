@@ -169,7 +169,7 @@ static void isup_dump_buffer(struct ss7 *ss7, unsigned char *data, int len)
 	ss7_message(ss7, "]\n");
 }
 
-static void isup_get_number(char *dest, char *src, int srclen, int oddeven)
+static void isup_get_number(char *dest, unsigned char *src, int srclen, int oddeven)
 {
 	int i;
 	for (i = 0; i < ((srclen * 2) - oddeven); i++)
@@ -178,7 +178,7 @@ static void isup_get_number(char *dest, char *src, int srclen, int oddeven)
 	dest[i] = '\0'; 
 }
 
-static void isup_put_number(char *dest, char *src, int *len, int *oddeven)
+static void isup_put_number(unsigned char *dest, char *src, int *len, int *oddeven)
 {
 	int i = 0;
 	int numlen = strlen(src);
