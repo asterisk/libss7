@@ -935,6 +935,15 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len
 			e->rlc.cic = c->cic;
 			isup_free_call(ss7, c);
 			return 0;
+		case ISUP_COT:
+			e->e = ISUP_EVENT_COT;
+			e->cot.cic = c->cic;
+			e->cot.passed = c->cot_check_passed;
+			return 0;
+		case ISUP_CCR:
+			e->e = ISUP_EVENT_CCR;
+			e->ccr.cic = c->cic;
+			return 0;
 		default:
 			ss7_error(ss7, "!! Unable to handle message type %s\n", message2str(mh->type));
 			return -1;

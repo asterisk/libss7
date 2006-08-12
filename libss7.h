@@ -15,6 +15,8 @@
 #define ISUP_EVENT_GRS		10
 #define ISUP_EVENT_GRA		11
 #define ISUP_EVENT_CON		12
+#define ISUP_EVENT_COT		13
+#define ISUP_EVENT_CCR		14
 
 /* Different SS7 types */
 #define SS7_ITU		(1 << 0)
@@ -86,6 +88,17 @@ typedef struct {
 
 typedef struct {
 	int e;
+	int cic;
+	int passed;
+} ss7_event_cot;
+
+typedef struct {
+	int e;
+	int cic;
+} ss7_event_ccr;
+
+typedef struct {
+	int e;
 	unsigned int data;
 } ss7_event_generic;
 
@@ -100,6 +113,8 @@ typedef union {
 	ss7_event_anm anm;
 	ss7_event_acm acm;
 	ss7_event_con con;
+	ss7_event_cot cot;
+	ss7_event_ccr ccr;
 } ss7_event;
 
 void ss7_set_message(void (*func)(struct ss7 *ss7, char *message));
