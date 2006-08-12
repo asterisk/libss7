@@ -43,7 +43,7 @@ struct parm_func {
 };
 
 static int iam_params[] = {ISUP_PARM_NATURE_OF_CONNECTION_IND, ISUP_PARM_FORWARD_CALL_IND, ISUP_PARM_CALLING_PARTY_CAT,
-	ISUP_PARM_TRANSMISSION_MEDIUM_REQS, ISUP_PARM_CALLED_PARTY_NUM, ISUP_PARM_CALLING_PARTY_NUM, -1}; /* Don't have optional IEs */
+	ISUP_PARM_TRANSMISSION_MEDIUM_REQS, ISUP_PARM_USER_SERVICE_INFO, ISUP_PARM_CALLED_PARTY_NUM, ISUP_PARM_CALLING_PARTY_NUM, -1}; /* Don't have optional IEs */
 
 static int acm_params[] = {ISUP_PARM_BACKWARD_CALL_IND, -1};
 
@@ -56,6 +56,10 @@ static int rel_params[] = { ISUP_PARM_CAUSE, -1};
 static int rlc_params[] = { -1};
 
 static int grs_params[] = { ISUP_PARM_RANGE_AND_STATUS, -1};
+
+static int cot_params[] = { ISUP_PARM_CONTINUITY_IND, -1};
+
+static int ccr_params[] = { -1};
 
 static struct message_data {
 	int messagetype;
@@ -72,6 +76,8 @@ static struct message_data {
 	{ISUP_RLC, 0, 0, 1, rlc_params},
 	{ISUP_GRS, 0, 1, 0, grs_params},
 	{ISUP_GRA, 0, 1, 0, grs_params},
+	{ISUP_COT, 1, 0, 0, cot_params},
+	{ISUP_CCR, 0, 0, 0, ccr_params},
 };
 
 static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagetype, int parms[]);
@@ -93,6 +99,10 @@ static char * message2str(unsigned char message)
 			return "GRS";
 		case ISUP_GRA:
 			return "GRA";
+		case ISUP_COT:
+			return "COT";
+		case ISUP_CCR:
+			return "CCR";
 		default:
 			return "Unknown";
 	}
@@ -209,8 +219,6 @@ static FUNC_SEND(nature_of_connection_ind_transmit)
 
 static FUNC_RECV(nature_of_connection_ind_receive)
 {
-	c->echocan = (parm[0] & 0x10) >> 4;
-	c->satellites = parm[0] & 0x3;
 	return 1;
 }
 
@@ -249,34 +257,18 @@ static FUNC_DUMP(nature_of_connection_ind_dump)
 static FUNC_SEND(forward_call_ind_transmit)
 {
 	parm[0] = 0x60;
-
-#if 0
-	if (c->international)
-		parm[0] |= 0x01;
-#endif
-
 	parm[1] = 0x01;
-
-#if 0
-	if (c->originatedisdn)
-		parm[1] |= 0x01;
-#endif
 	
 	return 2;
 }
 
 static FUNC_RECV(forward_call_ind_receive)
 {
-#if 0
-	c->international = parm[0] & 0x01;
-	c->originatedisdn = parm[1] & 0x01;
-#endif
 	return 2;
 }
 
 static FUNC_RECV(calling_party_cat_receive)
 {
-	/* TODO */
 	return 1;
 }
 	
@@ -294,6 +286,10 @@ static FUNC_RECV(user_service_info_receive)
 
 static FUNC_SEND(user_service_info_transmit)
 {
+	/* Don't include if it's an ITU style network */
+	if (ss7->switchtype != SS7_ANSI)
+		return 0;
+
 	parm[0] = 0x80; /* Default to ITU standardized coding */
 	parm[0] |= c->transcap;
 
@@ -306,6 +302,9 @@ static FUNC_SEND(user_service_info_transmit)
 
 static FUNC_SEND(transmission_medium_reqs_transmit)
 {
+	/* Don't include transmission medium requirements in an ANSI environment */
+	if (ss7->switchtype != SS7_ITU)
+		return 0;
 	/* Speech */
 	parm[0] = 0;
 	return 1;
@@ -348,11 +347,6 @@ static FUNC_SEND(called_party_num_transmit)
 
 static FUNC_RECV(backward_call_ind_receive)
 {
-	if (parm[1] & 0x20)
-		c->echocan = 1;
-	else 
-		c->echocan = 0;
-
 	return 2;
 }
 
@@ -360,8 +354,6 @@ static FUNC_SEND(backward_call_ind_transmit)
 {
 	parm[0] = 0x40;
 	parm[1] = 0x14;
-	if (c->echocan)
-		parm[1] |= 0x20;
 	return 2;
 }
 
@@ -459,6 +451,33 @@ static FUNC_SEND(calling_party_num_transmit)
 	return datalen + 2;
 }
 
+static FUNC_SEND(continuity_ind_transmit)
+{
+	if (c->cot_check_passed)
+		parm[0] = 0x01;
+	else
+		parm[0] = 0x00;
+
+	return 1;
+}
+
+static FUNC_RECV(continuity_ind_receive)
+{
+	if (0x1 & parm[0])
+		c->cot_check_passed = 1;
+	else
+		c->cot_check_passed = 0;
+	return 1;
+}
+
+static FUNC_DUMP(continuity_ind_dump)
+{
+	ss7_message(ss7, "PARM: Continuity Indicator\n");
+	ss7_message(ss7, "Continuity Check: %s\n", (0x01 & parm[0]) ? "successful" : "failed");
+
+	return 1;
+}
+
 static struct parm_func parms[] = {
 	{ISUP_PARM_NATURE_OF_CONNECTION_IND, "Nature of Connection Indicator", nature_of_connection_ind_dump, nature_of_connection_ind_receive, nature_of_connection_ind_transmit },
 	{ISUP_PARM_FORWARD_CALL_IND, "Forward Call Indicator", NULL, forward_call_ind_receive, forward_call_ind_transmit },
@@ -467,6 +486,7 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_USER_SERVICE_INFO, "User Service Information", NULL, user_service_info_receive, user_service_info_transmit},
 	{ISUP_PARM_CALLED_PARTY_NUM, "Called Party Number", NULL, called_party_num_receive, called_party_num_transmit},
 	{ISUP_PARM_CAUSE, "Cause Indicator", NULL, cause_receive, cause_transmit},
+	{ISUP_PARM_CONTINUITY_IND, "Continuity Indicator", continuity_ind_dump, continuity_ind_receive, continuity_ind_transmit},
 	{ISUP_PARM_ACCESS_TRANS, "Access Transport"},
 	{ISUP_PARM_BUSINESS_GRP, "Business Group"},
 	{ISUP_PARM_CALL_REF, "Call Reference"},

@@ -85,6 +85,7 @@ Contains definitions and data structurs for the ISUP portion of SS7
 #define ISUP_PARM_CHARGE_NUMBER 0xeb
 #define ISUP_PARM_CIRCUIT_ASSIGNMENT_MAP 0x25
 #define ISUP_PARM_CONNECTION_REQ 0x0d
+#define ISUP_PARM_CONTINUITY_IND 0x10
 #define ISUP_PARM_CUG_INTERLOCK_CODE 0x1c
 #define ISUP_PARM_EGRESS_SERV 0xc3
 #define ISUP_PARM_GENERIC_ADDR 0xc0
@@ -117,15 +118,13 @@ struct isup_call {
 	char called_party_num[ISUP_MAX_NUM];
 	char calling_party_num[ISUP_MAX_NUM];
 	int range;
-	int echocan;
-	int satellites;
 	int international;
-	int originatedisdn;
 	int transcap;
 	int l1prot;
 	int cause;
 	int causecode;
 	int causeloc;
+	int cot_check_passed;
 	unsigned short cic;
 	unsigned short slc;
 	struct isup_call *next;

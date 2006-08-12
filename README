@@ -8,6 +8,11 @@ allow support for ANSI as well as the various national specific variants
 in the future.  For a working reference implementation, see the various
 link test programs, as well as the Asterisk Open Source PBX.
 
+License:
+========
+libss7 is covered under the GPL (Gnu Public License) version 2.  For more
+information, see http://www.gnu.org/
+
 TODO:
 =====
 ANSI-style signalling support
