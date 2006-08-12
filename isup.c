@@ -213,12 +213,22 @@ static void isup_put_number(unsigned char *dest, char *src, int *len, int *oddev
 static FUNC_SEND(nature_of_connection_ind_transmit)
 {
 	parm[0] = 0x00;
+
+	if (c->cot_check_required)
+		parm[0] |= 0x04;
 	
 	return 1; /* Length plus size of type header */
 }
 
 static FUNC_RECV(nature_of_connection_ind_receive)
 {
+	unsigned char cci = (parm[0] >> 2) & 0x3;
+
+	if (cci == 0x1)
+		c->cot_check_required = 1;
+	else
+		c->cot_check_required = 0;
+
 	return 1;
 }
 
@@ -894,6 +904,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len
 			e->e = ISUP_EVENT_IAM;
 			e->iam.cic = c->cic;
 			e->iam.transcap = c->transcap;
+			e->iam.cot_check_required = c->cot_check_required;
 			strncpy(e->iam.called_party_num, c->called_party_num, sizeof(e->iam.called_party_num));
 			strncpy(e->iam.calling_party_num, c->calling_party_num, sizeof(e->iam.calling_party_num));
 			e->iam.call = c;
@@ -939,6 +950,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len
 			e->e = ISUP_EVENT_COT;
 			e->cot.cic = c->cic;
 			e->cot.passed = c->cot_check_passed;
+			e->cot.call = c;
 			return 0;
 		case ISUP_CCR:
 			e->e = ISUP_EVENT_CCR;

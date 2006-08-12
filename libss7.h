@@ -40,6 +40,7 @@ typedef struct {
 	int e;
 	int cic;
 	int transcap;
+	int cot_check_required;
 	char called_party_num[50];
 	char calling_party_num[50];
 	struct isup_call *call;
@@ -90,6 +91,7 @@ typedef struct {
 	int e;
 	int cic;
 	int passed;
+	struct isup_call *call;
 } ss7_event_cot;
 
 typedef struct {

@@ -125,6 +125,7 @@ struct isup_call {
 	int causecode;
 	int causeloc;
 	int cot_check_passed;
+	int cot_check_required;
 	unsigned short cic;
 	unsigned short slc;
 	struct isup_call *next;
