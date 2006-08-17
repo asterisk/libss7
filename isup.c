@@ -884,8 +884,8 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len
 
 			if (res < 0) {
 				ss7_error(ss7, "Unhandled optional parameter 0x%x '%s'\n", optparm->type, param2str(optparm->type));
-				isup_dump_buffer(ss7, mh->data + offset, len);
-				return 0;
+				isup_dump_buffer(ss7, optparm->data, optparm->len);
+				res = optparm->len + 2;
 			}
 
 			len -= res;
