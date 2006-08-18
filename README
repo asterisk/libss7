@@ -26,6 +26,13 @@ contains sample configuration for setting up an E1 link.
 
 TODO:
 =====
+
+short term:
+block/unblock
+SUS/RES
+CPG
+
+long term:
 ANSI-style signalling support
 Continuity check messages
 SCCP support

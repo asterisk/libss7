@@ -17,6 +17,10 @@
 #define ISUP_EVENT_CON		12
 #define ISUP_EVENT_COT		13
 #define ISUP_EVENT_CCR		14
+#define ISUP_EVENT_BLO		15
+#define ISUP_EVENT_UBL		16
+#define ISUP_EVENT_BLA		17
+#define ISUP_EVENT_UBA		18
 
 /* Different SS7 types */
 #define SS7_ITU		(1 << 0)
@@ -55,7 +59,7 @@ typedef struct {
 typedef struct {
 	int e;
 	int cic;
-} ss7_event_rlc;
+} ss7_event_ciconly;
 
 typedef struct {
 	int e;
@@ -96,11 +100,6 @@ typedef struct {
 
 typedef struct {
 	int e;
-	int cic;
-} ss7_event_ccr;
-
-typedef struct {
-	int e;
 	unsigned int data;
 } ss7_event_generic;
 
@@ -111,12 +110,16 @@ typedef union {
 	ss7_event_grs grs;
 	ss7_event_gra gra;
 	ss7_event_rel rel;
-	ss7_event_rlc rlc;
+	ss7_event_ciconly rlc;
 	ss7_event_anm anm;
 	ss7_event_acm acm;
 	ss7_event_con con;
 	ss7_event_cot cot;
-	ss7_event_ccr ccr;
+	ss7_event_ciconly ccr;
+	ss7_event_ciconly blo;
+	ss7_event_ciconly ubl;
+	ss7_event_ciconly bla;
+	ss7_event_ciconly uba;
 } ss7_event;
 
 void ss7_set_message(void (*func)(struct ss7 *ss7, char *message));
@@ -172,6 +175,14 @@ int isup_rlc(struct ss7 *ss7, struct isup_call *c);
 int isup_gra(struct ss7 *ss7, int begincic, int endcic);
 
 int isup_grs(struct ss7 *ss7, int begincic, int endcic);
+
+int isup_blo(struct ss7 *ss7, int cic);
+
+int isup_ubl(struct ss7 *ss7, int cic);
+
+int isup_bla(struct ss7 *ss7, int cic);
+
+int isup_uba(struct ss7 *ss7, int cic);
 
 void isup_init_call(struct isup_call *c, int cic, char *calledpartynum, char *callingpartynum);
 #endif /* _LIBSS7_H */

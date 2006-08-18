@@ -53,13 +53,11 @@ static int con_params[] = { ISUP_PARM_BACKWARD_CALL_IND, -1};
 
 static int rel_params[] = { ISUP_PARM_CAUSE, -1};
 
-static int rlc_params[] = { -1};
-
 static int grs_params[] = { ISUP_PARM_RANGE_AND_STATUS, -1};
 
 static int cot_params[] = { ISUP_PARM_CONTINUITY_IND, -1};
 
-static int ccr_params[] = { -1};
+static int empty_params[] = { -1};
 
 static struct message_data {
 	int messagetype;
@@ -73,11 +71,15 @@ static struct message_data {
 	{ISUP_ANM, 0, 0, 1, anm_params},
 	{ISUP_CON, 1, 0, 1, con_params},
 	{ISUP_REL, 0, 1, 1, rel_params},
-	{ISUP_RLC, 0, 0, 1, rlc_params},
+	{ISUP_RLC, 0, 0, 1, empty_params},
 	{ISUP_GRS, 0, 1, 0, grs_params},
 	{ISUP_GRA, 0, 1, 0, grs_params},
 	{ISUP_COT, 1, 0, 0, cot_params},
-	{ISUP_CCR, 0, 0, 0, ccr_params},
+	{ISUP_CCR, 0, 0, 0, empty_params},
+	{ISUP_BLO, 0, 0, 0, empty_params},
+	{ISUP_UBL, 0, 0, 0, empty_params},
+	{ISUP_BLA, 0, 0, 0, empty_params},
+	{ISUP_UBA, 0, 0, 0, empty_params},
 };
 
 static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagetype, int parms[]);
@@ -957,6 +959,26 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len
 			e->e = ISUP_EVENT_CCR;
 			e->ccr.cic = c->cic;
 			return 0;
+		case ISUP_BLO:
+			e->e = ISUP_EVENT_BLO;
+			e->blo.cic = c->cic;
+			isup_free_call(ss7, c);
+			return 0;
+		case ISUP_UBL:
+			e->e = ISUP_EVENT_UBL;
+			e->ubl.cic = c->cic;
+			isup_free_call(ss7, c);
+			return 0;
+		case ISUP_BLA:
+			e->e = ISUP_EVENT_BLA;
+			e->bla.cic = c->cic;
+			isup_free_call(ss7, c);
+			return 0;
+		case ISUP_UBA:
+			e->e = ISUP_EVENT_UBA;
+			e->uba.cic = c->cic;
+			isup_free_call(ss7, c);
+			return 0;
 		default:
 			ss7_error(ss7, "!! Unable to handle message type %s\n", message2str(mh->type));
 			return -1;
@@ -1013,8 +1035,37 @@ int isup_rel(struct ss7 *ss7, struct isup_call *c, int cause)
 int isup_rlc(struct ss7 *ss7, struct isup_call *c)
 {
 	int res;
-	res = isup_send_message(ss7, c, ISUP_RLC, rlc_params);
+	res = isup_send_message(ss7, c, ISUP_RLC, empty_params);
 	isup_free_call(ss7, c);
 	return res;
+}
+
+static int isup_send_message_ciconly(struct ss7 *ss7, int messagetype, int cic)
+{
+	int res;
+	struct isup_call c;
+	c.cic = cic;
+	res = isup_send_message(ss7, &c, messagetype, empty_params);
+	return res;
+}
+
+int isup_blo(struct ss7 *ss7, int cic)
+{
+	return isup_send_message_ciconly(ss7, ISUP_BLO, cic);
+}
+
+int isup_ubl(struct ss7 *ss7, int cic)
+{
+	return isup_send_message_ciconly(ss7, ISUP_UBL, cic);
+}
+
+int isup_bla(struct ss7 *ss7, int cic)
+{
+	return isup_send_message_ciconly(ss7, ISUP_BLA, cic);
+}
+
+int isup_uba(struct ss7 *ss7, int cic)
+{
+	return isup_send_message_ciconly(ss7, ISUP_UBA, cic);
 }
 /* Janelle is the bomb (Again) */
