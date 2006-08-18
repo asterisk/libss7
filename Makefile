@@ -4,6 +4,7 @@ OSARCH=$(shell uname -s)
 
 INSTALL_PREFIX?=
 INSTALL_BASE=/usr
+libdir?=$(INSTALL_BASE)/lib
 STATIC_OBJS=mtp2.o ss7_sched.o ss7.o mtp3.o isup.o
 DYNAMIC_OBJS=mtp2.o ss7_sched.o ss7.o mtp3.o isup.o
 STATIC_LIBRARY=libss7.a
@@ -24,13 +25,13 @@ clean:
 	rm -f .depend
 
 install: $(STATIC_LIBRARY) $(DYNAMIC_LIBRARY)
-	mkdir -p $(INSTALL_PREFIX)$(INSTALL_BASE)/lib
+	mkdir -p $(INSTALL_PREFIX)$(libdir)
 	mkdir -p $(INSTALL_PREFIX)$(INSTALL_BASE)/include
 
 	install -m 644 libss7.h $(INSTALL_PREFIX)$(INSTALL_BASE)/include
-	install -m 755 $(DYNAMIC_LIBRARY) $(INSTALL_PREFIX)$(INSTALL_BASE)/lib
-	( cd $(INSTALL_PREFIX)$(INSTALL_BASE)/lib ; ln -sf libss7.so.1 libss7.so ; $(SOSLINK) )
-	install -m 644 $(STATIC_LIBRARY) $(INSTALL_PREFIX)$(INSTALL_BASE)/lib
+	install -m 755 $(DYNAMIC_LIBRARY) $(INSTALL_PREFIX)$(libdir)
+	( cd $(INSTALL_PREFIX)$(libdir) ; ln -sf libss7.so.1 libss7.so ; $(SOSLINK) )
+	install -m 644 $(STATIC_LIBRARY) $(INSTALL_PREFIX)$(libdir)
 
 	if test $$(id -u) = 0; then $(LDCONFIG); fi
 
