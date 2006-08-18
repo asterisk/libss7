@@ -13,6 +13,17 @@ License:
 libss7 is covered under the GPL (Gnu Public License) version 2.  For more
 information, see http://www.gnu.org/
 
+To Use:
+=======
+Currently, to use it with asterisk you need to check out a special branch as follows:
+svn co http://svn.digium.com/svn/asterisk/team/mattf/asterisk-ss7
+
+In zaptel.conf, your signalling channel should be a "dchan" and your bearers should
+be set as "bchan".
+
+In the asterisk-ss7 branch, there is a sample zapata.conf that is installed which
+contains sample configuration for setting up an E1 link.
+
 TODO:
 =====
 ANSI-style signalling support

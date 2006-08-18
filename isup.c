@@ -512,6 +512,7 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_GENERIC_DIGITS, "Generic Digits"},
 	{ISUP_PARM_GENERIC_NAME, "Generic Name"},
 	{ISUP_PARM_GENERIC_NOTIFICATION_IND, "Generic Notification Indication"},
+	{ISUP_PARM_PROPAGATION_DELAY, "Propagation Delay"},
 	{ISUP_PARM_BACKWARD_CALL_IND, "Backward Call Indicator", NULL, backward_call_ind_receive, backward_call_ind_transmit},
 	{ISUP_PARM_RANGE_AND_STATUS, "Range and status", range_and_status_dump, range_and_status_receive, range_and_status_transmit},
 };
