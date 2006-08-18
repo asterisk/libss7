@@ -24,3 +24,7 @@ lists (I monitor those regularly) or email me personally.
 
 Matthew Fredrickson
 creslin@digium.com
+
+Tested Switches:
+================
+Siemens EWSD - (ITU style) MTP2 comes up, Receives calls fine.
