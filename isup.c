@@ -132,7 +132,7 @@ static char char2digit(char localchar)
 		case '9':
 			return 9;
 		case '*':
-			return 0xf;
+			return '\0';
 		default:
 			return 0;
 	}
