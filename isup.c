@@ -105,6 +105,14 @@ static char * message2str(unsigned char message)
 			return "COT";
 		case ISUP_CCR:
 			return "CCR";
+		case ISUP_BLO:
+			return "BLO";
+		case ISUP_UBL:
+			return "UBL";
+		case ISUP_BLA:
+			return "BLA";
+		case ISUP_UBA:
+			return "UBA";
 		default:
 			return "Unknown";
 	}
