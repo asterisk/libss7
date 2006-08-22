@@ -26,10 +26,6 @@ Contains user interface to ss7 library
 #define mtp_message ss7_message
 #define SOCKET_TEST
 
-/* #define DEBUG_MTP2 */
-#define DEBUG_MTP2
-
-
 #if 0
 static inline int len_txbuf(struct mtp2 *link)
 {
@@ -377,7 +373,9 @@ static void t3_expiry(void * data)
 static void t4_expiry(void * data)
 {
 	struct mtp2 *link = data;
-	ss7_message(link->master, "T4 expired!\n");
+
+	if (link->master->debug & SS7_DEBUG_MTP2)
+		ss7_message(link->master, "T4 expired!\n");
 
 	mtp2_setstate(link, MTP_ALIGNEDREADY);
 
@@ -399,9 +397,9 @@ int mtp2_setstate(struct mtp2 *link, int newstate)
 {
 	ss7_event *e;
 
-#ifdef DEBUG_MTP2
-	mtp_message(link->master, "Link state change: %s -> %s\n", linkstate2str(link->state), linkstate2str(newstate));
-#endif
+	if (link->master->debug & SS7_DEBUG_MTP2)
+		mtp_message(link->master, "Link state change: %s -> %s\n", linkstate2str(link->state), linkstate2str(newstate));
+
 	switch (link->state) {
 		case MTP_IDLE:
 			link->t2 = ss7_schedule_event(link->master, link->timers.t2, t2_expiry, link);
