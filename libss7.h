@@ -21,6 +21,10 @@
 #define ISUP_EVENT_UBL		16
 #define ISUP_EVENT_BLA		17
 #define ISUP_EVENT_UBA		18
+#define ISUP_EVENT_CGB		19
+#define ISUP_EVENT_CGU		20
+#define ISUP_EVENT_CGBA		19
+#define ISUP_EVENT_CGUA		20
 
 /* Different SS7 types */
 #define SS7_ITU		(1 << 0)
@@ -83,13 +87,7 @@ typedef struct {
 	int e;
 	int startcic;
 	int endcic;
-} ss7_event_grs;
-
-typedef struct {
-	int e;
-	int startcic;
-	int endcic;
-} ss7_event_gra;
+} ss7_event_cicrange;
 
 typedef struct {
 	int e;
@@ -107,8 +105,8 @@ typedef union {
 	int e;
 	ss7_event_generic gen;
 	ss7_event_iam iam;
-	ss7_event_grs grs;
-	ss7_event_gra gra;
+	ss7_event_cicrange grs;
+	ss7_event_cicrange gra;
 	ss7_event_rel rel;
 	ss7_event_ciconly rlc;
 	ss7_event_anm anm;

@@ -34,11 +34,11 @@ CPG
 
 long term:
 ANSI-style signalling support
-Continuity check messages
+Continuity check messages - Completed
 SCCP support
 
 For more information, please use the Asterisk-ss7 or Asterisk-dev mailing
-lists (I monitor those regularly) or email me personally.
+lists (I monitor them regularly) or email me directly.
 
 Matthew Fredrickson
 creslin@digium.com
