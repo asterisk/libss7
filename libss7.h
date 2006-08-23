@@ -107,6 +107,8 @@ typedef union {
 	ss7_event_iam iam;
 	ss7_event_cicrange grs;
 	ss7_event_cicrange gra;
+	ss7_event_cicrange cgb;
+	ss7_event_cicrange cgu;
 	ss7_event_rel rel;
 	ss7_event_ciconly rlc;
 	ss7_event_anm anm;

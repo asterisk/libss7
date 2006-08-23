@@ -1,4 +1,3 @@
-#define SOCKET_TEST
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>

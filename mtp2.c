@@ -24,7 +24,6 @@ Contains user interface to ss7 library
 
 #define mtp_error ss7_error
 #define mtp_message ss7_message
-#define SOCKET_TEST
 
 #if 0
 static inline int len_txbuf(struct mtp2 *link)
