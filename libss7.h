@@ -109,6 +109,8 @@ typedef union {
 	ss7_event_cicrange gra;
 	ss7_event_cicrange cgb;
 	ss7_event_cicrange cgu;
+	ss7_event_cicrange cgba;
+	ss7_event_cicrange cgua;
 	ss7_event_rel rel;
 	ss7_event_ciconly rlc;
 	ss7_event_anm anm;
@@ -175,6 +177,14 @@ int isup_rlc(struct ss7 *ss7, struct isup_call *c);
 int isup_gra(struct ss7 *ss7, int begincic, int endcic);
 
 int isup_grs(struct ss7 *ss7, int begincic, int endcic);
+
+int isup_cgb(struct ss7 *ss7, int begincic, int endcic);
+
+int isup_cgu(struct ss7 *ss7, int begincic, int endcic);
+
+int isup_cgba(struct ss7 *ss7, int begincic, int endcic);
+
+int isup_cgua(struct ss7 *ss7, int begincic, int endcic);
 
 int isup_blo(struct ss7 *ss7, int cic);
 

@@ -53,7 +53,7 @@ static int con_params[] = { ISUP_PARM_BACKWARD_CALL_IND, -1};
 
 static int rel_params[] = { ISUP_PARM_CAUSE, -1};
 
-static int grs_params[] = { ISUP_PARM_RANGE_AND_STATUS, -1};
+static int cicgroup_params[] = { ISUP_PARM_RANGE_AND_STATUS, -1};
 
 static int cot_params[] = { ISUP_PARM_CONTINUITY_IND, -1};
 
@@ -72,8 +72,12 @@ static struct message_data {
 	{ISUP_CON, 1, 0, 1, con_params},
 	{ISUP_REL, 0, 1, 1, rel_params},
 	{ISUP_RLC, 0, 0, 1, empty_params},
-	{ISUP_GRS, 0, 1, 0, grs_params},
-	{ISUP_GRA, 0, 1, 0, grs_params},
+	{ISUP_GRS, 0, 1, 0, cicgroup_params},
+	{ISUP_GRA, 0, 1, 0, cicgroup_params},
+	{ISUP_CGB, 0, 1, 0, cicgroup_params},
+	{ISUP_CGU, 0, 1, 0, cicgroup_params},
+	{ISUP_CGBA, 0, 1, 0, cicgroup_params},
+	{ISUP_CGUA, 0, 1, 0, cicgroup_params},
 	{ISUP_COT, 1, 0, 0, cot_params},
 	{ISUP_CCR, 0, 0, 0, empty_params},
 	{ISUP_BLO, 0, 0, 0, empty_params},
@@ -113,6 +117,14 @@ static char * message2str(unsigned char message)
 			return "BLA";
 		case ISUP_UBA:
 			return "UBA";
+		case ISUP_CGB:
+			return "CGB";
+		case ISUP_CGU:
+			return "CGU";
+		case ISUP_CGBA:
+			return "CGBA";
+		case ISUP_CGUA:
+			return "CGUA";
 		default:
 			return "Unknown";
 	}
@@ -420,8 +432,14 @@ static FUNC_SEND(range_and_status_transmit)
 	
 	statuslen = (numcics / 8) + !!(numcics % 8);
 
-	for (i = 0; i < statuslen; i++) {
-		parm[1 + i] = 0;
+	if (messagetype == ISUP_GRA) {
+		for (i = 0; i < statuslen; i++) {
+			parm[1 + i] = 0;
+		}
+	} else {
+		for (i = 0; i < statuslen; i++) {
+			parm[1 + i] = 0xff;
+		}
 	}
 
 	return statuslen + 1;
@@ -987,26 +1005,60 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len
 			e->uba.cic = c->cic;
 			isup_free_call(ss7, c);
 			return 0;
+		case ISUP_CGB:
+			e->e = ISUP_EVENT_CGB;
+			e->cgb.startcic = cic;
+			e->cgb.endcic = cic + c->range;
+			isup_free_call(ss7, c);
+			return 0;
+		case ISUP_CGU:
+			e->e = ISUP_EVENT_CGU;
+			e->cgu.startcic = cic;
+			e->cgu.endcic = cic + c->range;
+			isup_free_call(ss7, c);
+			return 0;
 		default:
 			ss7_error(ss7, "!! Unable to handle message type %s\n", message2str(mh->type));
 			return -1;
 	}
 }
 
-int isup_grs(struct ss7 *ss7, int begincic, int endcic)
+static int isup_send_cicgroupmessage(struct ss7 *ss7, int messagetype, int begincic, int endcic)
 {
 	struct isup_call call;
 	call.cic = begincic;
 	call.range = endcic - begincic;
-	return isup_send_message(ss7, &call, ISUP_GRS, grs_params);
+	return isup_send_message(ss7, &call, messagetype, cicgroup_params);
+}
+
+int isup_grs(struct ss7 *ss7, int begincic, int endcic)
+{
+	return isup_send_cicgroupmessage(ss7, ISUP_GRS, begincic, endcic);
 }
 
 int isup_gra(struct ss7 *ss7, int begincic, int endcic)
 {
-	struct isup_call call;
-	call.cic = begincic;
-	call.range = endcic - begincic;
-	return isup_send_message(ss7, &call, ISUP_GRA, grs_params);
+	return isup_send_cicgroupmessage(ss7, ISUP_GRA, begincic, endcic);
+}
+
+int isup_cgb(struct ss7 *ss7, int begincic, int endcic)
+{
+	return isup_send_cicgroupmessage(ss7, ISUP_CGB, begincic, endcic);
+}
+
+int isup_cgu(struct ss7 *ss7, int begincic, int endcic)
+{
+	return isup_send_cicgroupmessage(ss7, ISUP_CGU, begincic, endcic);
+}
+
+int isup_cgba(struct ss7 *ss7, int begincic, int endcic)
+{
+	return isup_send_cicgroupmessage(ss7, ISUP_CGBA, begincic, endcic);
+}
+
+int isup_cgua(struct ss7 *ss7, int begincic, int endcic)
+{
+	return isup_send_cicgroupmessage(ss7, ISUP_CGUA, begincic, endcic);
 }
 
 int isup_iam(struct ss7 *ss7, struct isup_call *c)
