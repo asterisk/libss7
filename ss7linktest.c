@@ -140,6 +140,12 @@ void *ss7_run(void *data)
 						printf("Making phone call!\n");
 						ss7_call(ss7);
 						break;
+					case ISUP_EVENT_BLO:
+						isup_bla(ss7, e->blo.cic);
+						break;
+					case ISUP_EVENT_CGB:
+						isup_cgba(ss7, e->cgb.startcic, e->cgb.endcic);
+						break;
 					case ISUP_EVENT_IAM:
 						printf("Got IAM for cic %d and number %s\n", e->iam.cic, e->iam.called_party_num);
 						printf("CallerID is %s\n", e->iam.calling_party_num);

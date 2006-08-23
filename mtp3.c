@@ -189,12 +189,49 @@ static int net_mng_receive(struct ss7 *ss7, struct mtp2 *mtp2, unsigned char *bu
 
 	/* Check to see if it's a TRA */
 	if ((h0 == 7) && (h1 == 1)) {
-		std_test_send(mtp2);
+		ss7_event *e = ss7_next_empty_event(ss7);
+
+		if (!e) {
+			mtp_error(ss7, "Event queue full\n");
+			return -1;
+		}
+		e->e = SS7_EVENT_UP;
 		return 0;
 	} else {
 		ss7_error(ss7, "!! Unable to handle SIG_NET_MNG message with H1 = %d and H0 = %d\n", h1, h0);
 		return -1;
 	}
+}
+
+static void net_mng_send_tra(struct mtp2 *link)
+{
+	struct ss7_msg *m;
+	unsigned char *layer4;
+	struct routing_label rl;
+	struct ss7 *ss7 = link->master;
+	int rllen = 0;
+
+	m = ss7_msg_new();
+	if (!m) {
+		ss7_error(link->master, "Malloc failed on ss7_msg!.  Unable to transmit NET_MNG TRA\n");
+		return;
+	}
+
+	layer4 = ss7_msg_userpart(m);
+	rl.type = ss7->switchtype;
+	rl.opc = ss7->pc;
+	rl.dpc = link->dpc;
+	rl.sls = link->slc;
+
+	rllen = set_routinglabel(layer4, &rl);
+	layer4 += rllen;
+
+	set_h0(layer4, 7);
+	set_h1(layer4, 1);
+
+	ss7_msg_userpart_len(m, rllen + 1);
+
+	mtp3_transmit(link->master, SIG_NET_MNG, link->slc, m);
 }
 
 static int std_test_receive(struct ss7 *ss7, struct mtp2 *mtp2, unsigned char *buf, int len)
@@ -251,51 +288,14 @@ static int std_test_receive(struct ss7 *ss7, struct mtp2 *mtp2, unsigned char *b
 
 		return mtp3_transmit(ss7, SIG_STD_TEST, mtp2->slc, m);
 	} else if (h1 == 2) {
+		net_mng_send_tra(mtp2);
 		/* Event Link up */
-		ss7_event *e = ss7_next_empty_event(ss7);
-
-		if (!e) {
-			mtp_error(ss7, "Event queue full\n");
-			return -1;
-		}
-		e->e = SS7_EVENT_UP;
 		return 0;
 	} else
 		ss7_error(ss7, "Unhandled STD_TEST message: h0 = %x h1 = %x", h0, h1);
 
 fail:
 	return -1;
-}
-
-static void net_mng_send_tra(struct mtp2 *link)
-{
-	struct ss7_msg *m;
-	unsigned char *layer4;
-	struct routing_label rl;
-	struct ss7 *ss7 = link->master;
-	int rllen = 0;
-
-	m = ss7_msg_new();
-	if (!m) {
-		ss7_error(link->master, "Malloc failed on ss7_msg!.  Unable to transmit NET_MNG TRA\n");
-		return;
-	}
-
-	layer4 = ss7_msg_userpart(m);
-	rl.type = ss7->switchtype;
-	rl.opc = ss7->pc;
-	rl.dpc = link->dpc;
-	rl.sls = link->slc;
-
-	rllen = set_routinglabel(layer4, &rl);
-	layer4 += rllen;
-
-	set_h0(layer4, 7);
-	set_h1(layer4, 1);
-
-	ss7_msg_userpart_len(m, rllen + 1);
-
-	mtp3_transmit(link->master, SIG_NET_MNG, link->slc, m);
 }
 
 int mtp3_transmit(struct ss7 *ss7, unsigned char userpart, unsigned char sls, struct ss7_msg *m)
@@ -397,7 +397,7 @@ int mtp3_receive(struct ss7 *ss7, struct mtp2 *link, void *msg, int len)
 
 static void mtp3_event_link_up(struct mtp2 * link)
 {
-	net_mng_send_tra(link);
+	std_test_send(link);
 }
 
 static struct mtp2 * slc_to_mtp2(struct ss7 *ss7, unsigned int slc)
