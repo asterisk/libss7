@@ -137,14 +137,16 @@ void *ss7_run(void *data)
 						break;
 					case ISUP_EVENT_GRA:
 						printf("Got GRA from cic %d to %d.\n", e->gra.startcic, e->gra.endcic);
-						printf("Making phone call!\n");
-						ss7_call(ss7);
+						//ss7_call(ss7);
 						break;
 					case ISUP_EVENT_BLO:
 						isup_bla(ss7, e->blo.cic);
 						break;
 					case ISUP_EVENT_CGB:
-						isup_cgba(ss7, e->cgb.startcic, e->cgb.endcic);
+						isup_cgba(ss7, e->cgb.startcic, e->cgb.endcic, e->cgb.status);
+						break;
+					case ISUP_EVENT_CGU:
+						isup_cgua(ss7, e->cgb.startcic, e->cgb.endcic, e->cgb.status);
 						break;
 					case ISUP_EVENT_IAM:
 						printf("Got IAM for cic %d and number %s\n", e->iam.cic, e->iam.called_party_num);

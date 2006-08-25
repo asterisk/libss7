@@ -94,6 +94,7 @@ Contains definitions and data structurs for the ISUP portion of SS7
 #define ISUP_PARM_GENERIC_NOTIFICATION_IND 0x2c
 #define ISUP_PARM_BACKWARD_CALL_IND 0x11
 #define ISUP_PARM_CAUSE 0x12
+#define ISUP_PARM_CIRCUIT_GROUP_SUPERVISION_IND 0x15
 #define ISUP_PARM_RANGE_AND_STATUS 0x16
 #define ISUP_PARM_PROPAGATION_DELAY 0x31
 
@@ -119,6 +120,7 @@ struct isup_call {
 	char called_party_num[ISUP_MAX_NUM];
 	char calling_party_num[ISUP_MAX_NUM];
 	int range;
+	unsigned char status[255];
 	int international;
 	int transcap;
 	int l1prot;
