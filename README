@@ -24,17 +24,23 @@ be set as "bchan".
 In the asterisk-ss7 branch, there is a sample zapata.conf that is installed which
 contains sample configuration for setting up an E1 link.
 
+Completed:
+==========
+Basic call messages (IAM, ACM, ANM, REL, RLC)
+CIC Reset (GRS, GRA)
+Connect message (CON)
+CIC Blocking/Unblocking (CGB, CGBA, CGU, CGUA, BLO, BLA)
+Continuity Check (COT, CCR)
+
 TODO:
 =====
 
 short term:
-block/unblock
 SUS/RES
 CPG
 
 long term:
 ANSI-style signalling support
-Continuity check messages - Completed
 SCCP support
 
 For more information, please use the Asterisk-ss7 or Asterisk-dev mailing
