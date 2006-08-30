@@ -76,6 +76,12 @@ typedef struct {
 	int e;
 	int cic;
 	struct isup_call *call;
+} ss7_event_rsc;
+
+typedef struct {
+	int e;
+	int cic;
+	struct isup_call *call;
 } ss7_event_anm;
 
 typedef struct {
@@ -124,7 +130,7 @@ typedef union {
 	ss7_event_ciconly ubl;
 	ss7_event_ciconly bla;
 	ss7_event_ciconly uba;
-	ss7_event_ciconly rsc;
+	ss7_event_rsc rsc;
 } ss7_event;
 
 void ss7_set_message(void (*func)(struct ss7 *ss7, char *message));

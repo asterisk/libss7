@@ -1011,7 +1011,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len
 		case ISUP_RSC:
 			e->e = ISUP_EVENT_RSC;
 			e->rsc.cic = cic;
-			isup_free_call(ss7, c);
+			e->rsc.call = c;
 			return 0;
 		case ISUP_REL:
 			e->e = ISUP_EVENT_REL;
