@@ -86,6 +86,7 @@ static struct message_data {
 	{ISUP_UBL, 0, 0, 0, empty_params},
 	{ISUP_BLA, 0, 0, 0, empty_params},
 	{ISUP_UBA, 0, 0, 0, empty_params},
+	{ISUP_RSC, 0, 0, 0, empty_params},
 };
 
 static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagetype, int parms[]);
@@ -127,6 +128,8 @@ static char * message2str(unsigned char message)
 			return "CGBA";
 		case ISUP_CGUA:
 			return "CGUA";
+		case ISUP_RSC:
+			return "RSC";
 		default:
 			return "Unknown";
 	}
@@ -1005,6 +1008,11 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len
 
 			isup_free_call(ss7, c); /* Won't need this again */
 			return 0;
+		case ISUP_RSC:
+			e->e = ISUP_EVENT_RSC;
+			e->rsc.cic = cic;
+			isup_free_call(ss7, c);
+			return 0;
 		case ISUP_REL:
 			e->e = ISUP_EVENT_REL;
 			e->rel.cic = c->cic;
@@ -1181,6 +1189,11 @@ static int isup_send_message_ciconly(struct ss7 *ss7, int messagetype, int cic)
 	c.cic = cic;
 	res = isup_send_message(ss7, &c, messagetype, empty_params);
 	return res;
+}
+
+int isup_rsc(struct ss7 *ss7, int cic)
+{
+	return isup_send_message_ciconly(ss7, ISUP_RSC, cic);
 }
 
 int isup_blo(struct ss7 *ss7, int cic)

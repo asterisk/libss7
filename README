@@ -26,6 +26,8 @@ contains sample configuration for setting up an E1 link.
 
 Completed:
 ==========
+MTP2
+Basic MTP3
 Basic call messages (IAM, ACM, ANM, REL, RLC)
 CIC Reset (GRS, GRA)
 Connect message (CON)

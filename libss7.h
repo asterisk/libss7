@@ -25,6 +25,7 @@
 #define ISUP_EVENT_CGU		20
 #define ISUP_EVENT_CGBA		19
 #define ISUP_EVENT_CGUA		20
+#define ISUP_EVENT_RSC		21
 
 /* Different SS7 types */
 #define SS7_ITU		(1 << 0)
@@ -123,6 +124,7 @@ typedef union {
 	ss7_event_ciconly ubl;
 	ss7_event_ciconly bla;
 	ss7_event_ciconly uba;
+	ss7_event_ciconly rsc;
 } ss7_event;
 
 void ss7_set_message(void (*func)(struct ss7 *ss7, char *message));
@@ -194,6 +196,8 @@ int isup_ubl(struct ss7 *ss7, int cic);
 int isup_bla(struct ss7 *ss7, int cic);
 
 int isup_uba(struct ss7 *ss7, int cic);
+
+int isup_rsc(struct ss7 *ss7, int cic);
 
 void isup_init_call(struct isup_call *c, int cic, char *calledpartynum, char *callingpartynum);
 #endif /* _LIBSS7_H */
