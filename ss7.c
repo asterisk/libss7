@@ -140,6 +140,32 @@ int ss7_start(struct ss7 *ss7)
 	return 0;
 }
 
+void ss7_link_alarm(struct ss7 *ss7, int fd)
+{
+	int i;
+	int winner = -1;
+
+	for (i = 0; i < ss7->numlinks; i++) {
+		if (ss7->links[i]->fd == fd)
+			winner = i;
+	}
+	if (winner > -1)
+		mtp2_stop(ss7->links[i]);
+}
+
+void ss7_link_noalarm(struct ss7 *ss7, int fd)
+{
+	int i;
+	int winner = -1;
+
+	for (i = 0; i < ss7->numlinks; i++) {
+		if (ss7->links[i]->fd == fd)
+			winner = i;
+	}
+	if (winner > -1)
+		mtp2_start(ss7->links[i]);
+}
+
 int ss7_add_link(struct ss7 *ss7, int fd)
 {
 	struct mtp2 *m;

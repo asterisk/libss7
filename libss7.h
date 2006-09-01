@@ -164,6 +164,10 @@ int ss7_read(struct ss7 *ss7, int fd);
 
 int ss7_write(struct ss7 *ss7, int fd);
 
+void ss7_link_alarm(struct ss7 *ss7, int fd);
+
+void ss7_link_noalarm(struct ss7 *ss7, int fd);
+
 char * ss7_event2str(int event);
 
 /* ISUP call related message functions */
