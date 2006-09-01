@@ -67,7 +67,7 @@ void ss7_error(struct ss7 *ss7, char *fmt, ...)
 
 void ss7_set_debug(struct ss7 *ss7, unsigned int flags)
 {
-	ss7->debug |= flags;
+	ss7->debug = flags;
 }
 
 void ss7_dump_buf(struct ss7 *ss7, unsigned char *buf, int len)
