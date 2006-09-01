@@ -29,7 +29,7 @@ Completed:
 MTP2
 Basic MTP3
 Basic call messages (IAM, ACM, ANM, REL, RLC)
-CIC Reset (GRS, GRA)
+CIC Reset (GRS, GRA, RSC)
 Connect message (CON)
 CIC Blocking/Unblocking (CGB, CGBA, CGU, CGUA, BLO, BLA)
 Continuity Check (COT, CCR)
