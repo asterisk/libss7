@@ -33,6 +33,7 @@ CIC Reset (GRS, GRA, RSC)
 Connect message (CON)
 CIC Blocking/Unblocking (CGB, CGBA, CGU, CGUA, BLO, BLA)
 Continuity Check (COT, CCR)
+Call Progress message (CPG)
 
 TODO:
 =====

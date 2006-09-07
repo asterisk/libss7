@@ -55,9 +55,11 @@ static int rel_params[] = { ISUP_PARM_CAUSE, -1};
 
 static int greset_params[] = { ISUP_PARM_RANGE_AND_STATUS, -1};
 
-static int cicgroup_params[] = { ISUP_PARM_CIRCUIT_GROUP_SUPERVISION_IND, ISUP_PARM_RANGE_AND_STATUS, -1};
-
 static int cot_params[] = { ISUP_PARM_CONTINUITY_IND, -1};
+
+static int cpg_params[] = { ISUP_PARM_EVENT_INFO, -1};
+
+static int cicgroup_params[] = { ISUP_PARM_CIRCUIT_GROUP_SUPERVISION_IND, ISUP_PARM_RANGE_AND_STATUS, -1};
 
 static int empty_params[] = { -1};
 
@@ -87,6 +89,7 @@ static struct message_data {
 	{ISUP_BLA, 0, 0, 0, empty_params},
 	{ISUP_UBA, 0, 0, 0, empty_params},
 	{ISUP_RSC, 0, 0, 0, empty_params},
+	{ISUP_CPG, 1, 0, 1, cpg_params},
 };
 
 static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagetype, int parms[]);
@@ -570,6 +573,53 @@ static FUNC_SEND(circuit_group_supervision_transmit)
 	return 1;
 }
 
+static FUNC_DUMP(event_info_dump)
+{
+	char *name;
+
+	switch (parm[0]) {
+		case 0:
+			name = "spare";
+			break;
+		case 1:
+			name = "ALERTING";
+			break;
+		case 2:
+			name = "PROGRESS";
+			break;
+		case 3:
+			name = "In-band information or an appropriate pattern is now available";
+			break;
+		case 4:
+			name = "Call forward on busy";
+			break;
+		case 5:
+			name = "Call forward on no reply";
+			break;
+		case 6:
+			name = "Call forward unconditional";
+			break;
+		default:
+			name = "Spare";
+			break;
+	}
+	ss7_message(ss7, "PARM: Event Information:\n");
+	ss7_message(ss7, "%s\n", name);
+	return 1;
+}
+
+static FUNC_RECV(event_info_receive)
+{
+	c->event_info = parm[0];
+	return 1;
+}
+
+static FUNC_SEND(event_info_transmit)
+{
+	parm[0] = c->event_info;
+	return 1;
+}
+
 static struct parm_func parms[] = {
 	{ISUP_PARM_NATURE_OF_CONNECTION_IND, "Nature of Connection Indicator", nature_of_connection_ind_dump, nature_of_connection_ind_receive, nature_of_connection_ind_transmit },
 	{ISUP_PARM_FORWARD_CALL_IND, "Forward Call Indicator", NULL, forward_call_ind_receive, forward_call_ind_transmit },
@@ -598,6 +648,7 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_BACKWARD_CALL_IND, "Backward Call Indicator", NULL, backward_call_ind_receive, backward_call_ind_transmit},
 	{ISUP_PARM_CIRCUIT_GROUP_SUPERVISION_IND, "Circuit Group Supervision Indicator", circuit_group_supervision_dump, circuit_group_supervision_receive, circuit_group_supervision_transmit},
 	{ISUP_PARM_RANGE_AND_STATUS, "Range and status", range_and_status_dump, range_and_status_receive, range_and_status_transmit},
+	{ISUP_PARM_EVENT_INFO, "Event Information", event_info_dump, event_info_receive, event_info_transmit},
 };
 
 static char * param2str(int parm)
@@ -1088,6 +1139,11 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len
 
 			isup_free_call(ss7, c);
 			return 0;
+		case ISUP_CPG:
+			e->e = ISUP_EVENT_CPG;
+			e->cpg.cic = c->cic;
+			e->cpg.event = c->event_info;
+			return 0;
 		default:
 			ss7_error(ss7, "!! Unable to handle message type %s\n", message2str(mh->type));
 			return -1;
@@ -1189,6 +1245,12 @@ static int isup_send_message_ciconly(struct ss7 *ss7, int messagetype, int cic)
 	c.cic = cic;
 	res = isup_send_message(ss7, &c, messagetype, empty_params);
 	return res;
+}
+
+int isup_cpg(struct ss7 *ss7, struct isup_call *c, int event)
+{
+	c->event_info = event;
+	return isup_send_message(ss7, c, ISUP_CPG, cpg_params);
 }
 
 int isup_rsc(struct ss7 *ss7, int cic)

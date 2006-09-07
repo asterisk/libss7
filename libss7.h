@@ -26,6 +26,7 @@
 #define ISUP_EVENT_CGBA		19
 #define ISUP_EVENT_CGUA		20
 #define ISUP_EVENT_RSC		21
+#define ISUP_EVENT_CPG		22
 
 /* Different SS7 types */
 #define SS7_ITU		(1 << 0)
@@ -41,6 +42,14 @@
 #define SS7_NI_INT_SPARE		0x01
 #define SS7_NI_NAT			0x02
 #define SS7_NI_NAT_SPARE		0x03
+
+/* CPG parameter types */
+#define CPG_EVENT_ALERTING	0x01
+#define CPG_EVENT_PROGRESS	0x02
+#define CPG_EVENT_INBANDINFO	0x03
+#define CPG_EVENT_CFB		0x04
+#define CPG_EVENT_CFNR		0x05
+#define CPG_EVENT_CFU		0x06
 
 struct ss7;
 struct isup_call;
@@ -109,6 +118,12 @@ typedef struct {
 	unsigned int data;
 } ss7_event_generic;
 
+typedef struct {
+	int e;
+	int cic;
+	unsigned char event;
+} ss7_event_cpg;
+
 typedef union {
 	int e;
 	ss7_event_generic gen;
@@ -131,6 +146,7 @@ typedef union {
 	ss7_event_ciconly bla;
 	ss7_event_ciconly uba;
 	ss7_event_rsc rsc;
+	ss7_event_cpg cpg;
 } ss7_event;
 
 void ss7_set_message(void (*func)(struct ss7 *ss7, char *message));
@@ -186,6 +202,8 @@ int isup_acm(struct ss7 *ss7, struct isup_call *c);
 int isup_rel(struct ss7 *ss7, struct isup_call *c, int cause);
 
 int isup_rlc(struct ss7 *ss7, struct isup_call *c);
+
+int isup_cpg(struct ss7 *ss7, struct isup_call *c, int event);
 
 int isup_gra(struct ss7 *ss7, int begincic, int endcic);
 
