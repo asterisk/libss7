@@ -174,7 +174,7 @@ static void std_test_send(struct mtp2 *link)
 
 	ss7_msg_userpart_len(m, rllen + testlen + 2);
 
-	mtp3_transmit(link->master, SIG_STD_TEST, link->slc, m);
+	mtp3_transmit(link->master, (ss7->switchtype == SS7_ITU) ? SIG_STD_TEST : SIG_SPEC_TEST, link->slc, m);
 }
 
 static int net_mng_receive(struct ss7 *ss7, struct mtp2 *mtp2, unsigned char *buf, int len)
@@ -339,10 +339,10 @@ int mtp3_dump(struct ss7 *ss7, struct mtp2 *link, void *msg, int len)
 	switch (userpart) {
 		case SIG_NET_MNG:
 		case SIG_STD_TEST:
+		case SIG_SPEC_TEST:
 			return net_mng_dump(ss7, link, sif, siflen);
 		case SIG_ISUP:
 			return isup_dump(ss7, link, sif + rlsize, siflen - rlsize);
-		case SIG_SPEC_TEST:
 		case SIG_SCCP:
 		default:
 			return 0;
@@ -364,7 +364,7 @@ int mtp3_receive(struct ss7 *ss7, struct mtp2 *link, void *msg, int len)
 
 	/* Check NI to make sure it's set correct */
 	if (ss7->ni != ni) {
-		mtp_error(ss7, "Received MSU with network indicator of %d, but we are %d\n", ss7->ni, ni);
+		mtp_error(ss7, "Received MSU with network indicator of %d, but we are %d\n", ni, ss7->ni);
 		return -1;
 	}
 
@@ -381,13 +381,13 @@ int mtp3_receive(struct ss7 *ss7, struct mtp2 *link, void *msg, int len)
 	/* Pass it to the correct user part */
 	switch (userpart) {
 		case SIG_STD_TEST:
+		case SIG_SPEC_TEST:
 			return std_test_receive(ss7, link, sif, siflen);
 		case SIG_ISUP:
 			/* Skip the routing label */
 			return isup_receive(ss7, link, sif + rlsize, siflen - rlsize);
 		case SIG_NET_MNG:
 			return net_mng_receive(ss7, link, sif, siflen);
-		case SIG_SPEC_TEST:
 		case SIG_SCCP:
 		default:
 			mtp_message(ss7, "Unable to process message destined for userpart %d; dropping message\n", userpart);
