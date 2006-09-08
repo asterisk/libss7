@@ -303,13 +303,18 @@ int mtp3_transmit(struct ss7 *ss7, unsigned char userpart, unsigned char sls, st
 	unsigned char *sio;
 	unsigned char *sif;
 	struct mtp2 *winner;
+	int priority = 3;
 
 	sio = m->buf + MTP2_SIZE;
 	sif = sio + 1;
 
 	winner = sls_to_link(ss7, sls);
 
-	(*sio) = (ss7->ni << 6) | userpart;
+	if (ss7->switchtype == SS7_ITU)
+		(*sio) = (ss7->ni << 6) | userpart;
+	else
+		(*sio) = (ss7->ni << 6) | (priority << 4) | userpart;
+
 
 	return mtp2_msu(winner, m);
 }
