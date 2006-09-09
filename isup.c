@@ -326,9 +326,7 @@ static FUNC_SEND(calling_party_cat_transmit)
 
 static FUNC_RECV(user_service_info_receive)
 {
-	if (ss7->switchtype != SS7_ANSI)
-		return 0;
-
+	/* NoOp it for now */
 	return len;
 }
 
