@@ -45,6 +45,9 @@ struct parm_func {
 static int iam_params[] = {ISUP_PARM_NATURE_OF_CONNECTION_IND, ISUP_PARM_FORWARD_CALL_IND, ISUP_PARM_CALLING_PARTY_CAT,
 	ISUP_PARM_TRANSMISSION_MEDIUM_REQS, ISUP_PARM_CALLED_PARTY_NUM, ISUP_PARM_CALLING_PARTY_NUM, -1}; /* Don't have optional IEs */
 
+static int ansi_iam_params[] = {ISUP_PARM_NATURE_OF_CONNECTION_IND, ISUP_PARM_FORWARD_CALL_IND, ISUP_PARM_CALLING_PARTY_CAT,
+	ISUP_PARM_USER_SERVICE_INFO, ISUP_PARM_CALLED_PARTY_NUM, ISUP_PARM_CALLING_PARTY_NUM, -1}; /* Don't have optional IEs */
+
 static int acm_params[] = {ISUP_PARM_BACKWARD_CALL_IND, -1};
 
 static int anm_params[] = { -1};
@@ -133,6 +136,8 @@ static char * message2str(unsigned char message)
 			return "CGUA";
 		case ISUP_RSC:
 			return "RSC";
+		case ISUP_CPG:
+			return "CPG";
 		default:
 			return "Unknown";
 	}
@@ -321,28 +326,26 @@ static FUNC_SEND(calling_party_cat_transmit)
 
 static FUNC_RECV(user_service_info_receive)
 {
-	return 3;
+	if (ss7->switchtype != SS7_ANSI)
+		return 0;
+
+	return len;
 }
 
 static FUNC_SEND(user_service_info_transmit)
 {
-	/* Don't include if it's an ITU style network */
-	if (ss7->switchtype != SS7_ANSI)
-		return 0;
+	/* Default to Coding standard CCITT / 3.1 khz Audio */
+	parm[0] = 0x90;
+	/* Default to Circuit mode / 64kbps */
+	parm[1] = 0x90;
+	/* User Layer 1 set to ulaw */
+	parm[2] = 0xa2;
 
-	parm[0] = 0x80; /* Default to ITU standardized coding */
-	parm[0] |= c->transcap;
-
-	parm[1] = 0x90; /* Assume 64kbps, circuit mode */
-
-	parm[2] = 0xa0; /* Layer 1 ID */
-	parm[2] |= c->l1prot;
 	return 3;
 }
 
 static FUNC_SEND(transmission_medium_reqs_transmit)
 {
-	/* Don't include transmission medium requirements in an ANSI environment */
 	if (ss7->switchtype != SS7_ITU)
 		return 0;
 	/* Speech */
@@ -789,7 +792,7 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 	int ourmessage = -1;
 	int rlsize;
 	unsigned char *varoffsets = NULL, *opt_ptr;
-	int varparams = 0;
+	int fixedparams = 0, varparams = 0;
 	int len = sizeof(struct ss7_msg);
 	struct routing_label rl;
 	int res = 0;
@@ -833,8 +836,23 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 		return -1;
 	}
 
+	/* Again, the ANSI exception */
+	if (messages[ourmessage].messagetype == ISUP_IAM) {
+		if (ss7->switchtype == SS7_ITU) {
+			fixedparams = messages[ourmessage].mand_fixed_params;
+			varparams = messages[ourmessage].mand_var_params;
+		} else {
+			/* Stupid ANSI SS7, they just had to be different, didn't they? */
+			fixedparams = 3;
+			varparams = 2;
+		}
+	} else {
+		fixedparams = messages[ourmessage].mand_fixed_params;
+		varparams = messages[ourmessage].mand_var_params;
+	}
+
 	/* Add fixed params */
-	for (x = 0; x < messages[ourmessage].mand_fixed_params; x++) {
+	for (x = 0; x < fixedparams; x++) {
 		res = do_parm(ss7, c, mh->type, parms[x], (void *)(mh->data + offset), len, PARM_TYPE_FIXED, 1);
 
 		if (res < 0) {
@@ -846,7 +864,6 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 		offset += res;
 	}
 
-	varparams = messages[ourmessage].mand_var_params;
 	varoffsets = &mh->data[offset];
 	/* Make sure we grab our opional parameters */
 	if (messages[ourmessage].opt_params) {
@@ -860,7 +877,7 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 	i = 0;
 
 	/* Whew, some complicated math for all of these offsets and different sections */
-	for (; (x - messages[ourmessage].mand_fixed_params) < varparams; x++) {
+	for (; (x - fixedparams) < varparams; x++) {
 		varoffsets[i] = &mh->data[offset] - &varoffsets[i];
 		i++;
 		res = do_parm(ss7, c, mh->type, parms[x], (void *)(mh->data + offset), len, PARM_TYPE_VARIABLE, 1); /* Find out what else we need to add */
@@ -946,7 +963,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len
 	int *parms = NULL;
 	int offset = 0;
 	int ourmessage = -1;
-	int varparams = 0;
+	int fixedparams = 0, varparams = 0;
 	int res, x;
 	unsigned char *opt_ptr = NULL;
 	ss7_event *e;
@@ -971,10 +988,26 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len
 
 	c = isup_find_call(ss7, cic);
 
-	parms = messages[ourmessage].param_list;
+	/* Check for the ANSI IAM exception */
+	if (messages[ourmessage].messagetype == ISUP_IAM) {
+		if (ss7->switchtype == SS7_ITU) {
+			fixedparams = messages[ourmessage].mand_fixed_params;
+			varparams = messages[ourmessage].mand_var_params;
+			parms = messages[ourmessage].param_list;
+		} else {
+			/* Stupid ANSI SS7, they just had to be different, didn't they? */
+			fixedparams = 3;
+			varparams = 2;
+			parms = ansi_iam_params;
+		}
+	} else {
+		fixedparams = messages[ourmessage].mand_fixed_params;
+		varparams = messages[ourmessage].mand_var_params;
+		parms = messages[ourmessage].param_list;
+	}
 
 	/* Parse fixed parms */
-	for (x = 0; x < messages[ourmessage].mand_fixed_params; x++) {
+	for (x = 0; x < fixedparams; x++) {
 		res = do_parm(ss7, c, mh->type, parms[x], (void *)(mh->data + offset), len, PARM_TYPE_FIXED, 0);
 
 		if (res < 0) {
@@ -986,8 +1019,6 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len
 		offset += res;
 	}
 
-	varparams = messages[ourmessage].mand_var_params;
-
 	if (varparams) {
 		offset += varparams; /* add one for the optionals */
 		res -= varparams;
@@ -998,7 +1029,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len
 
 	i = 0;
 
-	for (; (x - messages[ourmessage].mand_fixed_params) < varparams; x++) {
+	for (; (x - fixedparams) < varparams; x++) {
 		res = do_parm(ss7, c, mh->type, parms[x], (void *)(mh->data + offset), len, PARM_TYPE_VARIABLE, 0); /* Find out what else we need to add */
 
 		if (res < 0) {
@@ -1201,7 +1232,10 @@ int isup_cgua(struct ss7 *ss7, int begincic, int endcic, unsigned char state[])
 
 int isup_iam(struct ss7 *ss7, struct isup_call *c)
 {
-	return isup_send_message(ss7, c, ISUP_IAM, iam_params);
+	if (ss7->switchtype == SS7_ITU)
+		return isup_send_message(ss7, c, ISUP_IAM, iam_params);
+	else
+		return isup_send_message(ss7, c, ISUP_IAM, ansi_iam_params);
 }
 
 int isup_acm(struct ss7 *ss7, struct isup_call *c)
