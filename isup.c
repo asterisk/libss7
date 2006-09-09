@@ -166,7 +166,7 @@ static char char2digit(char localchar)
 			return 8;
 		case '9':
 			return 9;
-		case '*':
+		case '#':
 			return '\0';
 		default:
 			return 0;
@@ -197,7 +197,7 @@ static char digit2char(unsigned char digit)
 		case 9:
 			return '9';
 		case 15:
-			return '*';
+			return '#';
 		default:
 			return 0;
 	}
@@ -684,7 +684,7 @@ void isup_init_call(struct isup_call *c, int cic, char *calledpartynum, char *ca
 {
 	c->cic = cic;
 	if (calledpartynum && calledpartynum[0])
-		snprintf(c->called_party_num, sizeof(c->called_party_num), "%s*", calledpartynum);
+		snprintf(c->called_party_num, sizeof(c->called_party_num), "%s#", calledpartynum);
 
 	if (callingpartynum && callingpartynum[0])
 		strncpy(c->calling_party_num, callingpartynum, sizeof(c->calling_party_num));
