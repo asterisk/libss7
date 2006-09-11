@@ -34,6 +34,22 @@ static char * userpart2str(unsigned char userpart)
 	}
 }
 
+static char * ss7_ni2str(unsigned char ni)
+{
+	switch (ni) {
+		case SS7_NI_INT:
+			return "international";
+		case SS7_NI_INT_SPARE:
+			return "international_spare";
+		case SS7_NI_NAT:
+			return "national";
+		case SS7_NI_NAT_SPARE:
+			return "national_spare";
+		default:
+			return "Unknown";
+	}
+}
+
 static int get_routinglabel(unsigned int switchtype, unsigned char *sif, struct routing_label *rl)
 {
 	unsigned char *buf = sif;
@@ -366,10 +382,9 @@ int mtp3_receive(struct ss7 *ss7, struct mtp2 *link, void *msg, int len)
 	struct routing_label rl;
 	int rlsize;
 
-
 	/* Check NI to make sure it's set correct */
 	if (ss7->ni != ni) {
-		mtp_error(ss7, "Received MSU with network indicator of %d, but we are %d\n", ni, ss7->ni);
+		mtp_error(ss7, "Received MSU with network indicator of %s, but we are %s\n", ss7_ni2str(ni), ss7_ni2str(ss7->ni));
 		return -1;
 	}
 
