@@ -167,7 +167,7 @@ static char char2digit(char localchar)
 		case '9':
 			return 9;
 		case '#':
-			return '\0';
+			return 0xf;
 		default:
 			return 0;
 	}
@@ -272,7 +272,6 @@ static FUNC_DUMP(nature_of_connection_ind_dump)
 	unsigned char con = parm[0];
 	char *continuity;
 	
-	ss7_message(ss7, "PARM: Nature of Connection\n");
 	ss7_message(ss7, "	Satellites in connection: %d\n", con&0x03);
 	con>>=2; 
 	switch (con & 0x03) {
@@ -303,11 +302,15 @@ static FUNC_SEND(forward_call_ind_transmit)
 {
 	parm[0] = 0x60;
 	parm[1] = 0x01;
-	
 	return 2;
 }
 
 static FUNC_RECV(forward_call_ind_receive)
+{
+	return 2;
+}
+
+static FUNC_DUMP(forward_call_ind_dump)
 {
 	return 2;
 }
@@ -321,6 +324,11 @@ static FUNC_SEND(calling_party_cat_transmit)
 {
 	/* Default to unknown */
 	parm[0] = 0x0a;
+	return 1;
+}
+
+static FUNC_DUMP(calling_party_cat_dump)
+{
 	return 1;
 }
 
@@ -354,6 +362,11 @@ static FUNC_SEND(transmission_medium_reqs_transmit)
 static FUNC_RECV(transmission_medium_reqs_receive)
 {
 	c->transcap = parm[0] & 0x7f;
+	return 1;
+}
+
+static FUNC_DUMP(transmission_medium_reqs_dump)
+{
 	return 1;
 }
 
@@ -395,6 +408,11 @@ static FUNC_SEND(backward_call_ind_transmit)
 {
 	parm[0] = 0x40;
 	parm[1] = 0x14;
+	return 2;
+}
+
+static FUNC_DUMP(backward_call_ind_dump)
+{
 	return 2;
 }
 
@@ -623,9 +641,9 @@ static FUNC_SEND(event_info_transmit)
 
 static struct parm_func parms[] = {
 	{ISUP_PARM_NATURE_OF_CONNECTION_IND, "Nature of Connection Indicator", nature_of_connection_ind_dump, nature_of_connection_ind_receive, nature_of_connection_ind_transmit },
-	{ISUP_PARM_FORWARD_CALL_IND, "Forward Call Indicator", NULL, forward_call_ind_receive, forward_call_ind_transmit },
-	{ISUP_PARM_CALLING_PARTY_CAT, "Calling Party Category", NULL, calling_party_cat_receive, calling_party_cat_transmit},
-	{ISUP_PARM_TRANSMISSION_MEDIUM_REQS, "Transmission Medium Requirements", NULL, transmission_medium_reqs_receive, transmission_medium_reqs_transmit},
+	{ISUP_PARM_FORWARD_CALL_IND, "Forward Call Indicator", forward_call_ind_dump, forward_call_ind_receive, forward_call_ind_transmit },
+	{ISUP_PARM_CALLING_PARTY_CAT, "Calling Party Category", calling_party_cat_dump, calling_party_cat_receive, calling_party_cat_transmit},
+	{ISUP_PARM_TRANSMISSION_MEDIUM_REQS, "Transmission Medium Requirements", transmission_medium_reqs_dump, transmission_medium_reqs_receive, transmission_medium_reqs_transmit},
 	{ISUP_PARM_USER_SERVICE_INFO, "User Service Information", NULL, user_service_info_receive, user_service_info_transmit},
 	{ISUP_PARM_CALLED_PARTY_NUM, "Called Party Number", NULL, called_party_num_receive, called_party_num_transmit},
 	{ISUP_PARM_CAUSE, "Cause Indicator", NULL, cause_receive, cause_transmit},
@@ -646,7 +664,8 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_GENERIC_NAME, "Generic Name"},
 	{ISUP_PARM_GENERIC_NOTIFICATION_IND, "Generic Notification Indication"},
 	{ISUP_PARM_PROPAGATION_DELAY, "Propagation Delay"},
-	{ISUP_PARM_BACKWARD_CALL_IND, "Backward Call Indicator", NULL, backward_call_ind_receive, backward_call_ind_transmit},
+	{ISUP_PARM_HOP_COUNTER, "Hop Counter"},
+	{ISUP_PARM_BACKWARD_CALL_IND, "Backward Call Indicator", backward_call_ind_dump, backward_call_ind_receive, backward_call_ind_transmit},
 	{ISUP_PARM_CIRCUIT_GROUP_SUPERVISION_IND, "Circuit Group Supervision Indicator", circuit_group_supervision_dump, circuit_group_supervision_receive, circuit_group_supervision_transmit},
 	{ISUP_PARM_RANGE_AND_STATUS, "Range and status", range_and_status_dump, range_and_status_receive, range_and_status_transmit},
 	{ISUP_PARM_EVENT_INFO, "Event Information", event_info_dump, event_info_receive, event_info_transmit},
@@ -680,11 +699,15 @@ struct isup_call * isup_new_call(struct ss7 *ss7)
 	return c;
 }
 
-void isup_init_call(struct isup_call *c, int cic, char *calledpartynum, char *callingpartynum)
+void isup_init_call(struct ss7 *ss7, struct isup_call *c, int cic, char *calledpartynum, char *callingpartynum)
 {
 	c->cic = cic;
-	if (calledpartynum && calledpartynum[0])
-		snprintf(c->called_party_num, sizeof(c->called_party_num), "%s#", calledpartynum);
+	if (calledpartynum && calledpartynum[0]) {
+		if (ss7->switchtype == SS7_ITU)
+			snprintf(c->called_party_num, sizeof(c->called_party_num), "%s#", calledpartynum);
+		else
+			snprintf(c->called_party_num, sizeof(c->called_party_num), "%s", calledpartynum);
+	}
 
 	if (callingpartynum && callingpartynum[0])
 		strncpy(c->calling_party_num, callingpartynum, sizeof(c->calling_party_num));
@@ -781,6 +804,44 @@ static int do_parm(struct ss7 *ss7, struct isup_call *c, int message, int parm, 
 	}
 	return -1;
 }
+
+#if 0
+static int dump_parm(struct ss7 *ss7, struct isup_call *c, int message, int parm, unsigned char *parmbuf, int maxlen, int parmtype)
+{
+	struct isup_parm_opt *optparm = NULL;
+	int x;
+	int res = 0;
+	int totalparms = sizeof(parms)/sizeof(struct parm_func);
+
+	for (x = 0; x < totalparms; x++) {
+		if (parms[x].parm == parm) {
+			ss7_message(ss7, "PARM: %s\n", parms[x].name ? parms[x].name : "Unknown");
+			if (parms[x].dump) {
+				switch (parmtype) {
+					case PARM_TYPE_FIXED:
+						return parms[x].dump(ss7, c, message, parmbuf, maxlen);
+					case PARM_TYPE_VARIABLE:
+						return 1 + parms[x].dump(ss7, c, message, parmbuf + 1, parmbuf[0]);
+					case PARM_TYPE_OPTIONAL:
+						optparm = (struct isup_parm_opt *)parmbuf;
+						res = parms[x].dump(ss7, c, message, optparm->data, optparm->len);
+						return res + 2;
+				}
+			} else {
+				optparm = (struct isup_parm_opt *)parmbuf;
+				isup_dump_buffer(ss7, optparm->data, optparm->len);
+				return optparm->len + 2;
+			}
+		}
+	}
+
+	/* This is if we don't find it.... It's going to be either an unknown message or an unknown optional parameter */
+	ss7_message(ss7, "Parm: Unknown");
+	optparm = (struct isup_parm_opt *)parmbuf;
+	isup_dump_buffer(ss7, optparm->data, optparm->len);
+	return optparm->len + 2;
+}
+#endif
 
 static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagetype, int parms[])
 {

@@ -227,5 +227,5 @@ int isup_uba(struct ss7 *ss7, int cic);
 
 int isup_rsc(struct ss7 *ss7, int cic);
 
-void isup_init_call(struct isup_call *c, int cic, char *calledpartynum, char *callingpartynum);
+void isup_init_call(struct ss7 *ss7, struct isup_call *c, int cic, char *calledpartynum, char *callingpartynum);
 #endif /* _LIBSS7_H */

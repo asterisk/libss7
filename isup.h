@@ -98,6 +98,7 @@ Contains definitions and data structurs for the ISUP portion of SS7
 #define ISUP_PARM_RANGE_AND_STATUS 0x16
 #define ISUP_PARM_PROPAGATION_DELAY 0x31
 #define ISUP_PARM_EVENT_INFO 0x24
+#define ISUP_PARM_HOP_COUNTER 0x3d
 
 /* ISUP Parameter Pseudo-type */
 struct isup_parm_opt {

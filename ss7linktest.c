@@ -32,7 +32,7 @@ void ss7_call(struct ss7 *ss7)
 	c = isup_new_call(ss7);
 
 	if (c) {
-		isup_init_call(c, (callcount % 12) + 1, "12345", "7654321");
+		isup_init_call(ss7, c, (callcount % 12) + 1, "12345", "7654321");
 		isup_iam(ss7, c);
 		printf("Callcount = %d\n ", ++callcount);
 	}
