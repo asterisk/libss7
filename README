@@ -34,7 +34,7 @@ Connect message (CON)
 CIC Blocking/Unblocking (CGB, CGBA, CGU, CGUA, BLO, BLA)
 Continuity Check (COT, CCR)
 Call Progress message (CPG)
-ANSI MTP2, MTP3, and almost done with ISUP
+ANSI MTP2, MTP3, and ISUP, inbound and outbound calling works.
 
 TODO:
 =====
