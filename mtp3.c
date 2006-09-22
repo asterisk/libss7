@@ -1,3 +1,16 @@
+/*
+libss7: An implementation of Signaling System 7
+
+Written by Matthew Fredrickson <matt@fredricknet.net>
+
+Copyright Digium, Inc. (C), 2006
+All Rights Reserved.
+
+This program is free software; you can redistribute it under the
+terms of the GNU General Public License as published by the Free
+Software Foundation
+
+*/
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>

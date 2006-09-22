@@ -3,7 +3,7 @@
  *
  * Written by Matthew Fredrickson <creslin@digium.com>
  *
- * scheduling routines taken from libpri by Mark Spencer
+ * scheduling routines taken from libpri by Mark Spencer <markster@digium.com>
  *
  * Copyright (C) 2005, Digium, Inc
  * All Rights Reserved.

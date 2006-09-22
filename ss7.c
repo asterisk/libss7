@@ -3,7 +3,7 @@ libss7: An implementation of Signalling System 7
 
 Written by Matthew Fredrickson <matt@fredricknet.net>
 
-Copyright (C), 2005
+Copyright Digium, Inc (C), 2006
 All Rights Reserved.
 
 This program is free software; you can redistribute it under the
