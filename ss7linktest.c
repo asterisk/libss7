@@ -135,6 +135,9 @@ void *ss7_run(void *data)
 						isup_gra(ss7, e->grs.startcic, e->grs.endcic);
 						isup_grs(ss7, e->grs.startcic, e->grs.endcic);
 						break;
+					case ISUP_EVENT_RSC:
+						isup_rlc(ss7, e->rsc.call);
+						break;
 					case ISUP_EVENT_GRA:
 						printf("Got GRA from cic %d to %d.\n", e->gra.startcic, e->gra.endcic);
 						//ss7_call(ss7);
