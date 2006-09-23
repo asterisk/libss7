@@ -319,8 +319,8 @@ static int std_test_receive(struct ss7 *ss7, struct mtp2 *mtp2, unsigned char *b
 
 		if (!ss7->sent_tra) {
 			net_mng_send_tra(mtp2);
-		} else
 			ss7->sent_tra = 1;
+		}
 		return 0;
 	} else if (h1 == 2) {
 		/* Event Link up */
