@@ -104,6 +104,7 @@ struct mtp2 {
 	int autotxsutype;
 	int lastsurxd;
 	int lastsutxd;
+	int sent_tra;
 	struct mtp2_timers timers;
 
 	struct ss7_msg *tx_buf;

@@ -317,10 +317,6 @@ static int std_test_receive(struct ss7 *ss7, struct mtp2 *mtp2, unsigned char *b
 
 		mtp3_transmit(ss7, (ss7->switchtype == SS7_ITU) ? SIG_STD_TEST : SIG_SPEC_TEST, mtp2->slc, m);
 
-		if (!ss7->sent_tra) {
-			net_mng_send_tra(mtp2);
-			ss7->sent_tra = 1;
-		}
 		return 0;
 	} else if (h1 == 2) {
 		/* Event Link up */
@@ -435,6 +431,10 @@ int mtp3_receive(struct ss7 *ss7, struct mtp2 *link, void *msg, int len)
 
 static void mtp3_event_link_up(struct mtp2 * link)
 {
+	if (!link->sent_tra) {
+		net_mng_send_tra(link);
+		link->sent_tra = 1;
+	}
 	std_test_send(link);
 }
 
