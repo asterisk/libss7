@@ -650,6 +650,7 @@ struct mtp2 * mtp2_new(int fd, unsigned int switchtype)
 	new->fd = fd;
 	new->autotxsutype = LSSU_SIOS;
 	new->lastsurxd = -1;
+	new->lastsutxd = -1;
 
 	if (switchtype == SS7_ITU) {
 		new->timers.t1 = ITU_TIMER_T1;
