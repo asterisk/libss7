@@ -15,7 +15,7 @@ information, see http://www.gnu.org/
 
 Tested Switches:
 ================
-Siemens EWSD - (ITU style) MTP2 and MTP3 comes up, ISUP phone calls work as well.
+Siemens EWSD - (ITU style) MTP2 and MTP3 comes up, ISUP inbound and outbound calls work as well.
 DTI DXC 4K - (ANSI style) 56kbps link, MTP2 and MTP3 come up, ISUP inbound and outbound calls work as well.
 
 

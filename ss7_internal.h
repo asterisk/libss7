@@ -1,7 +1,7 @@
 /*
 libss7: An implementation of Signaling System 7
 
-Written by Matthew Fredrickson <matt@fredricknet.net>
+Written by Matthew Fredrickson <creslin@digium.com>
 
 Copyright Digium, Inc. (C), 2006
 All Rights Reserved.
