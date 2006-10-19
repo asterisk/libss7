@@ -366,7 +366,7 @@ int mtp3_dump(struct ss7 *ss7, struct mtp2 *link, void *msg, int len)
 
 	rlsize = get_routinglabel(ss7->switchtype, sif, &rl);
 
-	ss7_message(ss7, "\tOPC 0x%x DPC 0x%x\n", rl.opc, rl.dpc);
+	ss7_message(ss7, "\tOPC %d DPC %d\n", rl.opc, rl.dpc);
 
 	ss7_message(ss7, "\tUser Part: %s (%x) Priority: %d\n", userpart2str(userpart), userpart, priority);
 
