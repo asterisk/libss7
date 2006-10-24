@@ -394,7 +394,7 @@ static FUNC_SEND(called_party_num_transmit)
 	if (oddeven)
 		parm[0] |= 0x80; /* Odd number of digits */
 
-	parm[1] = 0x00; /* Assume unknown numbering plan */
+	parm[1] = (0x1 << 4) | 0x00; /* Assume E.164 numbering plan */
 
 	return numlen + 2;
 }
