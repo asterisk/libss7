@@ -38,6 +38,12 @@ struct routing_label {
 	unsigned char sls;
 };
 
+struct net_mng_message {
+	int h0;
+	int h1;
+	char *name;
+};
+
 /* Process any MTP2 events that occur */
 ss7_event* mtp3_process_event(struct ss7 *ss7, ss7_event *e);
 

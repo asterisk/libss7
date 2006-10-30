@@ -158,6 +158,54 @@ static inline struct mtp2 * sls_to_link(struct ss7 *ss7, unsigned char sls)
 	return ss7->links[sls % ss7->numlinks];
 }
 
+struct net_mng_message net_mng_messages[] = {
+	{ 1, 1, "COO"},
+	{ 1, 2, "COA"},
+	{ 1, 5, "CBD"},
+	{ 1, 6, "CBA"},
+	{ 2, 1, "ECO"},
+	{ 2, 2, "ECA"},
+	{ 3, 1, "RCT"},
+	{ 3, 2, "TFC"},
+	{ 4, 1, "TFP"},
+	{ 4, 2, "TCP"},
+	{ 4, 3, "TFR"},
+	{ 4, 4, "TCR"},
+	{ 4, 5, "TFA"},
+	{ 4, 6, "TCA"},
+	{ 5, 1, "RST/RSP"},
+	{ 5, 2, "RSR"},
+	{ 5, 3, "RCP"},
+	{ 5, 4, "RCR"},
+	{ 6, 1, "LIN"},
+	{ 6, 2, "LUN"},
+	{ 6, 3, "LIA"},
+	{ 6, 4, "LUA"},
+	{ 6, 5, "LID"},
+	{ 6, 6, "LFU"},
+	{ 6, 7, "LLT/LLI"},
+	{ 6, 8, "LRT/LRI"},
+	{ 7, 1, "TRA"},
+	{ 7, 2, "TRW"},
+	{ 8, 1, "DLC"},
+	{ 8, 2, "CSS"},
+	{ 8, 3, "CNS"},
+	{ 8, 4, "CNP"},
+	{ 0xa, 1, "UPU"},
+};
+
+static char * net_mng_message2str(int h0, int h1)
+{
+	int i;
+
+	for (i = 0; i < (sizeof(net_mng_messages) / sizeof(struct net_mng_message)); i++) {
+		if ((net_mng_messages[i].h0 == h0) && (net_mng_messages[i].h1 == h1))
+			return net_mng_messages[i].name;
+	}
+
+	return "Unknown";
+}
+
 static int net_mng_dump(struct ss7 *ss7, struct mtp2 *mtp2, unsigned char *buf, int len)
 {
 	unsigned char *headerptr = buf + rl_size(ss7);
@@ -169,6 +217,7 @@ static int net_mng_dump(struct ss7 *ss7, struct mtp2 *mtp2, unsigned char *buf, 
 	h0 = get_h0(headerptr);
 
 	ss7_message(ss7, "\tH0: %x H1: %x\n", h0, h1);
+	ss7_message(ss7, "\tMessage type: %s\n", net_mng_message2str(h0, h1));
 	return 0;
 }
 
@@ -227,8 +276,8 @@ static int net_mng_receive(struct ss7 *ss7, struct mtp2 *mtp2, unsigned char *bu
 		e->e = SS7_EVENT_UP;
 		return 0;
 	} else {
-		ss7_error(ss7, "!! Unable to handle SIG_NET_MNG message with H1 = %d and H0 = %d\n", h1, h0);
-		return -1;
+		ss7_message(ss7, "NET MNG message type %s received\n", net_mng_message2str(h0, h1));
+		return 0;
 	}
 }
 

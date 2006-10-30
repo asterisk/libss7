@@ -272,7 +272,7 @@ static FUNC_DUMP(nature_of_connection_ind_dump)
 	unsigned char con = parm[0];
 	char *continuity;
 	
-	ss7_message(ss7, "	Satellites in connection: %d\n", con&0x03);
+	ss7_message(ss7, "\tSatellites in connection: %d\n", con&0x03);
 	con>>=2; 
 	switch (con & 0x03) {
 		case 0:
@@ -288,11 +288,11 @@ static FUNC_DUMP(nature_of_connection_ind_dump)
 			continuity = "spare";
 			break;
 	}
-	ss7_message(ss7, "	Continuity Check: %s\n", continuity);
+	ss7_message(ss7, "\tContinuity Check: %s\n", continuity);
 	con>>=2;
 	con &= 0x01;
 
-	ss7_message(ss7, "	Outgoing half echo control device %s\n", con ? "included" : "not included");
+	ss7_message(ss7, "\tOutgoing half echo control device %s\n", con ? "included" : "not included");
 
 	return 2;
 }
@@ -436,7 +436,7 @@ static FUNC_SEND(cause_transmit)
 static FUNC_DUMP(range_and_status_dump)
 {
 	ss7_message(ss7, "\tPARM: Range and Status\n");
-	ss7_message(ss7, "\t	Range: %d\n", parm[0] & 0xff);
+	ss7_message(ss7, "\t\tRange: %d\n", parm[0] & 0xff);
 	return len;
 }
 
