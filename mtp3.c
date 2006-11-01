@@ -194,6 +194,16 @@ struct net_mng_message net_mng_messages[] = {
 	{ 0xa, 1, "UPU"},
 };
 
+static void mtp3_setstate_mtp2link(struct ss7 *ss7, struct mtp2 *link, int newstate)
+{
+	int i;
+
+	for (i = 0; i < ss7->numlinks; i++) {
+		if (ss7->links[i] == link)
+			ss7->mtp2_linkstate[i] = newstate;
+	}
+}
+
 static char * net_mng_message2str(int h0, int h1)
 {
 	int i;
@@ -267,13 +277,18 @@ static int net_mng_receive(struct ss7 *ss7, struct mtp2 *mtp2, unsigned char *bu
 
 	/* Check to see if it's a TRA */
 	if ((h0 == 7) && (h1 == 1)) {
-		ss7_event *e = ss7_next_empty_event(ss7);
+		ss7_event *e;
 
-		if (!e) {
-			mtp_error(ss7, "Event queue full\n");
-			return -1;
+		mtp3_setstate_mtp2link(ss7, mtp2, MTP2_LINKSTATE_UP);
+
+		if (ss7->state != SS7_STATE_UP) {
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				mtp_error(ss7, "Event queue full\n");
+				return -1;
+			}
+			e->e = SS7_EVENT_UP;
 		}
-		e->e = SS7_EVENT_UP;
 		return 0;
 	} else {
 		ss7_message(ss7, "NET MNG message type %s received\n", net_mng_message2str(h0, h1));
@@ -368,7 +383,7 @@ static int std_test_receive(struct ss7 *ss7, struct mtp2 *mtp2, unsigned char *b
 
 		return 0;
 	} else if (h1 == 2) {
-		/* Event Link up */
+		net_mng_send_tra(mtp2);
 		return 0;
 	} else
 		ss7_error(ss7, "Unhandled STD_TEST message: h0 = %x h1 = %x", h0, h1);
@@ -518,4 +533,68 @@ ss7_event * mtp3_process_event(struct ss7 *ss7, ss7_event *e)
 	}
 
 	return e;
+}
+
+void mtp3_start(struct ss7 *ss7)
+{
+	int i;
+
+	for (i = 0; i < ss7->numlinks; i++) {
+		if ((ss7->mtp2_linkstate[i] == MTP2_LINKSTATE_DOWN)) {
+			mtp2_start(ss7->links[i], 1);
+			ss7->mtp2_linkstate[i] = MTP2_LINKSTATE_ALIGNING;
+		}
+	}
+	
+	return;
+}
+
+void mtp3_alarm(struct ss7 *ss7, int fd)
+{
+	int i;
+	int winner = -1;
+	int linksup = 0;
+
+	for (i = 0; i < ss7->numlinks; i++) {
+		if (ss7->links[i]->fd == fd) {
+			winner = i;
+			break;
+		}
+	}
+	if (winner > -1)
+		ss7->mtp2_linkstate[winner] = MTP2_LINKSTATE_INALARM;
+
+	for (i = 0; i < ss7->numlinks; i++) {
+		/* Let's count how many links are up while we're going through them */
+		if (ss7->mtp2_linkstate[i] == MTP2_LINKSTATE_UP)
+			linksup++;
+	}
+	if (!linksup) {
+		ss7->state = SS7_STATE_DOWN;
+		ss7_event *e = ss7_next_empty_event(ss7);
+
+		if (!e) {
+			ss7_error(ss7, "Event queue full!");
+			return;
+		}
+		e->e = SS7_EVENT_DOWN;
+		return;
+	}
+}
+
+void mtp3_noalarm(struct ss7 *ss7, int fd)
+{
+	int i;
+	int winner = -1;
+
+	for (i = 0; i < ss7->numlinks; i++) {
+		if (ss7->links[i]->fd == fd) {
+			winner = i;
+			break;
+		}
+	}
+	if (winner > -1) {
+		ss7->mtp2_linkstate[winner] = MTP2_LINKSTATE_ALIGNING;
+		mtp2_start(ss7->links[winner], 1);
+	}
 }

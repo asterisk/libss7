@@ -130,44 +130,20 @@ ss7_event * ss7_check_event(struct ss7 *ss7)
 	return mtp3_process_event(ss7, e);
 }		
 
-int ss7_start(struct ss7 *ss7)
+int  ss7_start(struct ss7 *ss7)
 {
-	int i = 0;
-
-	for (i = 0; i < ss7->numlinks; i++)
-		mtp2_start(ss7->links[i]);
-
+	mtp3_start(ss7);
 	return 0;
 }
 
 void ss7_link_alarm(struct ss7 *ss7, int fd)
 {
-	int i;
-	int winner = -1;
-
-	for (i = 0; i < ss7->numlinks; i++) {
-		if (ss7->links[i]->fd == fd) {
-			winner = i;
-			break;
-		}
-	}
-	if (winner > -1)
-		mtp2_stop(ss7->links[winner]);
+	mtp3_alarm(ss7, fd);
 }
 
 void ss7_link_noalarm(struct ss7 *ss7, int fd)
 {
-	int i;
-	int winner = -1;
-
-	for (i = 0; i < ss7->numlinks; i++) {
-		if (ss7->links[i]->fd == fd) {
-			winner = i;
-			break;
-		}
-	}
-	if (winner > -1)
-		mtp2_start(ss7->links[winner]);
+	mtp3_noalarm(ss7, fd);
 }
 
 int ss7_add_link(struct ss7 *ss7, int fd)
@@ -267,6 +243,7 @@ struct ss7 *ss7_new(int switchtype)
 	/* Initialize the event queue */
 	s->ev_h = 0;
 	s->ev_len = 0;
+	s->state = SS7_STATE_DOWN;
 
 	if ((switchtype == SS7_ITU) || (switchtype == SS7_ANSI))
 		s->switchtype = switchtype;

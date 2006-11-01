@@ -29,6 +29,11 @@ Software Foundation
 
 #define SIO_SIZE	1
 
+#define MTP2_LINKSTATE_DOWN 	0
+#define MTP2_LINKSTATE_INALARM	1
+#define MTP2_LINKSTATE_ALIGNING	2
+#define MTP2_LINKSTATE_UP	3
+
 typedef unsigned int point_code;
 
 struct routing_label {
@@ -54,6 +59,12 @@ int mtp3_dump(struct ss7 *ss7, struct mtp2 *link, void *msg, int len);
 
 /* Transmit */
 int mtp3_transmit(struct ss7 *ss7, unsigned char userpart, unsigned char sls, struct ss7_msg *m);
+
+void mtp3_alarm(struct ss7 *ss7, int fd);
+
+void mtp3_noalarm(struct ss7 *ss7, int fd);
+
+void mtp3_start(struct ss7 *ss7);
 
 unsigned char sls_next(struct ss7 *ss7);
 

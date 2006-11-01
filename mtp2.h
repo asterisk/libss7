@@ -113,7 +113,7 @@ struct mtp2 {
 };
 
 /* Initialize MTP link */
-int mtp2_start(struct mtp2 *link);
+int mtp2_start(struct mtp2 *link, int emergency);
 int mtp2_stop(struct mtp2 *link);
 int mtp2_setstate(struct mtp2 *link, int state);
 struct mtp2 * mtp2_new(int fd, unsigned int switchtype);

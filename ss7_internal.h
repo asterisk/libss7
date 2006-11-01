@@ -36,6 +36,9 @@ Software Foundation
 #define MAX_SCHED		64
 #define SS7_MAX_LINKS		4
 
+#define SS7_STATE_DOWN	0
+#define SS7_STATE_UP 1
+
 struct ss7_msg {
 	unsigned char buf[MTP_MAX_SIZE];
 	unsigned int size;
@@ -60,6 +63,7 @@ struct ss7 {
 
 	unsigned char ni;
 	unsigned char sls;
+	int state;
 
 	unsigned int debug;
 	/* event queue */
@@ -71,6 +75,7 @@ struct ss7 {
 	struct ss7_sched ss7_sched[MAX_SCHED];
 	struct isup_call *calls;
 
+	unsigned int mtp2_linkstate[SS7_MAX_LINKS];
 	struct mtp2 *links[SS7_MAX_LINKS];
 };
 

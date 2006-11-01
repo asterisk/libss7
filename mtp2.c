@@ -628,8 +628,9 @@ static int msu_rx(struct mtp2 *link, struct mtp_su_head *h, int len)
 	}
 }
 
-int mtp2_start(struct mtp2 *link)
+int mtp2_start(struct mtp2 *link, int emergency)
 {
+	link->emergency = emergency;
 	return mtp2_setstate(link, MTP_NOTALIGNED);
 }
 
