@@ -588,7 +588,7 @@ static FUNC_RECV(circuit_group_supervision_receive)
 
 static FUNC_SEND(circuit_group_supervision_transmit)
 {
-	parm[0] = 0x0;
+	parm[0] = 0x1;
 	return 1;
 }
 
