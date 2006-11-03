@@ -194,11 +194,40 @@ static void add_txbuf(struct mtp2 *link, struct ss7_msg *m)
 #endif
 }
 
+static void update_retransmit_pos(struct mtp2 *link)
+{
+	struct ss7_msg *cur, *prev = NULL;
+	/* Our txbuf is in reversed order from the order we need to retransmit in */
+
+	cur = link->tx_buf;
+
+	while (cur) {
+		if (cur == link->retransmit_pos)
+			break;
+		prev = cur;
+		cur = cur->next;
+	}
+
+	link->retransmit_pos = prev;
+	
+}
+
 static void mtp2_retransmit(struct mtp2 *link)
 {
-	/* Have to reverse the current fib */
+	struct ss7_msg *m;
+
+	m = link->tx_buf;
+	if (!m) {
+		ss7_error(link->master, "Huh!? Asked to retransmit but we don't have anything in the tx buffer\n");
+		return;
+	}
+
+	while (m->next)
+		m = m->next;
+
+	link->retransmit_pos = m;
+	/* Have to invert the current fib */
 	link->curfib = !link->curfib;
-	link->retransmit_pos = link->tx_buf;
 }
 
 int mtp2_transmit(struct mtp2 *link)
@@ -253,7 +282,7 @@ int mtp2_transmit(struct mtp2 *link)
 		mtp2_dump(link, '>', h, size);
 		if (retransmit) {
 			/* Update our retransmit positon since it transmitted */
-			link->retransmit_pos = m->next;
+			update_retransmit_pos(link);
 		} else {
 			if (m) {
 				/* Advance to next MSU to be transmitted */
