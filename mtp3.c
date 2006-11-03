@@ -425,7 +425,7 @@ int mtp3_dump(struct ss7 *ss7, struct mtp2 *link, void *msg, int len)
 	int rlsize;
 
 
-	ss7_message(ss7, "\tNetwork Inidicator 0x%x\n", ni);
+	ss7_message(ss7, "\tNetwork Indicator 0x%x\n", ni);
 
 	rlsize = get_routinglabel(ss7->switchtype, sif, &rl);
 
