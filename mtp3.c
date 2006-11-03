@@ -383,7 +383,6 @@ static int std_test_receive(struct ss7 *ss7, struct mtp2 *mtp2, unsigned char *b
 
 		return 0;
 	} else if (h1 == 2) {
-		net_mng_send_tra(mtp2);
 		return 0;
 	} else
 		ss7_error(ss7, "Unhandled STD_TEST message: h0 = %x h1 = %x", h0, h1);

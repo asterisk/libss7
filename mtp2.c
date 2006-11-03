@@ -25,7 +25,6 @@ Contains user interface to ss7 library
 #define mtp_error ss7_error
 #define mtp_message ss7_message
 
-#if 0
 static inline int len_txbuf(struct mtp2 *link)
 {
 	int res = 0;
@@ -37,7 +36,6 @@ static inline int len_txbuf(struct mtp2 *link)
 	}
 	return res;
 }
-#endif
 		
 static inline char * linkstate2str(int linkstate)
 {
@@ -76,9 +74,9 @@ static inline void init_mtp2_header(struct mtp2 *link, struct mtp_su_head *h, in
 	h->fsn = link->curfsn;
 	
 	if (nack)
-		link->curfib = !link->curfib;
+		link->curbib = !link->curbib;
 
-	h->bib = link->curfib;
+	h->bib = link->curbib;
 	h->bsn = link->lastfsnacked;
 }
 
@@ -110,12 +108,15 @@ static void flush_bufs(struct mtp2 *link)
 		free(cur);
 		list = list->next;
 	}
+
+	link->retransmit_pos = NULL;
 }
 
 static void reset_mtp(struct mtp2 *link)
 {
 	link->curfsn = 127;
 	link->curfib = 1;
+	link->curbib = 1;
 	link->lastfsnacked = 127;
 
 	flush_bufs(link);
@@ -159,7 +160,7 @@ static void make_lssu(struct mtp2 *link, unsigned char *buf, unsigned int *size,
 		case LSSU_SIE:
 		case LSSU_SIPO:
 		case LSSU_SIB:
-			head->bib = link->curfib;
+			head->bib = link->curbib;
 			head->bsn = link->lastfsnacked;
 			head->fib = link->curfib;
 			head->fsn = link->curfsn;
@@ -193,6 +194,13 @@ static void add_txbuf(struct mtp2 *link, struct ss7_msg *m)
 #endif
 }
 
+static void mtp2_retransmit(struct mtp2 *link)
+{
+	/* Have to reverse the current fib */
+	link->curfib = !link->curfib;
+	link->retransmit_pos = link->tx_buf;
+}
+
 int mtp2_transmit(struct mtp2 *link)
 {
 	int res = 0;
@@ -200,31 +208,59 @@ int mtp2_transmit(struct mtp2 *link)
 	unsigned char buf[64];
 	unsigned int size;
 	struct ss7_msg *m = NULL;
+	int retransmit = 0;
 
-	if (link->tx_q)
-		m = link->tx_q;
+	if (link->retransmit_pos) {
+		struct mtp_su_head *h1;
+		m = link->retransmit_pos;
+		retransmit = 1;
 
-	if (m) {
-		struct mtp_su_head *header = (struct mtp_su_head *)m->buf;
+		if (!m) {
+			ss7_error(link->master, "Huh, requested to retransmit, but nothing in retransmit buffer?!!\n");
+			return -1;
+		}
+
 		h = m->buf;
 		size = m->size;
-		init_mtp2_header(link, header, 1, 0);
+
+		h1 = (struct mtp_su_head *)h;
+		/* Update the FIB and BSN since they aren't the same */
+		h1->fib = link->curfib;
+		h1->bsn = link->lastfsnacked;
+
 	} else {
-		size = sizeof(buf);
-		if (link->autotxsutype == FISU)
-			make_fisu(link, buf, &size, 0);
-		else
-			make_lssu(link, buf, &size, link->autotxsutype);
-		h = buf;
+		if (link->tx_q)
+			m = link->tx_q;
+	
+		if (m) {
+			struct mtp_su_head *header = (struct mtp_su_head *)m->buf;
+			h = m->buf;
+			size = m->size;
+			init_mtp2_header(link, header, 1, 0);
+		} else {
+			size = sizeof(buf);
+			if (link->autotxsutype == FISU)
+				make_fisu(link, buf, &size, 0);
+			else
+				make_lssu(link, buf, &size, link->autotxsutype);
+			h = buf;
+		}
 	}
 
 	res = write(link->fd, h, size);  /* Add 2 for FCS */
 
 	if (res > 0) {
 		mtp2_dump(link, '>', h, size);
-		if (m) {
-			link->tx_q = m->next;
-			add_txbuf(link, m);
+		if (retransmit) {
+			/* Update our retransmit positon since it transmitted */
+			link->retransmit_pos = m->next;
+		} else {
+			if (m) {
+				/* Advance to next MSU to be transmitted */
+				link->tx_q = m->next;
+				/* Add it to the tx'd message queue (MSUs that haven't been acknowledged) */
+				add_txbuf(link, m);
+			}
 		}
 	}
 
@@ -283,9 +319,6 @@ static void update_txbuf(struct mtp2 *link, unsigned char upto)
 	struct ss7_msg *frlist = NULL;
 	/* Make a list, frlist that will be the SUs to free */
 
-#if 0
-	mtp_message(link->master, "Txbuf contains %d items\n", len_txbuf(link));
-#endif
 	/* Empty list */
 	if (!link->tx_buf) {
 		return;
@@ -295,7 +328,7 @@ static void update_txbuf(struct mtp2 *link, unsigned char upto)
 
 	while (cur) {
 		h = (struct mtp_su_head *)cur->buf;
-		if (h->bsn == upto) {
+		if (h->fsn == upto) {
 			frlist = cur;
 			if (!prev) /* Head of list */
 				link->tx_buf = NULL;
@@ -591,6 +624,10 @@ static int msu_rx(struct mtp2 *link, struct mtp_su_head *h, int len)
 {
 	int res = 0;
 
+#if 0
+	mtp_message(link->master, "Txbuf contains %d items\n", len_txbuf(link));
+#endif
+
 	switch (link->state) {
 		case MTP_ALIGNEDREADY:
 			mtp2_setstate(link, MTP_INSERVICE);
@@ -759,11 +796,10 @@ int mtp2_receive(struct mtp2 *link, unsigned char *buf, int len)
 
 	update_txbuf(link, h->bsn);
 
-#if 0
+	/* Check for retransmission request */
 	if (h->bib != link->curfib)
 		/* Negative ack */
 		mtp2_retransmit(link);
-#endif
 
 	switch (h->li) {
 		case 0:

@@ -54,7 +54,6 @@ struct ss7_sched {
 struct ss7 {
 	unsigned int switchtype;
 	unsigned int numlinks;
-	int sent_tra;
 
 	/* Simple "routing table" */
 	point_code def_dpc;

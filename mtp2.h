@@ -88,6 +88,7 @@ struct mtp2 {
 	unsigned char curfsn:7;
 	unsigned char curfib:1;
 	unsigned char lastfsnacked:7;
+	unsigned char curbib:1;
 	int fd;
 
 	int t1;
@@ -109,6 +110,7 @@ struct mtp2 {
 
 	struct ss7_msg *tx_buf;
 	struct ss7_msg *tx_q;
+	struct ss7_msg *retransmit_pos;
 	struct ss7 *master;
 };
 
