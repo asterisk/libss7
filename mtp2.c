@@ -216,6 +216,9 @@ static void mtp2_retransmit(struct mtp2 *link)
 {
 	struct ss7_msg *m;
 
+	/* Have to invert the current fib */
+	link->curfib = !link->curfib;
+
 	m = link->tx_buf;
 	if (!m) {
 		ss7_error(link->master, "Huh!? Asked to retransmit but we don't have anything in the tx buffer\n");
@@ -226,8 +229,6 @@ static void mtp2_retransmit(struct mtp2 *link)
 		m = m->next;
 
 	link->retransmit_pos = m;
-	/* Have to invert the current fib */
-	link->curfib = !link->curfib;
 }
 
 int mtp2_transmit(struct mtp2 *link)
@@ -262,10 +263,8 @@ int mtp2_transmit(struct mtp2 *link)
 			m = link->tx_q;
 	
 		if (m) {
-			struct mtp_su_head *header = (struct mtp_su_head *)m->buf;
 			h = m->buf;
 			size = m->size;
-			init_mtp2_header(link, header, 1, 0);
 		} else {
 			size = sizeof(buf);
 			if (link->autotxsutype == FISU)
@@ -301,7 +300,7 @@ int mtp2_msu(struct mtp2 *link, struct ss7_msg *m)
 	int len = m->size - MTP2_SIZE;
 	struct mtp_su_head *h = (struct mtp_su_head *) m->buf;
 
-	//init_mtp2_header(link, h, 1, 0);
+	init_mtp2_header(link, h, 1, 0);
 
 	if (len > MTP2_LI_MAX)
 		h->li = MTP2_LI_MAX;
@@ -678,20 +677,14 @@ static int msu_rx(struct mtp2 *link, struct mtp_su_head *h, int len)
 		return 0;
 	}
 
-	/* Got to get all this stuff */
-	if (h->fib == link->curfib) {
-		link->lastfsnacked = h->fsn;
-		/* The big function */
-		res = mtp3_receive(link->master, link, h->data, len - MTP2_SU_HEAD_SIZE);
+	/* Ok, it's a valid MSU now and we can accept it */
+	link->lastfsnacked = h->fsn;
+	/* The big function */
+	res = mtp3_receive(link->master, link, h->data, len - MTP2_SU_HEAD_SIZE);
 
-		if (res < 0) /* Problem in higher layer */
-			mtp_error(link->master, "Received error from mtp3 layer: %d\n", res);
-		return res;
-	} else {
-		/* Error condition, TODO: Negative acknowledgement */
-
-		return 0;
-	}
+	if (res < 0) /* Problem in higher layer */
+		mtp_error(link->master, "Received error from mtp3 layer: %d\n", res);
+	return res;
 }
 
 int mtp2_start(struct mtp2 *link, int emergency)
