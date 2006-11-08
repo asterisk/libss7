@@ -42,7 +42,7 @@ contains sample configuration for setting up an E1 link.
 
 Completed:
 ==========
-MTP2
+MTP2 - Retransmissions are done correctly now from both sides.
 Basic MTP3
 Basic call messages (IAM, ACM, ANM, REL, RLC)
 CIC Reset (GRS, GRA, RSC)
@@ -51,6 +51,8 @@ CIC Blocking/Unblocking (CGB, CGBA, CGU, CGUA, BLO, BLA)
 Continuity Check (COT, CCR)
 Call Progress message (CPG)
 ANSI MTP2, MTP3, and ISUP, inbound and outbound calling works now.
+ITU style SS7 support
+ANSI-style signalling support
 
 TODO:
 =====
@@ -60,7 +62,6 @@ SUS/RES
 CPG
 
 long term:
-ANSI-style signalling support
 SCCP support
 
 For more information, please use the Asterisk-ss7 or Asterisk-dev mailing
