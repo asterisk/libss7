@@ -91,22 +91,26 @@ struct mtp2 {
 	unsigned char curbib:1;
 	int fd;
 
+	/* Timers */
 	int t1;
 	int t2;
 	int t3;
 	int t4;
+	struct mtp2_timers timers;
 
 	int slc;
 
 	int emergency;
 	int provingperiod;
-	int retransmitting;
 	unsigned int dpc;
+
 	int autotxsutype;
 	int lastsurxd;
 	int lastsutxd;
 	int sent_tra;
-	struct mtp2_timers timers;
+
+	/* Line related stats */
+	unsigned int retransmissioncount;
 
 	struct ss7_msg *tx_buf;
 	struct ss7_msg *tx_q;

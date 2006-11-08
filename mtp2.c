@@ -118,6 +118,7 @@ static void reset_mtp(struct mtp2 *link)
 	link->curfib = 1;
 	link->curbib = 1;
 	link->lastfsnacked = 127;
+	link->retransmissioncount = 0;
 
 	flush_bufs(link);
 }
@@ -652,10 +653,6 @@ static int msu_rx(struct mtp2 *link, struct mtp_su_head *h, int len)
 {
 	int res = 0;
 
-#if 0
-	mtp_message(link->master, "Txbuf contains %d items\n", len_txbuf(link));
-#endif
-
 	switch (link->state) {
 		case MTP_ALIGNEDREADY:
 			mtp2_setstate(link, MTP_INSERVICE);
@@ -681,6 +678,7 @@ static int msu_rx(struct mtp2 *link, struct mtp_su_head *h, int len)
 
 	if (h->fsn != ((link->lastfsnacked+1) % 128)) {
 		mtp_message(link->master, "Received out of sequence MSU w/ fsn of %d, lastfsnacked = %d, requesting retransmission\n", h->fsn, link->lastfsnacked);
+		link->retransmissioncount++;
 		link->curbib = !link->curbib;
 		return 0;
 	}
