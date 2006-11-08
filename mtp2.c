@@ -666,6 +666,13 @@ static int msu_rx(struct mtp2 *link, struct mtp_su_head *h, int len)
 			mtp_error(link->master, "Received MSU in invalid state %d\n", link->state);
 			return -1;
 	}
+
+	/* If we're still waiting for our retranmission acknownledgement, we'll just ignore subsequent MSUs until it starts */
+	if (h->fib != link->curbib) {
+		mtp_message(link->master, "MSU received, though still waiting for retransmission start.  Dropping.\n");
+		return 0;
+	}
+
 	if (h->fsn == link->lastfsnacked) {
 		/* Discard */
 		mtp_message(link->master, "Received double MSU, dropping\n");
@@ -673,7 +680,8 @@ static int msu_rx(struct mtp2 *link, struct mtp_su_head *h, int len)
 	}
 
 	if (h->fsn != ((link->lastfsnacked+1) % 128)) {
-		mtp_message(link->master, "Received out of sequence MSU w/ fsn of %d, lastfsnacked = %d\n", h->fsn, link->lastfsnacked + 1);
+		mtp_message(link->master, "Received out of sequence MSU w/ fsn of %d, lastfsnacked = %d, requesting retransmission\n", h->fsn, link->lastfsnacked);
+		link->curbib = !link->curbib;
 		return 0;
 	}
 
