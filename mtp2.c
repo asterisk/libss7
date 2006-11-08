@@ -825,7 +825,7 @@ int mtp2_receive(struct mtp2 *link, unsigned char *buf, int len)
 	update_txbuf(link, h->bsn);
 
 	/* Check for retransmission request */
-	if (h->bib != link->curfib) {
+	if ((link->state == MTP_INSERVICE) &&  (h->bib != link->curfib)) {
 		/* Negative ack */
 		ss7_message(link->master, "Got retransmission request sequence numbers greater than %d. Retransmitting %d message(s).\n", h->bsn, len_txbuf(link));
 		mtp2_retransmit(link);
