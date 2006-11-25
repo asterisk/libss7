@@ -1267,6 +1267,10 @@ static int isup_send_cicgroupmessage(struct ss7 *ss7, int messagetype, int begin
 int isup_grs(struct ss7 *ss7, int begincic, int endcic)
 {
 	struct isup_call call;
+
+	if (!ss7)
+		return -1;
+
 	call.cic = begincic;
 	call.range = endcic - begincic;
 	return isup_send_message(ss7, &call, ISUP_GRS, greset_params);
@@ -1275,6 +1279,9 @@ int isup_grs(struct ss7 *ss7, int begincic, int endcic)
 int isup_gra(struct ss7 *ss7, int begincic, int endcic)
 {
 	struct isup_call call;
+
+	if (!ss7)
+		return -1;
 	call.cic = begincic;
 	call.range = endcic - begincic;
 	return isup_send_message(ss7, &call, ISUP_GRA, greset_params);
@@ -1282,26 +1289,40 @@ int isup_gra(struct ss7 *ss7, int begincic, int endcic)
 
 int isup_cgb(struct ss7 *ss7, int begincic, int endcic, unsigned char state[])
 {
+	if (!ss7)
+		return -1;
+
 	return isup_send_cicgroupmessage(ss7, ISUP_CGB, begincic, endcic, state);
 }
 
 int isup_cgu(struct ss7 *ss7, int begincic, int endcic, unsigned char state[])
 {
+	if (!ss7)
+		return -1;
+
 	return isup_send_cicgroupmessage(ss7, ISUP_CGU, begincic, endcic, state);
 }
 
 int isup_cgba(struct ss7 *ss7, int begincic, int endcic, unsigned char state[])
 {
+	if (!ss7)
+		return -1;
 	return isup_send_cicgroupmessage(ss7, ISUP_CGBA, begincic, endcic, state);
 }
 
 int isup_cgua(struct ss7 *ss7, int begincic, int endcic, unsigned char state[])
 {
+	if (!ss7)
+		return -1;
+
 	return isup_send_cicgroupmessage(ss7, ISUP_CGUA, begincic, endcic, state);
 }
 
 int isup_iam(struct ss7 *ss7, struct isup_call *c)
 {
+	if (!ss7 || !c)
+		return -1;
+
 	if (ss7->switchtype == SS7_ITU)
 		return isup_send_message(ss7, c, ISUP_IAM, iam_params);
 	else
@@ -1310,21 +1331,33 @@ int isup_iam(struct ss7 *ss7, struct isup_call *c)
 
 int isup_acm(struct ss7 *ss7, struct isup_call *c)
 {
+	if (!ss7 || !c)
+		return -1;
+
 	return isup_send_message(ss7, c, ISUP_ACM, acm_params);
 }
 
 int isup_anm(struct ss7 *ss7, struct isup_call *c)
 {
+	if (!ss7 || !c)
+		return -1;
+
 	return isup_send_message(ss7, c, ISUP_ANM, anm_params);
 }
 
 int isup_con(struct ss7 *ss7, struct isup_call *c)
 {
+	if (!ss7 || !c)
+		return -1;
+
 	return isup_send_message(ss7, c, ISUP_CON, con_params);
 }
 
 int isup_rel(struct ss7 *ss7, struct isup_call *c, int cause)
 {
+	if (!ss7 || !c)
+		return -1;
+
 	if (cause < 0)
 		cause = 16;
 
@@ -1337,6 +1370,10 @@ int isup_rel(struct ss7 *ss7, struct isup_call *c, int cause)
 int isup_rlc(struct ss7 *ss7, struct isup_call *c)
 {
 	int res;
+
+	if (!ss7 || !c)
+		return -1;
+
 	res = isup_send_message(ss7, c, ISUP_RLC, empty_params);
 	isup_free_call(ss7, c);
 	return res;
@@ -1353,32 +1390,50 @@ static int isup_send_message_ciconly(struct ss7 *ss7, int messagetype, int cic)
 
 int isup_cpg(struct ss7 *ss7, struct isup_call *c, int event)
 {
+	if (!ss7 || !c)
+		return -1;
+
 	c->event_info = event;
 	return isup_send_message(ss7, c, ISUP_CPG, cpg_params);
 }
 
 int isup_rsc(struct ss7 *ss7, int cic)
 {
+	if (!ss7)
+		return -1;
+
 	return isup_send_message_ciconly(ss7, ISUP_RSC, cic);
 }
 
 int isup_blo(struct ss7 *ss7, int cic)
 {
+	if (!ss7)
+		return -1;
+
 	return isup_send_message_ciconly(ss7, ISUP_BLO, cic);
 }
 
 int isup_ubl(struct ss7 *ss7, int cic)
 {
+	if (!ss7)
+		return -1;
+
 	return isup_send_message_ciconly(ss7, ISUP_UBL, cic);
 }
 
 int isup_bla(struct ss7 *ss7, int cic)
 {
+	if (!ss7)
+		return -1;
+
 	return isup_send_message_ciconly(ss7, ISUP_BLA, cic);
 }
 
 int isup_uba(struct ss7 *ss7, int cic)
 {
+	if (!ss7)
+		return -1;
+
 	return isup_send_message_ciconly(ss7, ISUP_UBA, cic);
 }
 /* Janelle is the bomb (Again) */
