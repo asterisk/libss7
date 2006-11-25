@@ -1261,6 +1261,10 @@ static int isup_send_cicgroupmessage(struct ss7 *ss7, int messagetype, int begin
 
 	call.cic = begincic;
 	call.range = endcic - begincic;
+
+	if (call.range > 31)
+		return -1;
+
 	return isup_send_message(ss7, &call, messagetype, cicgroup_params);
 }
 
@@ -1273,6 +1277,10 @@ int isup_grs(struct ss7 *ss7, int begincic, int endcic)
 
 	call.cic = begincic;
 	call.range = endcic - begincic;
+
+	if (call.range > 31)
+		return -1;
+
 	return isup_send_message(ss7, &call, ISUP_GRS, greset_params);
 }
 
@@ -1284,6 +1292,10 @@ int isup_gra(struct ss7 *ss7, int begincic, int endcic)
 		return -1;
 	call.cic = begincic;
 	call.range = endcic - begincic;
+	
+	if (call.range > 31)
+		return -1;
+
 	return isup_send_message(ss7, &call, ISUP_GRA, greset_params);
 }
 
