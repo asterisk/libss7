@@ -95,8 +95,8 @@ static void flush_bufs(struct mtp2 *link)
 
 	while (list) {
 		cur = list;
-		free(cur);
 		list = list->next;
+		free(cur);
 	}
 
 	list = link->tx_q;
@@ -105,8 +105,8 @@ static void flush_bufs(struct mtp2 *link)
 
 	while (list) {
 		cur = list;
-		free(cur);
 		list = list->next;
+		free(cur);
 	}
 
 	link->retransmit_pos = NULL;
