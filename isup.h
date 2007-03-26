@@ -132,6 +132,7 @@ struct isup_call {
 	int causeloc;
 	int cot_check_passed;
 	int cot_check_required;
+	int cicgroupsupervisiontype;
 	unsigned char event_info;
 	unsigned short cic;
 	unsigned short slc;

@@ -593,12 +593,13 @@ static FUNC_DUMP(circuit_group_supervision_dump)
 
 static FUNC_RECV(circuit_group_supervision_receive)
 {
+	c->cicgroupsupervisiontype = 0x3 & parm[0];
 	return 1;
 }
 
 static FUNC_SEND(circuit_group_supervision_transmit)
 {
-	parm[0] = 0x1;
+	parm[0] = c->cicgroupsupervisiontype & 0x3;
 	return 1;
 }
 
@@ -1224,6 +1225,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len
 			e->e = ISUP_EVENT_CGB;
 			e->cgb.startcic = cic;
 			e->cgb.endcic = cic + c->range;
+			e->cgu.type = c->cicgroupsupervisiontype;
 
 			for (i = 0; i < (c->range + 1); i++)
 				e->cgb.status[i] = c->status[i];
@@ -1234,6 +1236,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len
 			e->e = ISUP_EVENT_CGU;
 			e->cgu.startcic = cic;
 			e->cgu.endcic = cic + c->range;
+			e->cgu.type = c->cicgroupsupervisiontype;
 
 			for (i = 0; i < (c->range + 1); i++)
 				e->cgu.status[i] = c->status[i];
@@ -1251,7 +1254,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len
 	}
 }
 
-static int isup_send_cicgroupmessage(struct ss7 *ss7, int messagetype, int begincic, int endcic, unsigned char status[])
+static int isup_send_cicgroupmessage(struct ss7 *ss7, int messagetype, int begincic, int endcic, unsigned char status[], int type)
 {
 	struct isup_call call;
 	int i;
@@ -1261,6 +1264,7 @@ static int isup_send_cicgroupmessage(struct ss7 *ss7, int messagetype, int begin
 
 	call.cic = begincic;
 	call.range = endcic - begincic;
+	call.cicgroupsupervisiontype = type;
 
 	if (call.range > 31)
 		return -1;
@@ -1299,35 +1303,35 @@ int isup_gra(struct ss7 *ss7, int begincic, int endcic)
 	return isup_send_message(ss7, &call, ISUP_GRA, greset_params);
 }
 
-int isup_cgb(struct ss7 *ss7, int begincic, int endcic, unsigned char state[])
+int isup_cgb(struct ss7 *ss7, int begincic, int endcic, unsigned char state[], int type)
 {
 	if (!ss7)
 		return -1;
 
-	return isup_send_cicgroupmessage(ss7, ISUP_CGB, begincic, endcic, state);
+	return isup_send_cicgroupmessage(ss7, ISUP_CGB, begincic, endcic, state, type);
 }
 
-int isup_cgu(struct ss7 *ss7, int begincic, int endcic, unsigned char state[])
+int isup_cgu(struct ss7 *ss7, int begincic, int endcic, unsigned char state[], int type)
 {
 	if (!ss7)
 		return -1;
 
-	return isup_send_cicgroupmessage(ss7, ISUP_CGU, begincic, endcic, state);
+	return isup_send_cicgroupmessage(ss7, ISUP_CGU, begincic, endcic, state, type);
 }
 
-int isup_cgba(struct ss7 *ss7, int begincic, int endcic, unsigned char state[])
+int isup_cgba(struct ss7 *ss7, int begincic, int endcic, unsigned char state[], int type)
 {
 	if (!ss7)
 		return -1;
-	return isup_send_cicgroupmessage(ss7, ISUP_CGBA, begincic, endcic, state);
+	return isup_send_cicgroupmessage(ss7, ISUP_CGBA, begincic, endcic, state, type);
 }
 
-int isup_cgua(struct ss7 *ss7, int begincic, int endcic, unsigned char state[])
+int isup_cgua(struct ss7 *ss7, int begincic, int endcic, unsigned char state[], int type)
 {
 	if (!ss7)
 		return -1;
 
-	return isup_send_cicgroupmessage(ss7, ISUP_CGUA, begincic, endcic, state);
+	return isup_send_cicgroupmessage(ss7, ISUP_CGUA, begincic, endcic, state, type);
 }
 
 int isup_iam(struct ss7 *ss7, struct isup_call *c)

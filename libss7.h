@@ -116,6 +116,7 @@ typedef struct {
 	int e;
 	int startcic;
 	int endcic;
+	int type;
 	unsigned char status[255];
 } ss7_event_cicrange;
 
@@ -222,13 +223,13 @@ int isup_gra(struct ss7 *ss7, int begincic, int endcic);
 
 int isup_grs(struct ss7 *ss7, int begincic, int endcic);
 
-int isup_cgb(struct ss7 *ss7, int begincic, int endcic, unsigned char state[]);
+int isup_cgb(struct ss7 *ss7, int begincic, int endcic, unsigned char state[], int type);
 
-int isup_cgu(struct ss7 *ss7, int begincic, int endcic, unsigned char state[]);
+int isup_cgu(struct ss7 *ss7, int begincic, int endcic, unsigned char state[], int type);
 
-int isup_cgba(struct ss7 *ss7, int begincic, int endcic, unsigned char state[]);
+int isup_cgba(struct ss7 *ss7, int begincic, int endcic, unsigned char state[], int type);
 
-int isup_cgua(struct ss7 *ss7, int begincic, int endcic, unsigned char state[]);
+int isup_cgua(struct ss7 *ss7, int begincic, int endcic, unsigned char state[], int type);
 
 int isup_blo(struct ss7 *ss7, int cic);
 
