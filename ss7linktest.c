@@ -146,10 +146,10 @@ void *ss7_run(void *data)
 						isup_bla(ss7, e->blo.cic);
 						break;
 					case ISUP_EVENT_CGB:
-						isup_cgba(ss7, e->cgb.startcic, e->cgb.endcic, e->cgb.status);
+						isup_cgba(ss7, e->cgb.startcic, e->cgb.endcic, e->cgb.status, e->cgb.type);
 						break;
 					case ISUP_EVENT_CGU:
-						isup_cgua(ss7, e->cgb.startcic, e->cgb.endcic, e->cgb.status);
+						isup_cgua(ss7, e->cgu.startcic, e->cgu.endcic, e->cgu.status, e->cgu.type);
 						break;
 					case ISUP_EVENT_IAM:
 						printf("Got IAM for cic %d and number %s\n", e->iam.cic, e->iam.called_party_num);
