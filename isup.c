@@ -711,9 +711,15 @@ struct isup_call * isup_new_call(struct ss7 *ss7)
 	return c;
 }
 
-void isup_init_call(struct ss7 *ss7, struct isup_call *c, int cic, char *calledpartynum, char *callingpartynum)
+void isup_set_call_dpc(struct isup_call *c, unsigned int dpc)
+{
+	c->dpc = dpc;
+}
+
+void isup_init_call(struct ss7 *ss7, struct isup_call *c, int cic, unsigned int dpc, char *calledpartynum, char *callingpartynum)
 {
 	c->cic = cic;
+	c->dpc = dpc;
 	if (calledpartynum && calledpartynum[0]) {
 		if (ss7->switchtype == SS7_ITU)
 			snprintf(c->called_party_num, sizeof(c->called_party_num), "%s#", calledpartynum);
@@ -882,7 +888,9 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 	rlptr = ss7_msg_userpart(msg);
 	rl.opc = ss7->pc;
 	rl.sls = sls_next(ss7);
-	rl.dpc = ss7->def_dpc;
+	/* use CIC's DPC instead of linkset's DPC */
+	/* rl.dpc = ss7->def_dpc; */
+	rl.dpc = c->dpc;
 	rl.type = ss7->switchtype;
 	rlsize = set_routinglabel(rlptr, &rl);
 	mh = (struct isup_h *)(rlptr + rlsize); /* Note to self, do NOT put a typecasted pointer next to an addition operation */
@@ -1254,7 +1262,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len
 	}
 }
 
-static int isup_send_cicgroupmessage(struct ss7 *ss7, int messagetype, int begincic, int endcic, unsigned char status[], int type)
+static int isup_send_cicgroupmessage(struct ss7 *ss7, int messagetype, int begincic, int endcic, unsigned int dpc, unsigned char status[], int type)
 {
 	struct isup_call call;
 	int i;
@@ -1272,7 +1280,7 @@ static int isup_send_cicgroupmessage(struct ss7 *ss7, int messagetype, int begin
 	return isup_send_message(ss7, &call, messagetype, cicgroup_params);
 }
 
-int isup_grs(struct ss7 *ss7, int begincic, int endcic)
+int isup_grs(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc)
 {
 	struct isup_call call;
 
@@ -1281,6 +1289,8 @@ int isup_grs(struct ss7 *ss7, int begincic, int endcic)
 
 	call.cic = begincic;
 	call.range = endcic - begincic;
+	call.dpc = dpc;
+	call.dpc = dpc;
 
 	if (call.range > 31)
 		return -1;
@@ -1288,7 +1298,7 @@ int isup_grs(struct ss7 *ss7, int begincic, int endcic)
 	return isup_send_message(ss7, &call, ISUP_GRS, greset_params);
 }
 
-int isup_gra(struct ss7 *ss7, int begincic, int endcic)
+int isup_gra(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc)
 {
 	struct isup_call call;
 
@@ -1296,6 +1306,7 @@ int isup_gra(struct ss7 *ss7, int begincic, int endcic)
 		return -1;
 	call.cic = begincic;
 	call.range = endcic - begincic;
+	call.dpc = dpc;
 	
 	if (call.range > 31)
 		return -1;
@@ -1303,35 +1314,35 @@ int isup_gra(struct ss7 *ss7, int begincic, int endcic)
 	return isup_send_message(ss7, &call, ISUP_GRA, greset_params);
 }
 
-int isup_cgb(struct ss7 *ss7, int begincic, int endcic, unsigned char state[], int type)
+int isup_cgb(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsigned char state[], int type)
 {
 	if (!ss7)
 		return -1;
 
-	return isup_send_cicgroupmessage(ss7, ISUP_CGB, begincic, endcic, state, type);
+ 	return isup_send_cicgroupmessage(ss7, ISUP_CGB, begincic, endcic, dpc, state, type);
 }
 
-int isup_cgu(struct ss7 *ss7, int begincic, int endcic, unsigned char state[], int type)
+int isup_cgu(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsigned char state[], int type)
 {
 	if (!ss7)
 		return -1;
 
-	return isup_send_cicgroupmessage(ss7, ISUP_CGU, begincic, endcic, state, type);
+ 	return isup_send_cicgroupmessage(ss7, ISUP_CGU, begincic, endcic, dpc, state, type);
 }
 
-int isup_cgba(struct ss7 *ss7, int begincic, int endcic, unsigned char state[], int type)
+int isup_cgba(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsigned char state[], int type)
 {
 	if (!ss7)
 		return -1;
-	return isup_send_cicgroupmessage(ss7, ISUP_CGBA, begincic, endcic, state, type);
+ 	return isup_send_cicgroupmessage(ss7, ISUP_CGBA, begincic, endcic, dpc, state, type);
 }
 
-int isup_cgua(struct ss7 *ss7, int begincic, int endcic, unsigned char state[], int type)
+int isup_cgua(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsigned char state[], int type)
 {
 	if (!ss7)
 		return -1;
 
-	return isup_send_cicgroupmessage(ss7, ISUP_CGUA, begincic, endcic, state, type);
+	return isup_send_cicgroupmessage(ss7, ISUP_CGUA, begincic, endcic, dpc, state, type);
 }
 
 int isup_iam(struct ss7 *ss7, struct isup_call *c)
@@ -1395,11 +1406,12 @@ int isup_rlc(struct ss7 *ss7, struct isup_call *c)
 	return res;
 }
 
-static int isup_send_message_ciconly(struct ss7 *ss7, int messagetype, int cic)
+static int isup_send_message_ciconly(struct ss7 *ss7, int messagetype, int cic, unsigned int dpc)
 {
 	int res;
 	struct isup_call c;
 	c.cic = cic;
+	c.dpc = dpc;
 	res = isup_send_message(ss7, &c, messagetype, empty_params);
 	return res;
 }
@@ -1413,43 +1425,43 @@ int isup_cpg(struct ss7 *ss7, struct isup_call *c, int event)
 	return isup_send_message(ss7, c, ISUP_CPG, cpg_params);
 }
 
-int isup_rsc(struct ss7 *ss7, int cic)
+int isup_rsc(struct ss7 *ss7, int cic, unsigned int dpc)
 {
 	if (!ss7)
 		return -1;
 
-	return isup_send_message_ciconly(ss7, ISUP_RSC, cic);
+	return isup_send_message_ciconly(ss7, ISUP_RSC, cic, dpc);
 }
 
-int isup_blo(struct ss7 *ss7, int cic)
+int isup_blo(struct ss7 *ss7, int cic, unsigned int dpc)
 {
 	if (!ss7)
 		return -1;
 
-	return isup_send_message_ciconly(ss7, ISUP_BLO, cic);
+	return isup_send_message_ciconly(ss7, ISUP_BLO, cic, dpc);
 }
 
-int isup_ubl(struct ss7 *ss7, int cic)
+int isup_ubl(struct ss7 *ss7, int cic, unsigned int dpc)
 {
 	if (!ss7)
 		return -1;
 
-	return isup_send_message_ciconly(ss7, ISUP_UBL, cic);
+	return isup_send_message_ciconly(ss7, ISUP_UBL, cic, dpc);
 }
 
-int isup_bla(struct ss7 *ss7, int cic)
+int isup_bla(struct ss7 *ss7, int cic, unsigned int dpc)
 {
 	if (!ss7)
 		return -1;
 
-	return isup_send_message_ciconly(ss7, ISUP_BLA, cic);
+	return isup_send_message_ciconly(ss7, ISUP_BLA, cic, dpc);
 }
 
-int isup_uba(struct ss7 *ss7, int cic)
+int isup_uba(struct ss7 *ss7, int cic, unsigned int dpc)
 {
 	if (!ss7)
 		return -1;
 
-	return isup_send_message_ciconly(ss7, ISUP_UBA, cic);
+	return isup_send_message_ciconly(ss7, ISUP_UBA, cic, dpc);
 }
 /* Janelle is the bomb (Again) */

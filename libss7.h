@@ -219,27 +219,29 @@ int isup_rlc(struct ss7 *ss7, struct isup_call *c);
 
 int isup_cpg(struct ss7 *ss7, struct isup_call *c, int event);
 
-int isup_gra(struct ss7 *ss7, int begincic, int endcic);
+int isup_gra(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc);
 
-int isup_grs(struct ss7 *ss7, int begincic, int endcic);
+int isup_grs(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc);
 
-int isup_cgb(struct ss7 *ss7, int begincic, int endcic, unsigned char state[], int type);
+int isup_cgb(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsigned char state[], int type);
 
-int isup_cgu(struct ss7 *ss7, int begincic, int endcic, unsigned char state[], int type);
+int isup_cgu(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsigned char state[], int type);
 
-int isup_cgba(struct ss7 *ss7, int begincic, int endcic, unsigned char state[], int type);
+int isup_cgba(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsigned char state[], int type);
 
-int isup_cgua(struct ss7 *ss7, int begincic, int endcic, unsigned char state[], int type);
+int isup_cgua(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsigned char state[], int type);
 
-int isup_blo(struct ss7 *ss7, int cic);
+int isup_blo(struct ss7 *ss7, int cic, unsigned int dpc);
 
-int isup_ubl(struct ss7 *ss7, int cic);
+int isup_ubl(struct ss7 *ss7, int cic, unsigned int dpc);
 
-int isup_bla(struct ss7 *ss7, int cic);
+int isup_bla(struct ss7 *ss7, int cic, unsigned int dpc);
 
-int isup_uba(struct ss7 *ss7, int cic);
+int isup_uba(struct ss7 *ss7, int cic, unsigned int dpc);
 
-int isup_rsc(struct ss7 *ss7, int cic);
+int isup_rsc(struct ss7 *ss7, int cic, unsigned int dpc);
 
-void isup_init_call(struct ss7 *ss7, struct isup_call *c, int cic, char *calledpartynum, char *callingpartynum);
+void isup_init_call(struct ss7 *ss7, struct isup_call *c, int cic, unsigned int dpc, char *calledpartynum, char *callingpartynum);
+
+void isup_set_call_dpc(struct isup_call *c, unsigned int dpc);
 #endif /* _LIBSS7_H */

@@ -137,6 +137,8 @@ struct isup_call {
 	unsigned short cic;
 	unsigned short slc;
 	struct isup_call *next;
+	/* set DPC according to CIC's DPC, not linkset */
+	unsigned int dpc;
 };
 
 int isup_receive(struct ss7 *ss7, struct mtp2 *sl, unsigned char *sif, int len);

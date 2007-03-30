@@ -59,7 +59,9 @@ TODO:
 
 short term:
 SUS/RES
-CPG
+CallerID presentation
+RDNIS
+Timer for last SU received so we know if layer2 goes out under us
 
 long term:
 SCCP support

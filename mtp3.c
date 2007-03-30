@@ -352,6 +352,7 @@ static int std_test_receive(struct ss7 *ss7, struct mtp2 *mtp2, unsigned char *b
 		struct ss7_msg *m;
 		struct routing_label drl;
 		unsigned char *layer4;
+		ss7_event *e;
 		int rllen;
 
 		m = ss7_msg_new();
@@ -380,6 +381,19 @@ static int std_test_receive(struct ss7 *ss7, struct mtp2 *mtp2, unsigned char *b
 		ss7_msg_userpart_len(m, rllen + testpatsize + 2);
 
 		mtp3_transmit(ss7, (ss7->switchtype == SS7_ITU) ? SIG_STD_TEST : SIG_SPEC_TEST, mtp2->slc, m);
+
+		/* Update linkstate */
+
+		mtp3_setstate_mtp2link(ss7, mtp2, MTP2_LINKSTATE_UP);
+
+		if (ss7->state != SS7_STATE_UP) {
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				mtp_error(ss7, "Event queue full\n");
+				return -1;
+			}
+			e->e = SS7_EVENT_UP;
+		}
 
 		return 0;
 	} else if (h1 == 2) {
