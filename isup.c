@@ -1273,6 +1273,7 @@ static int isup_send_cicgroupmessage(struct ss7 *ss7, int messagetype, int begin
 	call.cic = begincic;
 	call.range = endcic - begincic;
 	call.cicgroupsupervisiontype = type;
+	call.dpc = dpc;
 
 	if (call.range > 31)
 		return -1;
