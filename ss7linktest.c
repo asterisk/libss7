@@ -13,9 +13,6 @@
 #include <zaptel/zaptel.h>
 #include "libss7.h"
 
-#define OUR_PC		0x1
-#define THEIR_PC	0x2
-
 struct linkset {
 	struct ss7 *ss7;
 	int linkno;
@@ -24,6 +21,8 @@ struct linkset {
 
 int linknum = 1;
 int callcount = 0;
+unsigned int opc;
+unsigned int dpc;
 
 #define NUM_BUFS 32
 
@@ -35,7 +34,7 @@ void ss7_call(struct ss7 *ss7)
 	c = isup_new_call(ss7);
 
 	if (c) {
-		isup_init_call(ss7, c, (callcount % 12) + 1, THEIR_PC, "12345", "7654321");
+		isup_init_call(ss7, c, (callcount % 12) + 1, dpc, "12345", "7654321");
 		isup_iam(ss7, c);
 		printf("Callcount = %d\n ", ++callcount);
 	}
@@ -135,8 +134,8 @@ void *ss7_run(void *data)
 						break;
 					case ISUP_EVENT_GRS:
 						printf("Got GRS from cic %d to %d: Acknowledging\n", e->grs.startcic, e->grs.endcic);
-						isup_gra(ss7, e->grs.startcic, e->grs.endcic, THEIR_PC);
-						isup_grs(ss7, e->grs.startcic, e->grs.endcic, THEIR_PC);
+						isup_gra(ss7, e->grs.startcic, e->grs.endcic, dpc);
+						isup_grs(ss7, e->grs.startcic, e->grs.endcic, dpc);
 						break;
 					case ISUP_EVENT_RSC:
 						isup_rlc(ss7, e->rsc.call);
@@ -146,13 +145,13 @@ void *ss7_run(void *data)
 						//ss7_call(ss7);
 						break;
 					case ISUP_EVENT_BLO:
-						isup_bla(ss7, e->blo.cic, THEIR_PC);
+						isup_bla(ss7, e->blo.cic, dpc);
 						break;
 					case ISUP_EVENT_CGB:
-						isup_cgba(ss7, e->cgb.startcic, e->cgb.endcic, THEIR_PC, e->cgb.status, e->cgb.type);
+						isup_cgba(ss7, e->cgb.startcic, e->cgb.endcic, dpc, e->cgb.status, e->cgb.type);
 						break;
 					case ISUP_EVENT_CGU:
-						isup_cgua(ss7, e->cgu.startcic, e->cgu.endcic, THEIR_PC, e->cgu.status, e->cgu.type);
+						isup_cgua(ss7, e->cgu.startcic, e->cgu.endcic, dpc, e->cgu.status, e->cgu.type);
 						break;
 					case ISUP_EVENT_IAM:
 						printf("Got IAM for cic %d and number %s\n", e->iam.cic, e->iam.called_party_num);
@@ -212,22 +211,44 @@ int zap_open(int devnum)
 	return fd;
 }
 
+void print_args(void)
+{
+	printf("Incorrect arguments.  Should be:\n");
+	printf("ss7linktest [sigchan number] [ss7 style - itu or ansi] [OPC - in decimal] [DPC - in decimal]\n");
+	printf("Example:\n");
+	printf("ss7linktest 16 itu 1 2\n");
+	printf("This would run the linktest program on zap/16 with ITU style signalling, with an OPC of 1 and a DPC of 2\n");
+}
+
 int main(int argc, char *argv[])
 {
 	int fd;
 	struct ss7 *ss7;
 	pthread_t tmp;
 	int channum;
+	unsigned int type;
 
-	if (argc < 2) {
-		printf("%s requires a channel number!\n", argv[0]);
+	if (argc < 5) {
+		print_args();
 		return -1;
 	}
 	channum = atoi(argv[1]);
 
+	if (strcasecmp(argv[2], "ansi")) {
+		type = SS7_ANSI;
+	} else if (strcasecmp(argv[2], "itu")) {
+		type = SS7_ITU;
+	} else {
+		print_args();
+		return -1;
+	}
+
+	opc = atoi(argv[3]);
+	dpc = atoi(argv[4]);
+
 	fd = zap_open(channum);
 
-	if (!(ss7 = ss7_new(SS7_ITU))) {
+	if (!(ss7 = ss7_new(type))) {
 		perror("ss7_new");
 		exit(1);
 	}
@@ -245,9 +266,9 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	ss7_set_pc(ss7, OUR_PC);
-	ss7_set_adjpc(ss7, fd, THEIR_PC);
-	ss7_set_default_dpc(ss7, THEIR_PC);
+	ss7_set_pc(ss7, opc);
+	ss7_set_adjpc(ss7, fd, dpc);
+	ss7_set_default_dpc(ss7, dpc);
 
 	if (pthread_create(&tmp, NULL, ss7_run, &linkset[0])) {
 		perror("thread(0)");
