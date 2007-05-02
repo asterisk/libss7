@@ -234,9 +234,9 @@ int main(int argc, char *argv[])
 	}
 	channum = atoi(argv[1]);
 
-	if (strcasecmp(argv[2], "ansi")) {
+	if (!strcasecmp(argv[2], "ansi")) {
 		type = SS7_ANSI;
-	} else if (strcasecmp(argv[2], "itu")) {
+	} else if (!strcasecmp(argv[2], "itu")) {
 		type = SS7_ITU;
 	} else {
 		print_args();
@@ -247,6 +247,9 @@ int main(int argc, char *argv[])
 	dpc = atoi(argv[4]);
 
 	fd = zap_open(channum);
+
+	if (fd == -1)
+		return -1;
 
 	if (!(ss7 = ss7_new(type))) {
 		perror("ss7_new");
