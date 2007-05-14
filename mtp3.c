@@ -288,6 +288,7 @@ static int net_mng_receive(struct ss7 *ss7, struct mtp2 *mtp2, unsigned char *bu
 				return -1;
 			}
 			e->e = SS7_EVENT_UP;
+			ss7->state = SS7_STATE_UP;
 		}
 		return 0;
 	} else {
