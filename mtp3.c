@@ -125,7 +125,7 @@ int set_routinglabel(unsigned char *sif, struct routing_label *rl)
 			buf[0] = rl->dpc & 0xff;
 			buf[1] = ((rl->dpc >> 8) & 0x3f) | ((rl->opc << 6) & 0xc0);
 			buf[2] = (rl->opc >> 2) & 0xff;
-			buf[3] = ((rl->opc >> 10) & 0x0f) | (rl->sls & 0xf0);
+			buf[3] = ((rl->opc >> 10) & 0x0f) | ((rl->sls << 4) & 0xf0);
 			return 4;
 		default:
 			return -1;
