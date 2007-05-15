@@ -887,7 +887,12 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 
 	rlptr = ss7_msg_userpart(msg);
 	rl.opc = ss7->pc;
-	rl.sls = sls_next(ss7);
+
+	if (ss7->switchtype == SS7_ANSI) {
+		rl.sls = sls_next(ss7);
+	} else
+		rl.sls = c->cic & 0xf;
+
 	/* use CIC's DPC instead of linkset's DPC */
 	/* rl.dpc = ss7->def_dpc; */
 	rl.dpc = c->dpc;

@@ -85,7 +85,10 @@ static int get_routinglabel(unsigned int switchtype, unsigned char *sif, struct 
 unsigned char sls_next(struct ss7 *ss7)
 {
 	unsigned char res = ss7->sls;
-	ss7->sls = (ss7->sls + 1) % 16;
+	if (ss7->switchtype == SS7_ITU)
+		ss7->sls = (ss7->sls + 1) % ss7->numlinks;
+	else
+		ss7->sls = (ss7->sls + 1) % 256;
 	return res;
 }
 
