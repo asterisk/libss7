@@ -770,7 +770,7 @@ void mtp2_dump(struct mtp2 *link, char prefix, unsigned char *buf, int len)
 			ss7_message(link->master, "FSN: %d FIB %d\n", h->fsn, h->fib);
 			ss7_message(link->master, "BSN: %d BIB %d\n", h->bsn, h->bib);
 
-			ss7_message(link->master, "%c FISU\n", prefix);
+			ss7_message(link->master, "%c[%d] FISU\n", prefix, link->slc);
 			break; 
 		case 1:
 			if (prefix == '<' && link->lastsurxd == h->data[0])
@@ -801,13 +801,13 @@ void mtp2_dump(struct mtp2 *link, char prefix, unsigned char *buf, int len)
 			}
 			ss7_message(link->master, "FSN: %d FIB %d\n", h->fsn, h->fib);
 			ss7_message(link->master, "BSN: %d BIB %d\n", h->bsn, h->bib);
-			ss7_message(link->master, "%c LSSU %s\n", prefix, mtypech);
+			ss7_message(link->master, "%c[%d] LSSU %s\n", prefix, link->slc, mtypech);
 			break;
 		case 2:
 			ss7_dump_buf(link->master, buf, len);
 			ss7_message(link->master, "FSN: %d FIB %d\n", h->fsn, h->fib);
 			ss7_message(link->master, "BSN: %d BIB %d\n", h->bsn, h->bib);
-			ss7_message(link->master, "%c MSU\n", prefix);
+			ss7_message(link->master, "%c[%d] MSU\n", prefix, link->slc);
 			mtp3_dump(link->master, link, h->data, len - MTP2_SU_HEAD_SIZE);
 			break;
 	}

@@ -80,6 +80,7 @@ typedef struct {
 typedef struct {
 	int e;
 	int cic;
+	int cause;
 	struct isup_call *call;
 } ss7_event_rel;
 

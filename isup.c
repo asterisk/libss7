@@ -1183,6 +1183,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len
 			e->e = ISUP_EVENT_REL;
 			e->rel.cic = c->cic;
 			e->rel.call = c;
+			e->rel.cause = c->cause;
 			return 0;
 		case ISUP_ACM:
 			e->e = ISUP_EVENT_ACM;
