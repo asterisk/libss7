@@ -70,7 +70,20 @@ void ss7_set_debug(struct ss7 *ss7, unsigned int flags)
 	ss7->debug = flags;
 }
 
-void ss7_dump_buf(struct ss7 *ss7, unsigned char *buf, int len)
+void ss7_dump_buf(struct ss7 *ss7, int tabs, unsigned char *buf, int len)
+{
+	int i;
+
+	for (i = 0; i < tabs; i++)
+		ss7_message(ss7, "\t");
+	ss7_message(ss7, "[ ");
+	for (i = 0; i < len; i++) {
+		ss7_message(ss7, "%02x ", buf[i]);
+	}
+	ss7_message(ss7, "]\n");
+}
+
+void ss7_dump_msg(struct ss7 *ss7, unsigned char *buf, int len)
 {
 	int i;
 

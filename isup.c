@@ -802,7 +802,7 @@ static int do_parm(struct ss7 *ss7, struct isup_call *c, int message, int parm, 
 								return res + 1;
 							}
 							return res;
-						} else 
+						} else
 							return 1 + parms[x].receive(ss7, c, message, parmbuf + 1, parmbuf[0]);
 					case PARM_TYPE_OPTIONAL:
 						optparm = (struct isup_parm_opt *)parmbuf;
@@ -964,7 +964,7 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 	for (; (x - fixedparams) < varparams; x++) {
 		varoffsets[i] = &mh->data[offset] - &varoffsets[i];
 		i++;
-		res = do_parm(ss7, c, mh->type, parms[x], (void *)(mh->data + offset), len, PARM_TYPE_VARIABLE, 1); /* Find out what else we need to add */
+		res = do_parm(ss7, c, mh->type, parms[x], (void *)(mh->data + offset), len, PARM_TYPE_VARIABLE, 1);
 
 		if (res < 0) {
 			ss7_error(ss7, "!! Unable to add mandatory variable parameter '%s'\n", param2str(parms[x]));
@@ -979,7 +979,7 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 		int addedparms = 0;
 		int offsetbegins = offset;
 		while (parms[x] > -1) {
-			res = do_parm(ss7, c, mh->type, parms[x], (void *)(mh->data + offset), len, PARM_TYPE_OPTIONAL, 1); /* Find out what else we need to add */
+			res = do_parm(ss7, c, mh->type, parms[x], (void *)(mh->data + offset), len, PARM_TYPE_OPTIONAL, 1);
 			x++;
 	
 			if (res < 0) {
@@ -1032,8 +1032,83 @@ int isup_dump(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len)
 		return -1;
 	}
 
-	ss7_message(ss7, "\t\tMessage Type: %s (%x)\n", message2str(mh->type), mh->type & 0xff);
+	ss7_dump_buf(ss7, 2, buf, 2);
 	ss7_message(ss7, "\t\tCIC: %d\n", cic);
+	ss7_dump_buf(ss7, 2, &buf[2], 1);
+	ss7_message(ss7, "\t\tMessage Type: %s\n", message2str(mh->type), mh->type & 0xff);
+
+#if 0
+	if (messages[ourmessage].messagetype == ISUP_IAM) {
+		if (ss7->switchtype == SS7_ITU) {
+			fixedparams = messages[ourmessage].mand_fixed_params;
+			varparams = messages[ourmessage].mand_var_params;
+			parms = messages[ourmessage].param_list;
+		} else {
+			/* Stupid ANSI SS7, they just had to be different, didn't they? */
+			fixedparams = 3;
+			varparams = 2;
+			parms = ansi_iam_params;
+		}
+	} else {
+		fixedparams = messages[ourmessage].mand_fixed_params;
+		varparams = messages[ourmessage].mand_var_params;
+		parms = messages[ourmessage].param_list;
+	}
+
+	/* Parse fixed parms */
+	for (x = 0; x < fixedparams; x++) {
+		res = do_parm(ss7, c, mh->type, parms[x], (void *)(mh->data + offset), len, PARM_TYPE_FIXED, 0, 0, 1);
+		res = dump_parm(ss7, c, mh->type, parms[x], (void *)(mh->data + offset), len, PARM_TYPE_FIXED)
+
+		if (res < 0) {
+			ss7_error(ss7, "!! Unable to parse mandatory fixed parameter '%s'\n", param2str(parms[x]));
+			return -1;
+		}
+
+		len -= res;
+		offset += res;
+	}
+
+	if (varparams) {
+		offset += varparams; /* add one for the optionals */
+		res -= varparams;
+	}
+	if (messages[ourmessage].opt_params) {
+		opt_ptr = &mh->data[offset++];
+	}
+
+	i = 0;
+
+	for (; (x - fixedparams) < varparams; x++) {
+		res = do_parm(ss7, c, mh->type, parms[x], (void *)(mh->data + offset), len, PARM_TYPE_VARIABLE, 0, 0, 1);
+
+		if (res < 0) {
+			ss7_error(ss7, "!! Unable to parse mandatory variable parameter '%s'\n", param2str(parms[x]));
+			return -1;
+		}
+
+		len -= res;
+		offset += res;
+	}
+
+	/* Optional paramter parsing code */
+	if (messages[ourmessage].opt_params && *opt_ptr) {
+		while ((len > 0) && (mh->data[offset] != 0)) {
+			struct isup_parm_opt *optparm = (struct isup_parm_opt *)(mh->data + offset);
+
+			res = do_parm(ss7, c, mh->type, optparm->type, mh->data + offset, len, PARM_TYPE_OPTIONAL, 0, 0, 1); /* Find out what else we need to add */
+
+			if (res < 0) {
+				ss7_message(ss7, "Unhandled optional parameter 0x%x '%s'\n", optparm->type, param2str(optparm->type));
+				isup_dump_buffer(ss7, optparm->data, optparm->len);
+				res = optparm->len + 2;
+			}
+
+			len -= res;
+			offset += res;
+		}
+	}
+#endif
 
 	return 0;
 }
@@ -1114,7 +1189,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len
 	i = 0;
 
 	for (; (x - fixedparams) < varparams; x++) {
-		res = do_parm(ss7, c, mh->type, parms[x], (void *)(mh->data + offset), len, PARM_TYPE_VARIABLE, 0); /* Find out what else we need to add */
+		res = do_parm(ss7, c, mh->type, parms[x], (void *)(mh->data + offset), len, PARM_TYPE_VARIABLE, 0);
 
 		if (res < 0) {
 			ss7_error(ss7, "!! Unable to parse mandatory variable parameter '%s'\n", param2str(parms[x]));
@@ -1130,7 +1205,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len
 		while ((len > 0) && (mh->data[offset] != 0)) {
 			struct isup_parm_opt *optparm = (struct isup_parm_opt *)(mh->data + offset);
 
-			res = do_parm(ss7, c, mh->type, optparm->type, mh->data + offset, len, PARM_TYPE_OPTIONAL, 0); /* Find out what else we need to add */
+			res = do_parm(ss7, c, mh->type, optparm->type, mh->data + offset, len, PARM_TYPE_OPTIONAL, 0);
 
 			if (res < 0) {
 				ss7_message(ss7, "Unhandled optional parameter 0x%x '%s'\n", optparm->type, param2str(optparm->type));

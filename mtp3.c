@@ -229,6 +229,7 @@ static int net_mng_dump(struct ss7 *ss7, struct mtp2 *mtp2, unsigned char *buf, 
 	h1 = get_h1(headerptr);
 	h0 = get_h0(headerptr);
 
+	ss7_dump_buf(ss7, 1, headerptr, 1);
 	ss7_message(ss7, "\tH0: %x H1: %x\n", h0, h1);
 	ss7_message(ss7, "\tMessage type: %s\n", net_mng_message2str(h0, h1));
 	return 0;
@@ -443,13 +444,11 @@ int mtp3_dump(struct ss7 *ss7, struct mtp2 *link, void *msg, int len)
 	int rlsize;
 
 
-	ss7_message(ss7, "\tNetwork Indicator 0x%x\n", ni);
-
+	ss7_dump_buf(ss7, 1, sio, 1);
+	ss7_message(ss7, "\tNetwork Indicator: %d Priority: %d User Part: %s\n", ni, priority, userpart2str(userpart));
 	rlsize = get_routinglabel(ss7->switchtype, sif, &rl);
-
-	ss7_message(ss7, "\tOPC %d DPC %d\n", rl.opc, rl.dpc);
-
-	ss7_message(ss7, "\tUser Part: %s (%x) Priority: %d\n", userpart2str(userpart), userpart, priority);
+	ss7_dump_buf(ss7, 1, sif, rlsize);
+	ss7_message(ss7, "\tOPC %d DPC %d SLS %d\n", rl.opc, rl.dpc, rl.sls);
 
 	/* Pass it to the correct user part */
 	switch (userpart) {

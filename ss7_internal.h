@@ -98,6 +98,8 @@ void ss7_message(struct ss7 *ss7, char *fmt, ...);
 
 void ss7_error(struct ss7 *ss7, char *fmt, ...);
 
-void ss7_dump_buf(struct ss7 *ss7, unsigned char *buf, int len);
+void ss7_dump_buf(struct ss7 *ss7, int tabs,  unsigned char *buf, int len);
+
+void ss7_dump_msg(struct ss7 *ss7, unsigned char *buf, int len);
 
 #endif /* _SS7_H */

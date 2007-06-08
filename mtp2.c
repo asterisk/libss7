@@ -279,7 +279,7 @@ int mtp2_transmit(struct mtp2 *link)
 	res = write(link->fd, h, size);  /* Add 2 for FCS */
 
 	if (res > 0) {
-		mtp2_dump(link, '>', h, size);
+		mtp2_dump(link, '>', h, size - 2);
 		if (retransmit) {
 			/* Update our retransmit positon since it transmitted */
 			update_retransmit_pos(link);
@@ -767,6 +767,7 @@ void mtp2_dump(struct mtp2 *link, char prefix, unsigned char *buf, int len)
 				return;
 			else
 				link->lastsutxd = FISU;
+			ss7_dump_msg(link->master, buf, len);
 			ss7_message(link->master, "FSN: %d FIB %d\n", h->fsn, h->fib);
 			ss7_message(link->master, "BSN: %d BIB %d\n", h->bsn, h->bib);
 
@@ -799,12 +800,14 @@ void mtp2_dump(struct mtp2 *link, char prefix, unsigned char *buf, int len)
 					mtypech = "SIB";
 					break;
 			}
+			ss7_dump_msg(link->master, buf, len);
 			ss7_message(link->master, "FSN: %d FIB %d\n", h->fsn, h->fib);
 			ss7_message(link->master, "BSN: %d BIB %d\n", h->bsn, h->bib);
 			ss7_message(link->master, "%c[%d] LSSU %s\n", prefix, link->slc, mtypech);
 			break;
 		case 2:
-			ss7_dump_buf(link->master, buf, len);
+			ss7_dump_msg(link->master, buf, len);
+			ss7_dump_buf(link->master, 0, buf, 3);
 			ss7_message(link->master, "FSN: %d FIB %d\n", h->fsn, h->fib);
 			ss7_message(link->master, "BSN: %d BIB %d\n", h->bsn, h->bib);
 			ss7_message(link->master, "%c[%d] MSU\n", prefix, link->slc);
@@ -819,8 +822,9 @@ void mtp2_dump(struct mtp2 *link, char prefix, unsigned char *buf, int len)
 int mtp2_receive(struct mtp2 *link, unsigned char *buf, int len)
 {
 	struct mtp_su_head *h = (struct mtp_su_head *)buf;
+	len -= 2; /* Strip the CRC off */
 
-	mtp2_dump(link, '<', buf, len);
+	mtp2_dump(link, '<', buf, len - 2);
 
 	update_txbuf(link, h->bsn);
 
@@ -834,14 +838,14 @@ int mtp2_receive(struct mtp2 *link, unsigned char *buf, int len)
 	switch (h->li) {
 		case 0:
 			/* FISU */
-			return fisu_rx(link, h, len);
+			return fisu_rx(link, h, len - 2);
 		case 1:
 		case 2:
 			/* LSSU */
-			return lssu_rx(link, h, len);
+			return lssu_rx(link, h, len - 2);
 		default:
 			/* MSU */
-			return msu_rx(link, h, len);
+			return msu_rx(link, h, len - 2);
 	}
 
 	return 0;

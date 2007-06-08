@@ -128,6 +128,7 @@ void *ss7_run(void *data)
 				switch (e->e) {
 					case SS7_EVENT_UP:
 						printf("[%d] --- SS7 Up ---\n", linkset->linkno);
+						isup_grs(ss7, 1, 24, dpc);
 						break;
 					case MTP2_LINK_UP:
 						printf("[%d] MTP2 link up\n", linkset->linkno);
@@ -135,14 +136,13 @@ void *ss7_run(void *data)
 					case ISUP_EVENT_GRS:
 						printf("Got GRS from cic %d to %d: Acknowledging\n", e->grs.startcic, e->grs.endcic);
 						isup_gra(ss7, e->grs.startcic, e->grs.endcic, dpc);
-						isup_grs(ss7, e->grs.startcic, e->grs.endcic, dpc);
 						break;
 					case ISUP_EVENT_RSC:
 						isup_rlc(ss7, e->rsc.call);
 						break;
 					case ISUP_EVENT_GRA:
 						printf("Got GRA from cic %d to %d.\n", e->gra.startcic, e->gra.endcic);
-						//ss7_call(ss7);
+						ss7_call(ss7);
 						break;
 					case ISUP_EVENT_BLO:
 						isup_bla(ss7, e->blo.cic, dpc);
