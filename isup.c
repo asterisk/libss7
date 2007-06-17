@@ -694,21 +694,31 @@ static char * param2str(int parm)
 	return "Unknown";
 }
 
-struct isup_call * isup_new_call(struct ss7 *ss7)
+static struct isup_call * __isup_new_call(struct ss7 *ss7, int nolink)
 {
 	struct isup_call *c, *cur;
 	c = calloc(1, sizeof(struct isup_call));
 	if (!c)
 		return NULL;
-	cur = ss7->calls;
-	if (cur) {
-		while (cur->next)
-			cur = cur->next;
-		cur->next = c;
-	} else
-		ss7->calls = c;
 
-	return c;
+	if (nolink)
+		return c;
+	else {
+		cur = ss7->calls;
+		if (cur) {
+			while (cur->next)
+				cur = cur->next;
+			cur->next = c;
+		} else
+			ss7->calls = c;
+
+		return c;
+	}
+}
+
+struct isup_call * isup_new_call(struct ss7 *ss7)
+{
+	return __isup_new_call(ss7, 0);
 }
 
 void isup_set_call_dpc(struct isup_call *c, unsigned int dpc)
@@ -746,7 +756,7 @@ static struct isup_call * isup_find_call(struct ss7 *ss7, int cic)
 	}
 
 	if (!winner) {
-		winner = isup_new_call(ss7);
+		winner = __isup_new_call(ss7, 0);
 		winner->cic = cic;
 	}
 
@@ -767,13 +777,14 @@ static void isup_free_call(struct ss7 *ss7, struct isup_call *c)
 		cur = cur->next;
 	}
 
-	if (!prev)
-		ss7->calls = winner->next;
-	else
-		prev->next = winner->next;
+	if (winner) {
+		if (!prev)
+			ss7->calls = winner->next;
+		else
+			prev->next = winner->next;
+	}
 
-	if (winner)
-		free(winner);
+	free(c);
 
 	return;
 }
@@ -1145,8 +1156,6 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len
 		return -1;
 	}
 
-	c = isup_find_call(ss7, cic);
-
 	/* Check for the ANSI IAM exception */
 	if (messages[ourmessage].messagetype == ISUP_IAM) {
 		if (ss7->switchtype == SS7_ITU) {
@@ -1163,6 +1172,28 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len
 		fixedparams = messages[ourmessage].mand_fixed_params;
 		varparams = messages[ourmessage].mand_var_params;
 		parms = messages[ourmessage].param_list;
+	}
+
+	/* Make sure we don't hijack a call associated isup_call for non call
+	 * associated messages */
+	switch (mh->type) {
+		case ISUP_BLO:
+		case ISUP_BLA:
+		case ISUP_UBL:
+		case ISUP_UBA:
+		case ISUP_CGB:
+		case ISUP_CGBA:
+		case ISUP_CGUA:
+		case ISUP_CGU:
+			c = __isup_new_call(ss7, 1);
+			break;
+		default:
+			c = isup_find_call(ss7, cic);
+	}
+
+	if (!c) {
+		ss7_error(ss7, "Huh? No call!!!???\n");
+		return -1;
 	}
 
 	/* Parse fixed parms */

@@ -164,6 +164,7 @@ void *ss7_run(void *data)
 					case ISUP_EVENT_REL:
 						printf("Got REL for cic %d\n", e->rel.cic);
 						isup_rlc(ss7, e->rel.call);
+						ss7_call(ss7);
 						break;
 					case ISUP_EVENT_ACM:
 						printf("Got ACM for cic %d\n", e->acm.cic);
@@ -174,7 +175,7 @@ void *ss7_run(void *data)
 						break;
 					case ISUP_EVENT_RLC:
 						printf("Got RLC for cic %d\n", e->rlc.cic);
-						//ss7_call(ss7);
+						ss7_call(ss7);
 						break;
 					default:
 						printf("Unknown event %d\n", e->e);
