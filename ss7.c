@@ -72,26 +72,28 @@ void ss7_set_debug(struct ss7 *ss7, unsigned int flags)
 
 void ss7_dump_buf(struct ss7 *ss7, int tabs, unsigned char *buf, int len)
 {
-	int i;
+	int i, j = 0;
+	char tmp[1024];
 
 	for (i = 0; i < tabs; i++)
-		ss7_message(ss7, "\t");
-	ss7_message(ss7, "[ ");
+		snprintf(&tmp[i], sizeof(tmp)-i, "\t");
+	snprintf(&tmp[i], sizeof(tmp)-i, "[ ");
+	j = i + 2;                                                            /* some TAB + "[ " */
 	for (i = 0; i < len; i++) {
-		ss7_message(ss7, "%02x ", buf[i]);
+		snprintf(&tmp[3*i]+j, sizeof(tmp)-3*i-j, "%02x ", buf[i]);    /* &tmp[3*i]+j - for speed optimization, don't change format! */
 	}
-	ss7_message(ss7, "]\n");
+	ss7_message(ss7, "%s]\n", tmp);
 }
 
 void ss7_dump_msg(struct ss7 *ss7, unsigned char *buf, int len)
 {
 	int i;
+	char tmp[1024];
 
-	ss7_message(ss7, "Len = %d [ ", len);
 	for (i = 0; i < len; i++) {
-		ss7_message(ss7, "%02x ", buf[i]);
+		snprintf(&tmp[3*i], sizeof(tmp)-3*i, "%02x ", buf[i]);        /* &tmp[3*i] - for speed optimization, don't change format! */
 	}
-	ss7_message(ss7, "]\n");
+	ss7_message(ss7, "Len = %d [ %s]\n", len, tmp);
 }
 
 void ss7_msg_free(struct ss7_msg *m)
