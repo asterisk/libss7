@@ -322,8 +322,7 @@ static FUNC_RECV(calling_party_cat_receive)
 	
 static FUNC_SEND(calling_party_cat_transmit)
 {
-	/* Default to unknown */
-	parm[0] = 0x0a;
+	parm[0] = 0x0a; /* Default to Ordinary calling subscriber */
 	return 1;
 }
 
@@ -380,6 +379,8 @@ static FUNC_RECV(called_party_num_receive)
 	
 	isup_get_number(c->called_party_num, &parm[2], len - 2, odd);
 
+	c->called_nai = parm[0] & 0x7f; /* Nature of Address Indicator */
+
 	return len;
 }
 
@@ -389,12 +390,12 @@ static FUNC_SEND(called_party_num_transmit)
 
 	isup_put_number(&parm[2], c->called_party_num, &numlen, &oddeven);
 
-	parm[0] = 0x03; /* Assume unknown */
+	parm[0] = c->called_nai & 0x7f; /* Nature of Address Indicator */
 	
 	if (oddeven)
 		parm[0] |= 0x80; /* Odd number of digits */
 
-	parm[1] = (0x1 << 4) | 0x00; /* Assume E.164 numbering plan */
+	parm[1] = 0x1 << 4; /* Assume E.164 ISDN numbering plan, called number complete  */
 
 	return numlen + 2;
 }
@@ -520,6 +521,10 @@ static FUNC_RECV(calling_party_num_receive)
 
 	isup_get_number(c->calling_party_num, &parm[2], len - 2, oddeven);
 
+	c->calling_nai = parm[0] & 0x7f;                /* Nature of Address Indicator */
+	c->presentation_ind = (parm[1] >> 2) & 0x3;
+	c->screening_ind = parm[1] & 0x3;
+
 	return len;
 }
 
@@ -532,8 +537,10 @@ static FUNC_SEND(calling_party_num_transmit)
 
 	isup_put_number(&parm[2], c->calling_party_num, &datalen, &oddeven);
 
-	parm[0] = (oddeven << 7) | 0x3;
-	parm[1] = 0x11;
+	parm[0] = (oddeven << 7) | c->calling_nai;      /* Nature of Address Indicator */
+	parm[1] = (1 << 4) |                            /* Assume E.164 ISDN numbering plan, calling number complete */
+	    ((c->presentation_ind & 0x3) << 2) |
+	    (c->screening_ind & 0x3);
 
 	return datalen + 2;
 }
@@ -681,6 +688,8 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_CIRCUIT_GROUP_SUPERVISION_IND, "Circuit Group Supervision Indicator", circuit_group_supervision_dump, circuit_group_supervision_receive, circuit_group_supervision_transmit},
 	{ISUP_PARM_RANGE_AND_STATUS, "Range and status", range_and_status_dump, range_and_status_receive, range_and_status_transmit},
 	{ISUP_PARM_EVENT_INFO, "Event Information", event_info_dump, event_info_receive, event_info_transmit},
+	{ISUP_PARM_OPT_FORWARD_CALL_INDICATOR, "Optional forward call indicator"},
+	{ISUP_PARM_LOCATION_NUMBER, "Location Number"},
 };
 
 static char * param2str(int parm)
@@ -726,20 +735,32 @@ void isup_set_call_dpc(struct isup_call *c, unsigned int dpc)
 	c->dpc = dpc;
 }
 
-void isup_init_call(struct ss7 *ss7, struct isup_call *c, int cic, unsigned int dpc, char *calledpartynum, char *callingpartynum)
+void isup_set_called(struct isup_call *c, const char *called, unsigned char called_nai, const struct ss7 *ss7)
+{
+    if (called && called[0]) {
+    	if (ss7->switchtype == SS7_ITU)
+    		snprintf(c->called_party_num, sizeof(c->called_party_num), "%s#", called);
+    	else
+    		snprintf(c->called_party_num, sizeof(c->called_party_num), "%s", called);
+	c->called_nai = called_nai;
+    }
+    
+}
+
+void isup_set_calling(struct isup_call *c, const char *calling, unsigned char calling_nai, unsigned char presentation_ind, unsigned char screening_ind)
+{
+    if (calling && calling[0]) {
+    	strncpy(c->calling_party_num, calling, sizeof(c->calling_party_num));
+	c->calling_nai = calling_nai;
+	c->presentation_ind = presentation_ind;
+	c->screening_ind = screening_ind;
+    }
+}
+
+void isup_init_call(struct ss7 *ss7, struct isup_call *c, int cic, unsigned int dpc)
 {
 	c->cic = cic;
 	c->dpc = dpc;
-	if (calledpartynum && calledpartynum[0]) {
-		if (ss7->switchtype == SS7_ITU)
-			snprintf(c->called_party_num, sizeof(c->called_party_num), "%s#", calledpartynum);
-		else
-			snprintf(c->called_party_num, sizeof(c->called_party_num), "%s", calledpartynum);
-	}
-
-	if (callingpartynum && callingpartynum[0])
-		strncpy(c->calling_party_num, callingpartynum, sizeof(c->calling_party_num));
-
 }
 
 static struct isup_call * isup_find_call(struct ss7 *ss7, int cic)
@@ -1262,7 +1283,11 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len
 			e->iam.transcap = c->transcap;
 			e->iam.cot_check_required = c->cot_check_required;
 			strncpy(e->iam.called_party_num, c->called_party_num, sizeof(e->iam.called_party_num));
+			e->iam.called_nai = c->called_nai;
 			strncpy(e->iam.calling_party_num, c->calling_party_num, sizeof(e->iam.calling_party_num));
+			e->iam.calling_nai = c->calling_nai;
+			e->iam.presentation_ind = c->presentation_ind;
+			e->iam.screening_ind = c->screening_ind;
 			e->iam.call = c;
 			return 0;
 		case ISUP_GRS:

@@ -1,6 +1,5 @@
 libss7:
 =======
-
 libss7 is a userspace library that is used for providing SS7 protocol
 services to applications.  It has a working MTP2, MTP3, and ISUP for
 ITU and ANSI style SS7, however it was written in a manner that will easily
@@ -17,7 +16,7 @@ Tested Switches:
 ================
 Siemens EWSD - (ITU style) MTP2 and MTP3 comes up, ISUP inbound and outbound calls work as well.
 DTI DXC 4K - (ANSI style) 56kbps link, MTP2 and MTP3 come up, ISUP inbound and outbound calls work as well.
-
+Huawei M800 - (ITU style) MTP2 and MTP3 comes up, ISUP National, International inbound and outbound calls work as well, CallerID presentation&screening work.
 
 Thanks:
 =======
@@ -53,13 +52,13 @@ Call Progress message (CPG)
 ANSI MTP2, MTP3, and ISUP, inbound and outbound calling works now.
 ITU style SS7 support
 ANSI-style signalling support
+Called and Calling Nature of Address Indicator
+CallerID presentation&screening
 
 TODO:
 =====
-
 short term:
 SUS/RES
-CallerID presentation
 RDNIS
 Timer for last SU received so we know if layer2 goes out under us
 

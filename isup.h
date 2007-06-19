@@ -100,6 +100,8 @@ Contains definitions and data structurs for the ISUP portion of SS7
 #define ISUP_PARM_PROPAGATION_DELAY 0x31
 #define ISUP_PARM_EVENT_INFO 0x24
 #define ISUP_PARM_HOP_COUNTER 0x3d
+#define ISUP_PARM_OPT_FORWARD_CALL_INDICATOR 0x08
+#define ISUP_PARM_LOCATION_NUMBER 0x3f
 
 /* ISUP Parameter Pseudo-type */
 struct isup_parm_opt {
@@ -121,10 +123,13 @@ struct mtp2;
 
 struct isup_call {
 	char called_party_num[ISUP_MAX_NUM];
+	unsigned char called_nai;
 	char calling_party_num[ISUP_MAX_NUM];
+	unsigned char calling_nai;
+	unsigned char presentation_ind;
+	unsigned char screening_ind;
 	int range;
 	unsigned char status[255];
-	int international;
 	int transcap;
 	int l1prot;
 	int cause;

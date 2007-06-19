@@ -56,6 +56,23 @@ Software Foundation
 #define SS7_NI_NAT			0x02
 #define SS7_NI_NAT_SPARE		0x03
 
+/* Nature of Address Indicator */
+#define SS7_NAI_SUBSCRIBER             0x01
+#define SS7_NAI_UNKNOWN                0x02
+#define SS7_NAI_NATIONAL               0x03
+#define SS7_NAI_INTERNATIONAL          0x04
+
+/* Address Presentation */
+#define SS7_PRESENTATION_ALLOWED                       0x00
+#define SS7_PRESENTATION_RESTRICTED                    0x01
+#define SS7_PRESENTATION_ADDR_NOT_AVAILABLE            0x02
+
+/* Screening */
+#define SS7_SCREENING_USER_PROVIDED_NOT_VERIFIED       0x00
+#define SS7_SCREENING_USER_PROVIDED                    0x01
+#define SS7_SCREENING_NETWORK_PROVIDED_FAILED          0x02
+#define SS7_SCREENING_NETWORK_PROVIDED                 0x03
+
 /* CPG parameter types */
 #define CPG_EVENT_ALERTING	0x01
 #define CPG_EVENT_PROGRESS	0x02
@@ -73,7 +90,11 @@ typedef struct {
 	int transcap;
 	int cot_check_required;
 	char called_party_num[50];
+	unsigned char called_nai;
 	char calling_party_num[50];
+	unsigned char calling_nai;
+	unsigned char presentation_ind;
+	unsigned char screening_ind;
 	struct isup_call *call;
 } ss7_event_iam;
 
@@ -201,6 +222,7 @@ void ss7_link_noalarm(struct ss7 *ss7, int fd);
 
 char * ss7_event2str(int event);
 
+
 /* ISUP call related message functions */
 
 /* Send an IAM */
@@ -242,7 +264,12 @@ int isup_uba(struct ss7 *ss7, int cic, unsigned int dpc);
 
 int isup_rsc(struct ss7 *ss7, int cic, unsigned int dpc);
 
-void isup_init_call(struct ss7 *ss7, struct isup_call *c, int cic, unsigned int dpc, char *calledpartynum, char *callingpartynum);
+void isup_init_call(struct ss7 *ss7, struct isup_call *c, int cic, unsigned int dpc);
 
 void isup_set_call_dpc(struct isup_call *c, unsigned int dpc);
+
+void isup_set_called(struct isup_call *c, const char *called, unsigned char called_nai, const struct ss7 *ss7);
+
+void isup_set_calling(struct isup_call *c, const char *calling, unsigned char calling_nai, unsigned char presentation_ind, unsigned char screening_ind);
+
 #endif /* _LIBSS7_H */

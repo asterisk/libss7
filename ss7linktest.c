@@ -34,7 +34,9 @@ void ss7_call(struct ss7 *ss7)
 	c = isup_new_call(ss7);
 
 	if (c) {
-		isup_init_call(ss7, c, (callcount % 12) + 1, dpc, "12345", "7654321");
+		isup_set_called(c, "12345", SS7_NAI_NATIONAL, ss7);
+		isup_set_calling(c, "7654321", SS7_NAI_NATIONAL, SS7_PRESENTATION_ALLOWED, SS7_SCREENING_USER_PROVIDED);
+		isup_init_call(ss7, c, (callcount % 12) + 1, dpc);
 		isup_iam(ss7, c);
 		printf("Callcount = %d\n ", ++callcount);
 	}
