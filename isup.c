@@ -763,7 +763,7 @@ void isup_init_call(struct ss7 *ss7, struct isup_call *c, int cic, unsigned int 
 	c->dpc = dpc;
 }
 
-static struct isup_call * isup_find_call(struct ss7 *ss7, int cic)
+static struct isup_call * isup_find_call(struct ss7 *ss7, unsigned int opc, int cic)
 {
 	struct isup_call *cur, *winner = NULL;
 
@@ -779,6 +779,7 @@ static struct isup_call * isup_find_call(struct ss7 *ss7, int cic)
 	if (!winner) {
 		winner = __isup_new_call(ss7, 0);
 		winner->cic = cic;
+		winner->dpc = opc;
 	}
 
 	return winner;
@@ -926,7 +927,7 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 		rl.sls = c->cic & 0xf;
 
 	/* use CIC's DPC instead of linkset's DPC */
-	/* rl.dpc = ss7->def_dpc; */
+
 	rl.dpc = c->dpc;
 	rl.type = ss7->switchtype;
 	rlsize = set_routinglabel(rlptr, &rl);
@@ -1145,7 +1146,7 @@ int isup_dump(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len)
 	return 0;
 }
 
-int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len)
+int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned char *buf, int len)
 {
 	unsigned short cic;
 	struct isup_h *mh;
@@ -1207,9 +1208,10 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len
 		case ISUP_CGUA:
 		case ISUP_CGU:
 			c = __isup_new_call(ss7, 1);
+			c->dpc = opc;
 			break;
 		default:
-			c = isup_find_call(ss7, cic);
+			c = isup_find_call(ss7, opc, cic);
 	}
 
 	if (!c) {
@@ -1427,7 +1429,6 @@ int isup_grs(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc)
 
 	call.cic = begincic;
 	call.range = endcic - begincic;
-	call.dpc = dpc;
 	call.dpc = dpc;
 
 	if (call.range > 31)

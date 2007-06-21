@@ -146,7 +146,7 @@ struct isup_call {
 	unsigned int dpc;
 };
 
-int isup_receive(struct ss7 *ss7, struct mtp2 *sl, unsigned char *sif, int len);
+int isup_receive(struct ss7 *ss7, struct mtp2 *sl, unsigned int opc, unsigned char *sif, int len);
 
 int isup_dump(struct ss7 *ss7, struct mtp2 *sl, unsigned char *sif, int len);
 #endif /* _SS7_ISUP_H */

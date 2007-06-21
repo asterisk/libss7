@@ -206,12 +206,6 @@ int ss7_set_pc(struct ss7 *ss7, unsigned int pc)
 	return 0;
 }
 
-int ss7_set_default_dpc(struct ss7 *ss7, unsigned int pc)
-{
-	ss7->def_dpc = pc;
-	return 0;
-}
-
 int ss7_set_network_ind(struct ss7 *ss7, int ni)
 {
 	ss7->ni = ni;
@@ -307,7 +301,7 @@ int ss7_read(struct ss7 *ss7, int fd)
 		return -1;
 
 	res = read(ss7->links[winner]->fd, buf, sizeof(buf));
-	if (res < 0) {
+	if (res <= 0) {
 		return res;
 	}
 

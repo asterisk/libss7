@@ -824,6 +824,12 @@ int mtp2_receive(struct mtp2 *link, unsigned char *buf, int len)
 	struct mtp_su_head *h = (struct mtp_su_head *)buf;
 	len -= 2; /* Strip the CRC off */
 
+	if (len < MTP2_SIZE) {
+		ss7_message(link->master, "Got message smaller than the minimum SS7 SU length.  Dropping\n");
+		return 0;
+	}
+		
+
 	mtp2_dump(link, '<', buf, len - 2);
 
 	update_txbuf(link, h->bsn);

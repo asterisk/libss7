@@ -55,8 +55,6 @@ struct ss7 {
 	unsigned int switchtype;
 	unsigned int numlinks;
 
-	/* Simple "routing table" */
-	point_code def_dpc;
 	/* Our point code */
 	point_code pc;
 

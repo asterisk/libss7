@@ -274,7 +274,6 @@ int main(int argc, char *argv[])
 
 	ss7_set_pc(ss7, opc);
 	ss7_set_adjpc(ss7, fd, dpc);
-	ss7_set_default_dpc(ss7, dpc);
 
 	if (pthread_create(&tmp, NULL, ss7_run, &linkset[0])) {
 		perror("thread(0)");
