@@ -902,7 +902,7 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 	int ourmessage = -1;
 	int rlsize;
 	unsigned char *varoffsets = NULL, *opt_ptr;
-	int fixedparams = 0, varparams = 0;
+	int fixedparams = 0, varparams = 0, optparams = 0;
 	int len = sizeof(struct ss7_msg);
 	struct routing_label rl;
 	int res = 0;
@@ -953,19 +953,18 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 		return -1;
 	}
 
+	fixedparams = messages[ourmessage].mand_fixed_params;
+	varparams = messages[ourmessage].mand_var_params;
+	optparams = messages[ourmessage].opt_params;
+
 	/* Again, the ANSI exception */
-	if (messages[ourmessage].messagetype == ISUP_IAM) {
-		if (ss7->switchtype == SS7_ITU) {
-			fixedparams = messages[ourmessage].mand_fixed_params;
-			varparams = messages[ourmessage].mand_var_params;
-		} else {
-			/* Stupid ANSI SS7, they just had to be different, didn't they? */
+	if (ss7->switchtype == SS7_ANSI) {
+		if (messages[ourmessage].messagetype == ISUP_IAM) {
 			fixedparams = 3;
 			varparams = 2;
+		} else if (messages[ourmessage].messagetype == ISUP_RLC) {
+			optparams = 0;
 		}
-	} else {
-		fixedparams = messages[ourmessage].mand_fixed_params;
-		varparams = messages[ourmessage].mand_var_params;
 	}
 
 	/* Add fixed params */
@@ -983,7 +982,7 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 
 	varoffsets = &mh->data[offset];
 	/* Make sure we grab our opional parameters */
-	if (messages[ourmessage].opt_params) {
+	if (optparams) {
 		opt_ptr = &mh->data[offset + varparams];
 		offset += varparams + 1; /* add one for the optionals */
 		len -= varparams + 1;
@@ -1008,7 +1007,7 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 		offset += res;
 	}
        	/* Optional parameters */
-	if (messages[ourmessage].opt_params) {
+	if (optparams) {
 		int addedparms = 0;
 		int offsetbegins = offset;
 		while (parms[x] > -1) {
@@ -1155,7 +1154,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 	int *parms = NULL;
 	int offset = 0;
 	int ourmessage = -1;
-	int fixedparams = 0, varparams = 0;
+	int fixedparams = 0, varparams = 0, optparams = 0;
 	int res, x;
 	unsigned char *opt_ptr = NULL;
 	ss7_event *e;
@@ -1178,22 +1177,21 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 		return -1;
 	}
 
-	/* Check for the ANSI IAM exception */
-	if (messages[ourmessage].messagetype == ISUP_IAM) {
-		if (ss7->switchtype == SS7_ITU) {
-			fixedparams = messages[ourmessage].mand_fixed_params;
-			varparams = messages[ourmessage].mand_var_params;
-			parms = messages[ourmessage].param_list;
-		} else {
+	fixedparams = messages[ourmessage].mand_fixed_params;
+	varparams = messages[ourmessage].mand_var_params;
+	parms = messages[ourmessage].param_list;
+	optparams = messages[ourmessage].opt_params;
+
+	if (ss7->switchtype == SS7_ANSI) {
+		/* Check for the ANSI IAM exception */
+		if (messages[ourmessage].messagetype == ISUP_IAM) {
 			/* Stupid ANSI SS7, they just had to be different, didn't they? */
 			fixedparams = 3;
 			varparams = 2;
 			parms = ansi_iam_params;
+		} else if (messages[ourmessage].messagetype == ISUP_RLC) {
+			optparams = 0;
 		}
-	} else {
-		fixedparams = messages[ourmessage].mand_fixed_params;
-		varparams = messages[ourmessage].mand_var_params;
-		parms = messages[ourmessage].param_list;
 	}
 
 	/* Make sure we don't hijack a call associated isup_call for non call
@@ -1236,7 +1234,8 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 		offset += varparams; /* add one for the optionals */
 		res -= varparams;
 	}
-	if (messages[ourmessage].opt_params) {
+	if (optparams) {
+		/* ANSI doesn't have optional parameters on RLC */
 		opt_ptr = &mh->data[offset++];
 	}
 
@@ -1255,7 +1254,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 	}
 
 	/* Optional paramter parsing code */
-	if (messages[ourmessage].opt_params && *opt_ptr) {
+	if (optparams && *opt_ptr) {
 		while ((len > 0) && (mh->data[offset] != 0)) {
 			struct isup_parm_opt *optparm = (struct isup_parm_opt *)(mh->data + offset);
 
