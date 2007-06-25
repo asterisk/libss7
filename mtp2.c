@@ -830,7 +830,7 @@ int mtp2_receive(struct mtp2 *link, unsigned char *buf, int len)
 	}
 		
 
-	mtp2_dump(link, '<', buf, len - 2);
+	mtp2_dump(link, '<', buf, len);
 
 	update_txbuf(link, h->bsn);
 
