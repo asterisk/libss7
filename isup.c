@@ -1207,6 +1207,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 		case ISUP_CGU:
 			c = __isup_new_call(ss7, 1);
 			c->dpc = opc;
+			c->cic = cic;
 			break;
 		default:
 			c = isup_find_call(ss7, opc, cic);
