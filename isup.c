@@ -769,7 +769,7 @@ static struct isup_call * isup_find_call(struct ss7 *ss7, unsigned int opc, int 
 
 	cur = ss7->calls;
 	while (cur) {
-		if (cur->cic == cic) {
+		if ((cur->cic == cic) && (cur->dpc == opc)) {
 			winner = cur;
 			break;
 		}

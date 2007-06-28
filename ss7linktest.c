@@ -144,7 +144,7 @@ void *ss7_run(void *data)
 						break;
 					case ISUP_EVENT_GRA:
 						printf("Got GRA from cic %d to %d.\n", e->gra.startcic, e->gra.endcic);
-						//ss7_call(ss7);
+						ss7_call(ss7);
 						break;
 					case ISUP_EVENT_BLO:
 						isup_bla(ss7, e->blo.cic, dpc);
@@ -177,7 +177,7 @@ void *ss7_run(void *data)
 						break;
 					case ISUP_EVENT_RLC:
 						printf("Got RLC for cic %d\n", e->rlc.cic);
-						//ss7_call(ss7);
+						ss7_call(ss7);
 						break;
 					default:
 						printf("Unknown event %d\n", e->e);
@@ -264,7 +264,7 @@ int main(int argc, char *argv[])
 
 	ss7_set_message(myprintf);
 	ss7_set_error(myprintf);
-	ss7_set_network_ind(ss7, 0x0);
+	ss7_set_network_ind(ss7, SS7_NI_NAT);
 
 	ss7_set_debug(ss7, 0xfffffff);
 	if ((ss7_add_link(ss7, fd))) {
