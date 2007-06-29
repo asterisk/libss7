@@ -177,7 +177,7 @@ void *ss7_run(void *data)
 						break;
 					case ISUP_EVENT_RLC:
 						printf("Got RLC for cic %d\n", e->rlc.cic);
-						ss7_call(ss7);
+						//ss7_call(ss7);
 						break;
 					default:
 						printf("Unknown event %d\n", e->e);

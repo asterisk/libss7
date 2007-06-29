@@ -882,18 +882,26 @@ static int dump_parm(struct ss7 *ss7, int message, int parm, unsigned char *parm
 						len = parms[x].dump(ss7, message, parmbuf, maxlen);
 						break;
 					case PARM_TYPE_VARIABLE:
-						len = 1 + parms[x].dump(ss7, message, parmbuf + 1, parmbuf[0]);
+						parms[x].dump(ss7, message, parmbuf + 1, parmbuf[0]);
+						len = 1 + parmbuf[0];
 						break;
 					case PARM_TYPE_OPTIONAL:
 						optparm = (struct isup_parm_opt *)parmbuf;
-						len = 2 + parms[x].dump(ss7, message, optparm->data, optparm->len);
+						parms[x].dump(ss7, message, optparm->data, optparm->len);
+						len = 2 + optparm->len;
 						break;
 				}
 
 			} else {
-				optparm = (struct isup_parm_opt *)parmbuf;
-				ss7_dump_buf(ss7, 2, optparm->data, optparm->len);
-				return optparm->len + 2;
+				switch (parmtype) {
+					case PARM_TYPE_VARIABLE:
+						len = parmbuf[0] + 1;
+						break;
+					case PARM_TYPE_OPTIONAL:
+						optparm = (struct isup_parm_opt *)parmbuf;
+						len = optparm->len + 2;
+						break;
+				}
 			}
 
 			ss7_dump_buf(ss7, 2, parmbuf, len);
@@ -901,7 +909,7 @@ static int dump_parm(struct ss7 *ss7, int message, int parm, unsigned char *parm
 		}
 	}
 
-	/* This is if we don't find it.... It's going to be either an unknown message or an unknown optional parameter */
+	/* This is if we don't find it....  */
 	ss7_message(ss7, "\t\tParm: Unknown");
 	optparm = (struct isup_parm_opt *)parmbuf;
 	ss7_dump_buf(ss7, 2, optparm->data, optparm->len);
