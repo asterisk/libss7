@@ -444,11 +444,11 @@ int mtp3_dump(struct ss7 *ss7, struct mtp2 *link, void *msg, int len)
 	int rlsize;
 
 
-	ss7_dump_buf(ss7, 1, sio, 1);
 	ss7_message(ss7, "\tNetwork Indicator: %d Priority: %d User Part: %s\n", ni, priority, userpart2str(userpart));
+	ss7_dump_buf(ss7, 1, sio, 1);
 	rlsize = get_routinglabel(ss7->switchtype, sif, &rl);
-	ss7_dump_buf(ss7, 1, sif, rlsize);
 	ss7_message(ss7, "\tOPC %d DPC %d SLS %d\n", rl.opc, rl.dpc, rl.sls);
+	ss7_dump_buf(ss7, 1, sif, rlsize);
 
 	/* Pass it to the correct user part */
 	switch (userpart) {

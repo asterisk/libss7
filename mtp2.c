@@ -807,10 +807,10 @@ void mtp2_dump(struct mtp2 *link, char prefix, unsigned char *buf, int len)
 			break;
 		case 2:
 			ss7_dump_msg(link->master, buf, len);
-			ss7_dump_buf(link->master, 0, buf, 3);
 			ss7_message(link->master, "FSN: %d FIB %d\n", h->fsn, h->fib);
 			ss7_message(link->master, "BSN: %d BIB %d\n", h->bsn, h->bib);
 			ss7_message(link->master, "%c[%d] MSU\n", prefix, link->slc);
+			ss7_dump_buf(link->master, 0, buf, 3);
 			mtp3_dump(link->master, link, h->data, len - MTP2_SU_HEAD_SIZE);
 			break;
 	}
@@ -844,14 +844,14 @@ int mtp2_receive(struct mtp2 *link, unsigned char *buf, int len)
 	switch (h->li) {
 		case 0:
 			/* FISU */
-			return fisu_rx(link, h, len - 2);
+			return fisu_rx(link, h, len);
 		case 1:
 		case 2:
 			/* LSSU */
-			return lssu_rx(link, h, len - 2);
+			return lssu_rx(link, h, len);
 		default:
 			/* MSU */
-			return msu_rx(link, h, len - 2);
+			return msu_rx(link, h, len);
 	}
 
 	return 0;

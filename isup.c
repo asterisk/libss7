@@ -20,7 +20,7 @@ Contains definitions and data structurs for the ISUP portion of SS7
 #include "ss7_internal.h"
 #include "mtp3.h"
 
-#define FUNC_DUMP(name) int ((name))(struct ss7 *ss7, struct isup_call *c, int messagetype, unsigned char *parm, int len)
+#define FUNC_DUMP(name) int ((name))(struct ss7 *ss7, int messagetype, unsigned char *parm, int len)
 /* Length here is paramter length */
 #define FUNC_RECV(name) int ((name))(struct ss7 *ss7, struct isup_call *c, int messagetype, unsigned char *parm, int len)
 /* Length here is maximum length */
@@ -443,6 +443,11 @@ static FUNC_SEND(cause_transmit)
 	return 2;
 }
 
+static FUNC_DUMP(cause_dump)
+{
+	return 2;
+}
+
 
 static FUNC_DUMP(range_and_status_dump)
 {
@@ -664,7 +669,7 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_TRANSMISSION_MEDIUM_REQS, "Transmission Medium Requirements", transmission_medium_reqs_dump, transmission_medium_reqs_receive, transmission_medium_reqs_transmit},
 	{ISUP_PARM_USER_SERVICE_INFO, "User Service Information", NULL, user_service_info_receive, user_service_info_transmit},
 	{ISUP_PARM_CALLED_PARTY_NUM, "Called Party Number", NULL, called_party_num_receive, called_party_num_transmit},
-	{ISUP_PARM_CAUSE, "Cause Indicator", NULL, cause_receive, cause_transmit},
+	{ISUP_PARM_CAUSE, "Cause Indicator", cause_dump, cause_receive, cause_transmit},
 	{ISUP_PARM_CONTINUITY_IND, "Continuity Indicator", continuity_ind_dump, continuity_ind_receive, continuity_ind_transmit},
 	{ISUP_PARM_ACCESS_TRANS, "Access Transport"},
 	{ISUP_PARM_BUSINESS_GRP, "Business Group"},
@@ -856,43 +861,52 @@ static int do_parm(struct ss7 *ss7, struct isup_call *c, int message, int parm, 
 	return -1;
 }
 
-#if 0
-static int dump_parm(struct ss7 *ss7, struct isup_call *c, int message, int parm, unsigned char *parmbuf, int maxlen, int parmtype)
+static int dump_parm(struct ss7 *ss7, int message, int parm, unsigned char *parmbuf, int maxlen, int parmtype)
 {
 	struct isup_parm_opt *optparm = NULL;
 	int x;
-	int res = 0;
+	int len = 0;
 	int totalparms = sizeof(parms)/sizeof(struct parm_func);
+	char *parmname = "Unknown Parm";
 
 	for (x = 0; x < totalparms; x++) {
 		if (parms[x].parm == parm) {
-			ss7_message(ss7, "PARM: %s\n", parms[x].name ? parms[x].name : "Unknown");
+			if (parms[x].name)
+				parmname = parms[x].name;
+
+			ss7_message(ss7, "\t\t%s\n", parms[x].name ? parms[x].name : "Unknown");
+
 			if (parms[x].dump) {
 				switch (parmtype) {
 					case PARM_TYPE_FIXED:
-						return parms[x].dump(ss7, c, message, parmbuf, maxlen);
+						len = parms[x].dump(ss7, message, parmbuf, maxlen);
+						break;
 					case PARM_TYPE_VARIABLE:
-						return 1 + parms[x].dump(ss7, c, message, parmbuf + 1, parmbuf[0]);
+						len = 1 + parms[x].dump(ss7, message, parmbuf + 1, parmbuf[0]);
+						break;
 					case PARM_TYPE_OPTIONAL:
 						optparm = (struct isup_parm_opt *)parmbuf;
-						res = parms[x].dump(ss7, c, message, optparm->data, optparm->len);
-						return res + 2;
+						len = 2 + parms[x].dump(ss7, message, optparm->data, optparm->len);
+						break;
 				}
+
 			} else {
 				optparm = (struct isup_parm_opt *)parmbuf;
-				isup_dump_buffer(ss7, optparm->data, optparm->len);
+				ss7_dump_buf(ss7, 2, optparm->data, optparm->len);
 				return optparm->len + 2;
 			}
+
+			ss7_dump_buf(ss7, 2, parmbuf, len);
+			return len;
 		}
 	}
 
 	/* This is if we don't find it.... It's going to be either an unknown message or an unknown optional parameter */
-	ss7_message(ss7, "Parm: Unknown");
+	ss7_message(ss7, "\t\tParm: Unknown");
 	optparm = (struct isup_parm_opt *)parmbuf;
-	isup_dump_buffer(ss7, optparm->data, optparm->len);
+	ss7_dump_buf(ss7, 2, optparm->data, optparm->len);
 	return optparm->len + 2;
 }
-#endif
 
 static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagetype, int parms[])
 {
@@ -990,7 +1004,6 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 		offset += varparams;
 		len -= varparams;
 	}
-	i = 0;
 
 	/* Whew, some complicated math for all of these offsets and different sections */
 	for (; (x - fixedparams) < varparams; x++) {
@@ -1045,7 +1058,11 @@ int isup_dump(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len)
 	struct isup_h *mh;
 	unsigned short cic;
 	int ourmessage = -1;
-	int x;
+	int *parms = NULL;
+	int offset = 0;
+	int fixedparams = 0, varparams = 0, optparams = 0;
+	int res, x;
+	unsigned char *opt_ptr = NULL;
 
 	mh = (struct isup_h*) buf;
 
@@ -1064,33 +1081,34 @@ int isup_dump(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len)
 		return -1;
 	}
 
-	ss7_dump_buf(ss7, 2, buf, 2);
 	ss7_message(ss7, "\t\tCIC: %d\n", cic);
-	ss7_dump_buf(ss7, 2, &buf[2], 1);
+	ss7_dump_buf(ss7, 2, buf, 2);
 	ss7_message(ss7, "\t\tMessage Type: %s\n", message2str(mh->type), mh->type & 0xff);
+	ss7_dump_buf(ss7, 2, &buf[2], 1);
 
-#if 0
-	if (messages[ourmessage].messagetype == ISUP_IAM) {
-		if (ss7->switchtype == SS7_ITU) {
-			fixedparams = messages[ourmessage].mand_fixed_params;
-			varparams = messages[ourmessage].mand_var_params;
-			parms = messages[ourmessage].param_list;
-		} else {
+	fixedparams = messages[ourmessage].mand_fixed_params;
+	varparams = messages[ourmessage].mand_var_params;
+	parms = messages[ourmessage].param_list;
+	optparams = messages[ourmessage].opt_params;
+
+	if (ss7->switchtype == SS7_ANSI) {
+		/* Check for the ANSI IAM exception */
+		if (messages[ourmessage].messagetype == ISUP_IAM) {
 			/* Stupid ANSI SS7, they just had to be different, didn't they? */
 			fixedparams = 3;
 			varparams = 2;
 			parms = ansi_iam_params;
+		} else if (messages[ourmessage].messagetype == ISUP_RLC) {
+			optparams = 0;
 		}
-	} else {
-		fixedparams = messages[ourmessage].mand_fixed_params;
-		varparams = messages[ourmessage].mand_var_params;
-		parms = messages[ourmessage].param_list;
 	}
+
+	if (fixedparams)
+		ss7_message(ss7, "\t\tMandatory Fixed Length Parms:\n");
 
 	/* Parse fixed parms */
 	for (x = 0; x < fixedparams; x++) {
-		res = do_parm(ss7, c, mh->type, parms[x], (void *)(mh->data + offset), len, PARM_TYPE_FIXED, 0, 0, 1);
-		res = dump_parm(ss7, c, mh->type, parms[x], (void *)(mh->data + offset), len, PARM_TYPE_FIXED)
+		res = dump_parm(ss7, mh->type, parms[x], (void *)(mh->data + offset), len, PARM_TYPE_FIXED);
 
 		if (res < 0) {
 			ss7_error(ss7, "!! Unable to parse mandatory fixed parameter '%s'\n", param2str(parms[x]));
@@ -1103,16 +1121,17 @@ int isup_dump(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len)
 
 	if (varparams) {
 		offset += varparams; /* add one for the optionals */
-		res -= varparams;
+		len -= varparams;
 	}
-	if (messages[ourmessage].opt_params) {
+	if (optparams) {
 		opt_ptr = &mh->data[offset++];
+		len++;
 	}
 
-	i = 0;
-
+	if (varparams)
+		ss7_message(ss7, "\t\tMandatory Variable Length Parms:\n");
 	for (; (x - fixedparams) < varparams; x++) {
-		res = do_parm(ss7, c, mh->type, parms[x], (void *)(mh->data + offset), len, PARM_TYPE_VARIABLE, 0, 0, 1);
+		res = dump_parm(ss7, mh->type, parms[x], (void *)(mh->data + offset), len, PARM_TYPE_VARIABLE);
 
 		if (res < 0) {
 			ss7_error(ss7, "!! Unable to parse mandatory variable parameter '%s'\n", param2str(parms[x]));
@@ -1124,11 +1143,13 @@ int isup_dump(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len)
 	}
 
 	/* Optional paramter parsing code */
-	if (messages[ourmessage].opt_params && *opt_ptr) {
+	if (optparams && *opt_ptr) {
+		if (len > 0)
+			ss7_message(ss7, "\t\tOptional Parms\n");
 		while ((len > 0) && (mh->data[offset] != 0)) {
 			struct isup_parm_opt *optparm = (struct isup_parm_opt *)(mh->data + offset);
 
-			res = do_parm(ss7, c, mh->type, optparm->type, mh->data + offset, len, PARM_TYPE_OPTIONAL, 0, 0, 1); /* Find out what else we need to add */
+			res = dump_parm(ss7, mh->type, parms[x], (void *)(mh->data + offset), len, PARM_TYPE_OPTIONAL);
 
 			if (res < 0) {
 				ss7_message(ss7, "Unhandled optional parameter 0x%x '%s'\n", optparm->type, param2str(optparm->type));
@@ -1140,7 +1161,6 @@ int isup_dump(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len)
 			offset += res;
 		}
 	}
-#endif
 
 	return 0;
 }
@@ -1239,8 +1259,6 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 		/* ANSI doesn't have optional parameters on RLC */
 		opt_ptr = &mh->data[offset++];
 	}
-
-	i = 0;
 
 	for (; (x - fixedparams) < varparams; x++) {
 		res = do_parm(ss7, c, mh->type, parms[x], (void *)(mh->data + offset), len, PARM_TYPE_VARIABLE, 0);
