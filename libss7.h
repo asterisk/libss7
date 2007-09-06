@@ -40,6 +40,7 @@ Software Foundation
 #define ISUP_EVENT_CGUA		20
 #define ISUP_EVENT_RSC		21
 #define ISUP_EVENT_CPG		22
+#define ISUP_EVENT_UCIC		23
 
 /* Different SS7 types */
 #define SS7_ITU		(1 << 0)
@@ -181,6 +182,7 @@ typedef union {
 	ss7_event_ciconly ubl;
 	ss7_event_ciconly bla;
 	ss7_event_ciconly uba;
+	ss7_event_ciconly ucic;
 	ss7_event_rsc rsc;
 	ss7_event_cpg cpg;
 } ss7_event;
@@ -259,6 +261,8 @@ int isup_blo(struct ss7 *ss7, int cic, unsigned int dpc);
 int isup_ubl(struct ss7 *ss7, int cic, unsigned int dpc);
 
 int isup_bla(struct ss7 *ss7, int cic, unsigned int dpc);
+
+int isup_ucic(struct ss7 *ss7, int cic, unsigned int dpc);
 
 int isup_uba(struct ss7 *ss7, int cic, unsigned int dpc);
 

@@ -46,7 +46,8 @@ static int iam_params[] = {ISUP_PARM_NATURE_OF_CONNECTION_IND, ISUP_PARM_FORWARD
 	ISUP_PARM_TRANSMISSION_MEDIUM_REQS, ISUP_PARM_CALLED_PARTY_NUM, ISUP_PARM_CALLING_PARTY_NUM, -1}; /* Don't have optional IEs */
 
 static int ansi_iam_params[] = {ISUP_PARM_NATURE_OF_CONNECTION_IND, ISUP_PARM_FORWARD_CALL_IND, ISUP_PARM_CALLING_PARTY_CAT,
-	ISUP_PARM_USER_SERVICE_INFO, ISUP_PARM_CALLED_PARTY_NUM, ISUP_PARM_CALLING_PARTY_NUM, -1}; /* Don't have optional IEs */
+	ISUP_PARM_USER_SERVICE_INFO, ISUP_PARM_CALLED_PARTY_NUM, ISUP_PARM_CALLING_PARTY_NUM, ISUP_PARM_CHARGE_NUMBER, ISUP_PARM_ORIG_LINE_INFO, -1}; /* Include Charge number Don't have optional IEs */
+
 
 static int acm_params[] = {ISUP_PARM_BACKWARD_CALL_IND, -1};
 
@@ -93,6 +94,7 @@ static struct message_data {
 	{ISUP_UBA, 0, 0, 0, empty_params},
 	{ISUP_RSC, 0, 0, 0, empty_params},
 	{ISUP_CPG, 1, 0, 1, cpg_params},
+	{ISUP_UCIC, 0, 0, 0, empty_params},
 };
 
 static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagetype, int parms[]);
@@ -138,6 +140,8 @@ static char * message2str(unsigned char message)
 			return "RSC";
 		case ISUP_CPG:
 			return "CPG";
+		case ISUP_UCIC:
+			return "UCIC";
 		default:
 			return "Unknown";
 	}
@@ -531,12 +535,13 @@ static FUNC_RECV(calling_party_num_receive)
 	c->screening_ind = parm[1] & 0x3;
 
 	return len;
+	
 }
 
 static FUNC_SEND(calling_party_num_transmit)
 {
 	int oddeven, datalen;
-
+    	
 	if (!c->calling_party_num[0])
 		return 0;
 
@@ -548,6 +553,278 @@ static FUNC_SEND(calling_party_num_transmit)
 	    (c->screening_ind & 0x3);
 
 	return datalen + 2;
+}
+
+static FUNC_DUMP(originating_line_information_dump)
+{
+	char *name;
+	
+	switch (parm[0]) {
+	case 0:
+		name = " Plain Old Telephone Service POTS";
+		break;
+	case 1:
+		name = " Multiparty line";
+		break;
+	case 2:
+		name = " ANI Failure";
+		break;
+	case 3:
+	case 4:
+	case 5:
+		name = " Unassigned";
+		break;
+	case 6:
+		name = " Station Level Rating";
+		break;
+	case 7:
+		name = " Special Operator Handling Required";
+		break;
+	case 8:
+	case 9:
+		name = "Unassigned";
+		break;
+	case 10:
+		name = "Not assignable";
+		break;
+	case 11:
+		name = "Unassigned";
+		break;
+	case 12:
+	case 13:
+	case 14:
+	case 15:
+	case 16:
+	case 17:
+	case 18:
+	case 19:
+		name = "Not assignable";
+		break;
+	case 20:
+		name = "Automatic Identified Outward Dialing";
+		break;
+	case 21:
+	case 22:
+		name = "Unassigned";
+		break;
+	case 23:
+		name = "Coin or Non-Coin";
+		break;
+	case 24:
+	case 25:
+		name = "Toll Free Service translated to POTS";
+		break;
+	case 26:
+		name = "Unassigned";
+		break;
+	case 27:
+		name = "Pay Station using Coin Control Signalling";
+		break;
+	case 28:
+		name = "Unassigned";
+		break;
+	case 29:
+		name = "Prison/Inmate Service";
+		break;
+	case 30:
+	case 31:
+	case 32:
+		name = "Intercept";
+		break;
+	case 33:
+		name = "Unassigned";
+		break;
+	case 34:
+		name = "Telco Operator Handled Call";
+		break;
+	case 35:
+	case 36:
+	case 37:
+	case 38:
+	case 39:
+		name = "Unassigned";
+		break;
+	case 40:
+	case 41:
+	case 42:
+	case 43:
+	case 44:
+	case 45:
+	case 46:
+	case 47:
+	case 48:
+	case 49:
+		name = "Unrestricted Use - locally determined by carrier";
+		break;
+	case 50:
+	case 51:
+		name = "Unassigned";
+		break;
+	case 52:
+		name = "OUTWATS";
+		break;
+	case 53:
+	case 54:
+	case 55:
+	case 56:
+	case 57:
+	case 58:
+	case 59:
+		name = "Unassigned";
+		break;
+	case 60:
+		name = "TRS Unrestricted Line";
+		break;
+	case 61:
+		name = "Cellular Wireless PCS Type 1";
+		break;
+	case 62:
+		name = "Cellular Wireless PCS Type 2";
+		break;
+	case 63:
+		name = "Cellular Wireless PCS Roaming";
+		break;
+	case 64:
+	case 65:
+		name = "Unassigned";
+		break;
+	case 66:
+		name = "TRS Hotel Motel";
+		break;
+	case 67:
+		name = "TRS Restricted Line";
+		break;
+	case 68:
+	case 69:
+		name = "Unassigned";
+		break;
+	case 70:
+		name = "Pay Station No network Coin Control Signalling";
+		break;
+	case 71:
+	case 72:
+	case 73:
+	case 74:
+	case 75:
+	case 76:
+	case 77:
+	case 78:
+	case 79:
+		name = "Unassigned";
+		break;
+	case 80:
+	case 81:
+	case 82:
+	case 83:
+	case 84:
+	case 85:
+	case 86:
+	case 87:
+	case 88:
+	case 89:
+		name = "Reserved";
+		break;
+	case 90:
+	case 91:
+	case 92:
+		name = "Unassigned";
+		break;
+	case 93:
+		name = "Private Virtual Network Type of service call";
+		break;
+	case 94:
+	case 95:
+	case 96:
+	case 97:
+	case 98:
+	case 99:
+		name = "Unassigned";
+		break;
+
+	default:
+		name = "Unknown to Asterisk ";
+		
+	}
+	ss7_message(ss7, "PARM: Originating Line Information\n");
+	ss7_message(ss7, "\t\tLine info code: %s\n", name);
+	ss7_message(ss7, "\t\tValue: %d\n", parm[0]);
+
+
+	return 1;
+	
+}
+
+static FUNC_RECV(originating_line_information_receive) 
+{
+	return 1;
+}
+
+static FUNC_SEND(originating_line_information_transmit) 
+{
+	parm[0] = 0x00;  /* This value is setting OLI equal to POTS line. */
+	return 1;	 /*  Will want to have this be set in SIP.conf or thru dialplan and passed here */
+}
+
+
+static FUNC_DUMP(carrier_identification_dump)
+{
+	return len;
+}
+
+static FUNC_RECV(carrier_identification_receive)
+{
+	return len;
+}
+
+static FUNC_SEND(carrier_identification_transmit)
+{
+	parm[0] = 0x22;  /* 4 digit CIC */
+	parm[1] = 0x00;  /* would send default 0000 */
+	parm[2] = 0x00;
+	
+	return 3;
+}
+
+static FUNC_DUMP(hop_counter_dump)
+{
+	return 1;
+}
+
+static FUNC_RECV(hop_counter_receive)
+{
+	return 1;
+}
+
+static FUNC_SEND(hop_counter_transmit)
+{
+	parm[0] = 0x01; /* would send hop counter with value of 1 */
+	return 1;
+}
+
+static FUNC_RECV(charge_number_receive)
+{
+	return len;
+}
+
+static FUNC_DUMP(charge_number_dump)
+{
+	return len;
+}
+
+static FUNC_SEND(charge_number_transmit)
+{
+       int oddeven, datalen;
+
+	if (!c->calling_party_num[0] || strlen(c->calling_party_num) != 10)  /* check to make sure we have 10 digit callerid to put in charge number */
+		return 0;
+
+	isup_put_number(&parm[2], c->calling_party_num, &datalen, &oddeven);  /* use the value from callerid in sip.conf to fill charge number */
+										     
+	parm[0] = (oddeven << 7) | 0x1;        /* Nature of Address Indicator = odd/even and ANI of the Calling party, subscriber number */
+	parm[1] = (1 << 4) | 0x0;           /* Assume E.164 ISDN numbering plan, calling number complete and make sure reserved bits are zero */
+	    
+	return datalen + 2;
+
 }
 
 static FUNC_SEND(continuity_ind_transmit)
@@ -675,9 +952,9 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_BUSINESS_GRP, "Business Group"},
 	{ISUP_PARM_CALL_REF, "Call Reference"},
 	{ISUP_PARM_CALLING_PARTY_NUM, "Calling Party Number", calling_party_num_dump, calling_party_num_receive, calling_party_num_transmit},
-	{ISUP_PARM_CARRIER_ID, "Carrier Identification"},
+	{ISUP_PARM_CARRIER_ID, "Carrier Identification", carrier_identification_dump, carrier_identification_receive, carrier_identification_transmit},
 	{ISUP_PARM_SELECTION_INFO, "Selection Information"},
-	{ISUP_PARM_CHARGE_NUMBER, "Charge Number"},
+	{ISUP_PARM_CHARGE_NUMBER, "Charge Number", charge_number_dump, charge_number_receive, charge_number_transmit},
 	{ISUP_PARM_CIRCUIT_ASSIGNMENT_MAP, "Circuit Assignment Map"},
 	{ISUP_PARM_CONNECTION_REQ, "Connection Request"},
 	{ISUP_PARM_CUG_INTERLOCK_CODE, "Interlock Code"},
@@ -687,7 +964,7 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_GENERIC_NAME, "Generic Name"},
 	{ISUP_PARM_GENERIC_NOTIFICATION_IND, "Generic Notification Indication"},
 	{ISUP_PARM_PROPAGATION_DELAY, "Propagation Delay"},
-	{ISUP_PARM_HOP_COUNTER, "Hop Counter"},
+	{ISUP_PARM_HOP_COUNTER, "Hop Counter", hop_counter_dump, hop_counter_receive, hop_counter_transmit},
 	{ISUP_PARM_BACKWARD_CALL_IND, "Backward Call Indicator", backward_call_ind_dump, backward_call_ind_receive, backward_call_ind_transmit},
 	{ISUP_PARM_OPT_BACKWARD_CALL_IND, "Optional Backward Call Indicator", opt_backward_call_ind_dump, opt_backward_call_ind_receive, NULL},
 	{ISUP_PARM_CIRCUIT_GROUP_SUPERVISION_IND, "Circuit Group Supervision Indicator", circuit_group_supervision_dump, circuit_group_supervision_receive, circuit_group_supervision_transmit},
@@ -695,6 +972,7 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_EVENT_INFO, "Event Information", event_info_dump, event_info_receive, event_info_transmit},
 	{ISUP_PARM_OPT_FORWARD_CALL_INDICATOR, "Optional forward call indicator"},
 	{ISUP_PARM_LOCATION_NUMBER, "Location Number"},
+	{ISUP_PARM_ORIG_LINE_INFO, "Originating line information", originating_line_information_dump, originating_line_information_receive, originating_line_information_transmit},
 };
 
 static char * param2str(int parm)
@@ -1217,6 +1495,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 			fixedparams = 3;
 			varparams = 2;
 			parms = ansi_iam_params;
+				
 		} else if (messages[ourmessage].messagetype == ISUP_RLC) {
 			optparams = 0;
 		}
@@ -1233,6 +1512,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 		case ISUP_CGBA:
 		case ISUP_CGUA:
 		case ISUP_CGU:
+		case ISUP_UCIC:
 			c = __isup_new_call(ss7, 1);
 			c->dpc = opc;
 			c->cic = cic;
@@ -1420,6 +1700,11 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 			e->e = ISUP_EVENT_CPG;
 			e->cpg.cic = c->cic;
 			e->cpg.event = c->event_info;
+			return 0;
+		case ISUP_UCIC:
+			e->e = ISUP_EVENT_UCIC;
+			e->ucic.cic = c->cic;
+			isup_free_call(ss7, c);
 			return 0;
 		default:
 			ss7_error(ss7, "!! Unable to handle message type %s\n", message2str(mh->type));
@@ -1621,6 +1906,15 @@ int isup_bla(struct ss7 *ss7, int cic, unsigned int dpc)
 
 	return isup_send_message_ciconly(ss7, ISUP_BLA, cic, dpc);
 }
+
+int isup_ucic(struct ss7 *ss7, int cic, unsigned int dpc)
+{
+	if (!ss7)
+		return -1;
+
+	return isup_send_message_ciconly(ss7, ISUP_UCIC, cic, dpc);
+}
+
 
 int isup_uba(struct ss7 *ss7, int cic, unsigned int dpc)
 {

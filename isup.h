@@ -102,6 +102,7 @@ Contains definitions and data structurs for the ISUP portion of SS7
 #define ISUP_PARM_HOP_COUNTER 0x3d
 #define ISUP_PARM_OPT_FORWARD_CALL_INDICATOR 0x08
 #define ISUP_PARM_LOCATION_NUMBER 0x3f
+#define ISUP_PARM_ORIG_LINE_INFO 0xea
 
 /* ISUP Parameter Pseudo-type */
 struct isup_parm_opt {
