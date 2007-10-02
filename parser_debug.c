@@ -22,7 +22,7 @@ int main(int argc, char **argv)
 		res = fscanf(fp, "%x ", &mybuf[i++]);
 	}
 
-	size = i - 1;
+	size = i + 1;
 
 	for (i = 0; i < size; i++) {
 		printf("%.2x ", mybuf[i]);
