@@ -373,6 +373,23 @@ static FUNC_DUMP(transmission_medium_reqs_dump)
 	return 1;
 }
 
+static FUNC_DUMP(called_party_num_dump)
+{
+	int oddeven = (parm[0] >> 7) & 0x1;
+	char numbuf[64] = "";
+
+	ss7_message(ss7, "\t\t\tOdd/even: %x\n", (parm[0] >> 7) & 0x1);
+	ss7_message(ss7, "\t\t\tNature of address: %x\n", parm[0] & 0x7f);
+	ss7_message(ss7, "\t\t\tNI: %x\n", (parm[1] >> 7) & 0x1);
+	ss7_message(ss7, "\t\t\tNumbering plan: %x\n", (parm[1] >> 4) & 0x7);
+
+	isup_get_number(numbuf, &parm[2], len - 2, oddeven);
+
+	ss7_message(ss7, "\t\t\tAddress signals: %s\n", numbuf);
+
+	return len;
+}
+
 /* For variable length parameters we pass in the length of the parameter */
 static FUNC_RECV(called_party_num_receive)
 {
@@ -940,7 +957,7 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_CALLING_PARTY_CAT, "Calling Party Category", calling_party_cat_dump, calling_party_cat_receive, calling_party_cat_transmit},
 	{ISUP_PARM_TRANSMISSION_MEDIUM_REQS, "Transmission Medium Requirements", transmission_medium_reqs_dump, transmission_medium_reqs_receive, transmission_medium_reqs_transmit},
 	{ISUP_PARM_USER_SERVICE_INFO, "User Service Information", NULL, user_service_info_receive, user_service_info_transmit},
-	{ISUP_PARM_CALLED_PARTY_NUM, "Called Party Number", NULL, called_party_num_receive, called_party_num_transmit},
+	{ISUP_PARM_CALLED_PARTY_NUM, "Called Party Number", called_party_num_dump, called_party_num_receive, called_party_num_transmit},
 	{ISUP_PARM_CAUSE, "Cause Indicator", cause_dump, cause_receive, cause_transmit},
 	{ISUP_PARM_CONTINUITY_IND, "Continuity Indicator", continuity_ind_dump, continuity_ind_receive, continuity_ind_transmit},
 	{ISUP_PARM_ACCESS_TRANS, "Access Transport"},
