@@ -1385,7 +1385,7 @@ int isup_dump(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len)
 	}
 
 	if (fixedparams)
-		ss7_message(ss7, "\t\t--FIXED LENGTH PARMS--\n");
+		ss7_message(ss7, "\t\t--FIXED LENGTH PARMS[%d]--\n", fixedparams);
 
 	/* Parse fixed parms */
 	for (x = 0; x < fixedparams; x++) {
@@ -1410,7 +1410,7 @@ int isup_dump(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len)
 	}
 
 	if (varparams)
-		ss7_message(ss7, "\t\t--VARIABLE LENGTH PARMS--\n");
+		ss7_message(ss7, "\t\t--VARIABLE LENGTH PARMS[%d]--\n", varparams);
 	for (; (x - fixedparams) < varparams; x++) {
 		res = dump_parm(ss7, mh->type, parms[x], (void *)(mh->data + offset), len, PARM_TYPE_VARIABLE);
 
