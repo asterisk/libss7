@@ -280,23 +280,23 @@ static FUNC_DUMP(nature_of_connection_ind_dump)
 	con>>=2; 
 	switch (con & 0x03) {
 		case 0:
-			continuity = "Check not required";
+			continuity = "Check not required (0)";
 			break;
 		case 1:
-			continuity = "Check required on this circuit";
+			continuity = "Check required on this circuit (1)";
 			break;
 		case 2:
-			continuity = "Check required on previous circuit";
+			continuity = "Check required on previous circuit (2)";
 			break;
 		case 3:
-			continuity = "spare";
+			continuity = "spare (3)";
 			break;
 	}
 	ss7_message(ss7, "\t\t\tContinuity Check: %s\n", continuity);
 	con>>=2;
 	con &= 0x01;
 
-	ss7_message(ss7, "\t\t\tOutgoing half echo control device %s\n", con ? "included" : "not included");
+	ss7_message(ss7, "\t\t\tOutgoing half echo control device: %s (%d)\n", con ? "included" : "not included", con);
 
 	return 1;
 }
@@ -316,6 +316,14 @@ static FUNC_RECV(forward_call_ind_receive)
 
 static FUNC_DUMP(forward_call_ind_dump)
 {
+	ss7_message(ss7, "\t\t\tNat/Intl Call Ind: %d\n", parm[0] & 1);
+	ss7_message(ss7, "\t\t\tEnd to End Method Ind: %d\n", (parm[0] >> 1) & 3);
+	ss7_message(ss7, "\t\t\tInterworking Ind: %d\n", (parm[0] >> 3) & 1);
+	ss7_message(ss7, "\t\t\tEnd to End Info Ind: %d\n", (parm[0] >> 4) & 1);
+	ss7_message(ss7, "\t\t\tISDN User Part Ind: %d\n", (parm[0] >> 5) & 1);
+	ss7_message(ss7, "\t\t\tISDN User Part Pref Ind: %d\n", (parm[0] >> 6) & 3);
+	ss7_message(ss7, "\t\t\tISDN Access Ind: %d\n", parm[1] & 1);
+	ss7_message(ss7, "\t\t\tSCCP Method Ind: %d\n", (parm[1] >> 1) & 3);
 	return 2;
 }
 
@@ -332,6 +340,39 @@ static FUNC_SEND(calling_party_cat_transmit)
 
 static FUNC_DUMP(calling_party_cat_dump)
 {
+	char *cattype;
+
+	switch (parm[0]) {
+		case 1:
+			cattype = "Operator, French";
+			break;
+		case 2:
+			cattype = "Operator, English";
+			break;
+		case 3:
+			cattype = "Operator, German";
+			break;
+		case 4:
+			cattype = "Operator, Russian";
+			break;
+		case 5:
+			cattype = "Operator, Spanish";
+			break;
+		case 9:
+			cattype = "Reserved";
+			break;
+		case 10:
+			cattype = "Ordinary calling subscriber";
+			break;
+		case 11:
+			cattype = "Calling subscriber with priority";
+			break;
+		default:
+			cattype = "Unknown";
+			break;
+	}
+
+	ss7_message(ss7, "\t\t\tCategory: %s (%d)\n", cattype, parm[0]);
 	return 1;
 }
 
@@ -1194,7 +1235,7 @@ static int dump_parm(struct ss7 *ss7, int message, int parm, unsigned char *parm
 				}
 			}
 
-			ss7_dump_buf(ss7, 2, parmbuf, len);
+			ss7_dump_buf(ss7, 3, parmbuf, len);
 			return len;
 		}
 	}
@@ -1202,7 +1243,7 @@ static int dump_parm(struct ss7 *ss7, int message, int parm, unsigned char *parm
 	/* This is if we don't find it....  */
 	ss7_message(ss7, "\t\tParm: Unknown");
 	optparm = (struct isup_parm_opt *)parmbuf;
-	ss7_dump_buf(ss7, 2, optparm->data, optparm->len);
+	ss7_dump_buf(ss7, 3, optparm->data, optparm->len);
 	return optparm->len + 2;
 }
 
