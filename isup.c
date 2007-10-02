@@ -276,7 +276,7 @@ static FUNC_DUMP(nature_of_connection_ind_dump)
 	unsigned char con = parm[0];
 	char *continuity;
 	
-	ss7_message(ss7, "\tSatellites in connection: %d\n", con&0x03);
+	ss7_message(ss7, "\t\t\tSatellites in connection: %d\n", con&0x03);
 	con>>=2; 
 	switch (con & 0x03) {
 		case 0:
@@ -292,11 +292,11 @@ static FUNC_DUMP(nature_of_connection_ind_dump)
 			continuity = "spare";
 			break;
 	}
-	ss7_message(ss7, "\tContinuity Check: %s\n", continuity);
+	ss7_message(ss7, "\t\t\tContinuity Check: %s\n", continuity);
 	con>>=2;
 	con &= 0x01;
 
-	ss7_message(ss7, "\tOutgoing half echo control device %s\n", con ? "included" : "not included");
+	ss7_message(ss7, "\t\t\tOutgoing half echo control device %s\n", con ? "included" : "not included");
 
 	return 1;
 }
@@ -509,17 +509,16 @@ static FUNC_DUMP(calling_party_num_dump)
 	int oddeven = (parm[0] >> 7) & 0x1;
 	char numbuf[64] = "";
 
-	ss7_message(ss7, "PARM: Calling Party Number\n");
-	ss7_message(ss7, "Odd/even: %x\n", (parm[0] >> 7) & 0x1);
-	ss7_message(ss7, "Nature of address: %x\n", parm[0] & 0x7f);
-	ss7_message(ss7, "NI: %x\n", (parm[1] >> 7) & 0x1);
-	ss7_message(ss7, "Numbering plan: %x\n", (parm[1] >> 4) & 0x7);
-	ss7_message(ss7, "Presentation: %x\n", (parm[1] >> 2) & 0x3);
-	ss7_message(ss7, "Screening: %x\n", parm[1] & 0x3);
+	ss7_message(ss7, "\t\t\tOdd/even: %x\n", (parm[0] >> 7) & 0x1);
+	ss7_message(ss7, "\t\t\tNature of address: %x\n", parm[0] & 0x7f);
+	ss7_message(ss7, "\t\t\tNI: %x\n", (parm[1] >> 7) & 0x1);
+	ss7_message(ss7, "\t\t\tNumbering plan: %x\n", (parm[1] >> 4) & 0x7);
+	ss7_message(ss7, "\t\t\tPresentation: %x\n", (parm[1] >> 2) & 0x3);
+	ss7_message(ss7, "\t\t\tScreening: %x\n", parm[1] & 0x3);
 
 	isup_get_number(numbuf, &parm[2], len - 2, oddeven);
 
-	ss7_message(ss7, "Address signals: %s\n", numbuf);
+	ss7_message(ss7, "\t\t\tAddress signals: %s\n", numbuf);
 
 	return len;
 }
@@ -745,9 +744,8 @@ static FUNC_DUMP(originating_line_information_dump)
 		name = "Unknown to Asterisk ";
 		
 	}
-	ss7_message(ss7, "PARM: Originating Line Information\n");
-	ss7_message(ss7, "\t\tLine info code: %s\n", name);
-	ss7_message(ss7, "\t\tValue: %d\n", parm[0]);
+	ss7_message(ss7, "\t\t\tLine info code: %s\n", name);
+	ss7_message(ss7, "\t\t\tValue: %d\n", parm[0]);
 
 
 	return 1;
@@ -848,8 +846,7 @@ static FUNC_RECV(continuity_ind_receive)
 
 static FUNC_DUMP(continuity_ind_dump)
 {
-	ss7_message(ss7, "PARM: Continuity Indicator\n");
-	ss7_message(ss7, "Continuity Check: %s\n", (0x01 & parm[0]) ? "successful" : "failed");
+	ss7_message(ss7, "\t\t\tContinuity Check: %s\n", (0x01 & parm[0]) ? "successful" : "failed");
 
 	return 1;
 }
@@ -874,8 +871,7 @@ static FUNC_DUMP(circuit_group_supervision_dump)
 	default:
 		name = "Huh?!";
 	}
-	ss7_message(ss7, "PARM: Circuit Group Supervision Indicator\n");
-	ss7_message(ss7, "Type indicator: %s\n", name);
+	ss7_message(ss7, "\t\t\tType indicator: %s\n", name);
 
 	return 1;
 }
@@ -922,8 +918,7 @@ static FUNC_DUMP(event_info_dump)
 			name = "Spare";
 			break;
 	}
-	ss7_message(ss7, "PARM: Event Information:\n");
-	ss7_message(ss7, "%s\n", name);
+	ss7_message(ss7, "\t\t\t%s\n", name);
 	return 1;
 }
 
@@ -1152,7 +1147,7 @@ static int dump_parm(struct ss7 *ss7, int message, int parm, unsigned char *parm
 			if (parms[x].name)
 				parmname = parms[x].name;
 
-			ss7_message(ss7, "\t\t%s\n", parms[x].name ? parms[x].name : "Unknown");
+			ss7_message(ss7, "\t\t%s:\n", parms[x].name ? parms[x].name : "Unknown");
 
 			if (parms[x].dump) {
 				switch (parmtype) {
@@ -1390,7 +1385,7 @@ int isup_dump(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len)
 	}
 
 	if (fixedparams)
-		ss7_message(ss7, "\t\tMandatory Fixed Length Parms:\n");
+		ss7_message(ss7, "\t\tFIXED LENGTH PARMS:\n");
 
 	/* Parse fixed parms */
 	for (x = 0; x < fixedparams; x++) {
@@ -1415,7 +1410,7 @@ int isup_dump(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len)
 	}
 
 	if (varparams)
-		ss7_message(ss7, "\t\tMandatory Variable Length Parms:\n");
+		ss7_message(ss7, "\t\tVARIABLE LENGTH PARMS:\n");
 	for (; (x - fixedparams) < varparams; x++) {
 		res = dump_parm(ss7, mh->type, parms[x], (void *)(mh->data + offset), len, PARM_TYPE_VARIABLE);
 
@@ -1431,11 +1426,11 @@ int isup_dump(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len)
 	/* Optional paramter parsing code */
 	if (optparams && *opt_ptr) {
 		if (len > 0)
-			ss7_message(ss7, "\t\tOptional Parms\n");
+			ss7_message(ss7, "\t\tOPTIONAL PARMS\n");
 		while ((len > 0) && (mh->data[offset] != 0)) {
 			struct isup_parm_opt *optparm = (struct isup_parm_opt *)(mh->data + offset);
 
-			res = dump_parm(ss7, mh->type, parms[x], (void *)(mh->data + offset), len, PARM_TYPE_OPTIONAL);
+			res = dump_parm(ss7, mh->type, optparm->type, (void *)(mh->data + offset), optparm->len, PARM_TYPE_OPTIONAL);
 
 			if (res < 0) {
 				ss7_message(ss7, "Unhandled optional parameter 0x%x '%s'\n", optparm->type, param2str(optparm->type));
