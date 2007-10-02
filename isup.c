@@ -411,6 +411,41 @@ static FUNC_RECV(transmission_medium_reqs_receive)
 
 static FUNC_DUMP(transmission_medium_reqs_dump)
 {
+	char *type;
+
+	switch (parm[0]) {
+		case 0:
+			type = "Speech";
+			break;
+		case 1:
+			type = "Spare";
+			break;
+		case 2:
+			type = "64 kbit/s unrestricted";
+			break;
+		case 4:
+			type = "3.1 khz audio";
+			break;
+		case 6:
+			type = "64 kbit/s preferred";
+			break;
+		case 7:
+			type = "2 x 64 kbit/s unrestricted";
+			break;
+		case 8:
+			type = "384 kbit/s unrestricted";
+			break;
+		case 9:
+			type = "1536 kbit/s unrestricted";
+			break;
+		case 10:
+			type = "1920 kbit/s unrestricted";
+			break;
+		default:
+			type = "N x 64kbit/s unrestricted or possibly spare";
+			break;
+	}
+	ss7_message(ss7, "\t\t\t%s (%d)\n", type, parm[0]);
 	return 1;
 }
 

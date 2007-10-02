@@ -8,7 +8,7 @@
 int main(int argc, char **argv)
 {
 	FILE *fp;
-	struct ss7 *ss7 = ss7_new(SS7_ANSI);
+	struct ss7 *ss7 = ss7_new(SS7_ITU);
 	unsigned char mybuf[512];
 	int res = 0, i = 0, size;
 	ss7_event *e;
