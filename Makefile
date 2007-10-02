@@ -14,7 +14,7 @@ LDCONFIG_FLAGS=-n
 SOFLAGS=-Wl,-hlibss7.so.1
 LDCONFIG=/sbin/ldconfig
 
-all: depend $(STATIC_LIBRARY) $(DYNAMIC_LIBRARY) ss7test ss7linktest
+all: depend $(STATIC_LIBRARY) $(DYNAMIC_LIBRARY) ss7test ss7linktest parser_debug
 
 %.lo : %.c
 	$(CC) -g -fPIC $(CFLAGS) -o $@ -c $<
@@ -50,6 +50,9 @@ ss7test: ss7test.c $(STATIC_LIBRARY)
 
 ss7linktest: ss7linktest.c $(STATIC_LIBRARY)
 	gcc -g -o ss7linktest ss7linktest.c libss7.a -lpthread
+
+parser_debug: parser_debug.c $(STATIC_LIBRARY)
+	gcc -g -o parser_debug parser_debug.c libss7.a
 
 libss7: ss7_mtp.o mtp.o ss7.o ss7_sched.o
 
