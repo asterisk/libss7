@@ -298,7 +298,7 @@ static FUNC_DUMP(nature_of_connection_ind_dump)
 
 	ss7_message(ss7, "\tOutgoing half echo control device %s\n", con ? "included" : "not included");
 
-	return 2;
+	return 1;
 }
 
 

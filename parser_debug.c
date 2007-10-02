@@ -11,6 +11,7 @@ int main(int argc, char **argv)
 	struct ss7 *ss7 = ss7_new(SS7_ANSI);
 	unsigned char mybuf[512];
 	int res = 0, i = 0, size;
+	ss7_event *e;
 
 	if (argc != 2)
 		return -1;
@@ -35,6 +36,8 @@ int main(int argc, char **argv)
 	ss7->links[0]->state = MTP_INSERVICE;
 
 	mtp2_receive(ss7->links[0], mybuf, size);
+
+	e = ss7_check_event(ss7);
 
 	return 0;
 }
