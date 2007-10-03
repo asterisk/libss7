@@ -899,6 +899,17 @@ static FUNC_RECV(charge_number_receive)
 
 static FUNC_DUMP(charge_number_dump)
 {
+	int oddeven = (parm[0] >> 7) & 0x1;
+	char numbuf[64] = "";
+
+	ss7_message(ss7, "\t\t\tOdd/even: %x\n", (parm[0] >> 7) & 0x1);
+	ss7_message(ss7, "\t\t\tNature of address: %x\n", parm[0] & 0x7f);
+	ss7_message(ss7, "\t\t\tNumbering plan: %x\n", (parm[1] >> 4) & 0x7);
+
+	isup_get_number(numbuf, &parm[2], len - 2, oddeven);
+
+	ss7_message(ss7, "\t\t\tAddress signals: %s\n", numbuf);
+
 	return len;
 }
 
