@@ -21,7 +21,7 @@ all: depend $(STATIC_LIBRARY) $(DYNAMIC_LIBRARY) ss7test ss7linktest parser_debu
 
 clean:
 	rm -f *.o *.so *.lo *.so.1 *.so.1.0
-	rm -f ss7linktest ss7test $(STATIC_LIBRARY) $(DYNAMIC_LIBRARY)
+	rm -f parser_debug ss7linktest ss7test $(STATIC_LIBRARY) $(DYNAMIC_LIBRARY)
 	rm -f .depend
 
 install: $(STATIC_LIBRARY) $(DYNAMIC_LIBRARY)
