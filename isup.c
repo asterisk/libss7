@@ -530,7 +530,7 @@ static FUNC_RECV(cause_receive)
 	c->causecode = (parm[0] & 0x60) >> 5;
 	c->cause = (parm[1] & 0x7f);
 
-	return 2;
+	return len;
 }
 
 static FUNC_SEND(cause_transmit)
@@ -542,14 +542,115 @@ static FUNC_SEND(cause_transmit)
 
 static FUNC_DUMP(cause_dump)
 {
-	return 2;
+	char *cause;
+	switch (parm[1] & 0x7f) {
+		case 1:
+			cause = "Unallocated (unassigned) number";
+			break;
+		case 2:
+			cause = "No route to specified transit network";
+			break;
+		case 3:
+			cause = "No route to destination";
+			break;
+		case 4:
+			cause = "Send special information tone";
+			break;
+		case 5:
+			cause = "Misdialled trunk prefix";
+			break;
+		case 6:
+			cause = "Channel unacceptable";
+			break;
+		case 7:
+			cause = "Call awarded and being delivered in an established channel";
+			break;
+		case 8:
+			cause = "Preemption";
+			break;
+		case 9:
+			cause = "Preemption - circuit reserved for reuse";
+			break;
+		case 16:
+			cause = "Normal call clearing";
+			break;
+		case 17:
+			cause = "User busy";
+			break;
+		case 18:
+			cause = "No user responding";
+			break;
+		case 19:
+			cause = "No answer from user (user alerted)";
+			break;
+		case 20:
+			cause = "Subscriber absent";
+			break;
+		case 21:
+			cause = "Call rejected";
+			break;
+		case 22:
+			cause = "Number changed";
+			break;
+		case 23:
+			cause = "Redirection to new destination";
+			break;
+		case 25:
+			cause = "Exchange routing error";
+			break;
+		case 26:
+			cause = "Non-selected user clearing";
+			break;
+		case 27:
+			cause = "Destination out of order";
+			break;
+		case 28:
+			cause = "Invalid number format (address incomplete)";
+			break;
+		case 29:
+			cause = "Facility rejected";
+			break;
+		case 30:
+			cause = "Response to STATUS ENQUIRY";
+			break;
+		case 31:
+			cause = "Normal, unspecified";
+			break;
+		case 34:
+			cause = "No circuit/channel available";
+			break;
+		case 38:
+			cause = "Network out of order";
+			break;
+		case 39:
+			cause = "Permanent frame mode connection out of service";
+			break;
+		case 40:
+			cause = "Permanent frame mode connection operational";
+			break;
+		case 41:
+			cause = "Temporary failure";
+			break;
+		case 42:
+			cause = "Switching equipment congestion";
+			break;
+/* TODO: Finish the rest of these */
+		default:
+			cause = "Unknown";
+	}
+	ss7_message(ss7, "\t\t\tCoding Standard: %d\n", (parm[0] >> 5) & 3);
+	ss7_message(ss7, "\t\t\tLocation: %d\n", parm[0] & 0xf);
+	ss7_message(ss7, "\t\t\tCause Class: %d\n", (parm[1]>>4) & 0x7);
+	ss7_message(ss7, "\t\t\tCause Subclass: %d\n", parm[1] & 0xf);
+	ss7_message(ss7, "\t\t\tCause: %s (%d)\n", cause, parm[1] & 0x7f);
+
+	return len;
 }
 
 
 static FUNC_DUMP(range_and_status_dump)
 {
-	ss7_message(ss7, "\tPARM: Range and Status\n");
-	ss7_message(ss7, "\t\tRange: %d\n", parm[0] & 0xff);
+	ss7_message(ss7, "\t\t\tRange: %d\n", parm[0] & 0xff);
 	return len;
 }
 
@@ -1217,8 +1318,11 @@ static int do_parm(struct ss7 *ss7, struct isup_call *c, int message, int parm, 
 								return res + 1;
 							}
 							return res;
-						} else
-							return 1 + parms[x].receive(ss7, c, message, parmbuf + 1, parmbuf[0]);
+						} else {
+							parms[x].receive(ss7, c, message, parmbuf + 1, parmbuf[0]);
+							return 1 + parmbuf[0];
+						}
+
 					case PARM_TYPE_OPTIONAL:
 						optparm = (struct isup_parm_opt *)parmbuf;
 						if (tx) {
