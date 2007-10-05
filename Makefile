@@ -52,7 +52,7 @@ ss7linktest: ss7linktest.c $(STATIC_LIBRARY)
 	gcc -g -o ss7linktest ss7linktest.c libss7.a -lpthread
 
 parser_debug: parser_debug.c $(STATIC_LIBRARY)
-	gcc -g -o parser_debug parser_debug.c libss7.a
+	gcc -g -Wall -o parser_debug parser_debug.c libss7.a
 
 libss7: ss7_mtp.o mtp.o ss7.o ss7_sched.o
 

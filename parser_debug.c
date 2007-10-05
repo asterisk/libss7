@@ -10,6 +10,7 @@ int main(int argc, char **argv)
 	FILE *fp;
 	struct ss7 *ss7 = ss7_new(SS7_ANSI);
 	unsigned char mybuf[512];
+	unsigned int tmp;
 	int res = 0, i = 0, size;
 	ss7_event *e;
 
@@ -19,7 +20,8 @@ int main(int argc, char **argv)
 	fp = fopen(argv[1], "r");
 
 	while (res != EOF) {
-		res = fscanf(fp, "%x ", &mybuf[i++]);
+		res = fscanf(fp, "%x ", &tmp);
+		mybuf[i++] = (unsigned char) tmp;
 	}
 
 	size = i + 1;
