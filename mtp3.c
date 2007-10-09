@@ -229,9 +229,9 @@ static int net_mng_dump(struct ss7 *ss7, struct mtp2 *mtp2, unsigned char *buf, 
 	h1 = get_h1(headerptr);
 	h0 = get_h0(headerptr);
 
-	ss7_dump_buf(ss7, 1, headerptr, 1);
 	ss7_message(ss7, "\tH0: %x H1: %x\n", h0, h1);
 	ss7_message(ss7, "\tMessage type: %s\n", net_mng_message2str(h0, h1));
+	ss7_dump_buf(ss7, 1, headerptr, 1);
 	return 0;
 }
 
@@ -444,7 +444,7 @@ int mtp3_dump(struct ss7 *ss7, struct mtp2 *link, void *msg, int len)
 	int rlsize;
 
 
-	ss7_message(ss7, "\tNetwork Indicator: %d Priority: %d User Part: %s\n", ni, priority, userpart2str(userpart));
+	ss7_message(ss7, "\tNetwork Indicator: %d Priority: %d User Part: %s (%d)\n", ni, priority, userpart2str(userpart), userpart);
 	ss7_dump_buf(ss7, 1, sio, 1);
 	rlsize = get_routinglabel(ss7->switchtype, sif, &rl);
 	if (ss7->switchtype == SS7_ANSI)
