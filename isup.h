@@ -129,6 +129,11 @@ struct isup_call {
 	unsigned char calling_nai;
 	unsigned char presentation_ind;
 	unsigned char screening_ind;
+	char charge_number[ISUP_MAX_NUM];
+	unsigned char charge_nai;
+	unsigned char charge_num_plan;
+	int oli_ani2;
+	int oli_present;
 	int range;
 	unsigned char status[255];
 	int transcap;

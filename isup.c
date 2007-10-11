@@ -89,6 +89,7 @@ static struct message_data {
 	{ISUP_COT, 1, 0, 0, cot_params},
 	{ISUP_CCR, 0, 0, 0, empty_params},
 	{ISUP_BLO, 0, 0, 0, empty_params},
+	{ISUP_LPA, 0, 0, 0, empty_params},
 	{ISUP_UBL, 0, 0, 0, empty_params},
 	{ISUP_BLA, 0, 0, 0, empty_params},
 	{ISUP_UBA, 0, 0, 0, empty_params},
@@ -142,6 +143,8 @@ static char * message2str(unsigned char message)
 			return "CPG";
 		case ISUP_UCIC:
 			return "UCIC";
+		case ISUP_LPA:
+			return "LPA";
 		default:
 			return "Unknown";
 	}
@@ -255,7 +258,7 @@ static FUNC_SEND(nature_of_connection_ind_transmit)
 
 	if (c->cot_check_required)
 		parm[0] |= 0x04;
-	
+
 	return 1; /* Length plus size of type header */
 }
 
@@ -275,7 +278,7 @@ static FUNC_DUMP(nature_of_connection_ind_dump)
 {
 	unsigned char con = parm[0];
 	char *continuity;
-	
+
 	ss7_message(ss7, "\t\t\tSatellites in connection: %d\n", con&0x03);
 	con>>=2; 
 	switch (con & 0x03) {
@@ -331,7 +334,7 @@ static FUNC_RECV(calling_party_cat_receive)
 {
 	return 1;
 }
-	
+
 static FUNC_SEND(calling_party_cat_transmit)
 {
 	parm[0] = 0x0a; /* Default to Ordinary calling subscriber */
@@ -473,7 +476,7 @@ static FUNC_RECV(called_party_num_receive)
 
 	if (parm[0] & 0x80)
 		odd = 1;
-	
+
 	isup_get_number(c->called_party_num, &parm[2], len - 2, odd);
 
 	c->called_nai = parm[0] & 0x7f; /* Nature of Address Indicator */
@@ -488,7 +491,7 @@ static FUNC_SEND(called_party_num_transmit)
 	isup_put_number(&parm[2], c->called_party_num, &numlen, &oddeven);
 
 	parm[0] = c->called_nai & 0x7f; /* Nature of Address Indicator */
-	
+
 	if (oddeven)
 		parm[0] |= 0x80; /* Odd number of digits */
 
@@ -681,7 +684,7 @@ static FUNC_SEND(range_and_status_transmit)
 
 	if (messagetype == ISUP_GRS)
 		return 1;
-	
+
 	statuslen = (numcics / 8) + !!(numcics % 8);
 
 	if (messagetype == ISUP_GRA) {
@@ -728,13 +731,13 @@ static FUNC_RECV(calling_party_num_receive)
 	c->screening_ind = parm[1] & 0x3;
 
 	return len;
-	
+
 }
 
 static FUNC_SEND(calling_party_num_transmit)
 {
 	int oddeven, datalen;
-    	
+
 	if (!c->calling_party_num[0])
 		return 0;
 
@@ -742,8 +745,8 @@ static FUNC_SEND(calling_party_num_transmit)
 
 	parm[0] = (oddeven << 7) | c->calling_nai;      /* Nature of Address Indicator */
 	parm[1] = (1 << 4) |                            /* Assume E.164 ISDN numbering plan, calling number complete */
-	    ((c->presentation_ind & 0x3) << 2) |
-	    (c->screening_ind & 0x3);
+		((c->presentation_ind & 0x3) << 2) |
+		(c->screening_ind & 0x3);
 
 	return datalen + 2;
 }
@@ -751,212 +754,218 @@ static FUNC_SEND(calling_party_num_transmit)
 static FUNC_DUMP(originating_line_information_dump)
 {
 	char *name;
-	
-	switch (parm[0]) {
-	case 0:
-		name = " Plain Old Telephone Service POTS";
-		break;
-	case 1:
-		name = " Multiparty line";
-		break;
-	case 2:
-		name = " ANI Failure";
-		break;
-	case 3:
-	case 4:
-	case 5:
-		name = " Unassigned";
-		break;
-	case 6:
-		name = " Station Level Rating";
-		break;
-	case 7:
-		name = " Special Operator Handling Required";
-		break;
-	case 8:
-	case 9:
-		name = "Unassigned";
-		break;
-	case 10:
-		name = "Not assignable";
-		break;
-	case 11:
-		name = "Unassigned";
-		break;
-	case 12:
-	case 13:
-	case 14:
-	case 15:
-	case 16:
-	case 17:
-	case 18:
-	case 19:
-		name = "Not assignable";
-		break;
-	case 20:
-		name = "Automatic Identified Outward Dialing";
-		break;
-	case 21:
-	case 22:
-		name = "Unassigned";
-		break;
-	case 23:
-		name = "Coin or Non-Coin";
-		break;
-	case 24:
-	case 25:
-		name = "Toll Free Service translated to POTS";
-		break;
-	case 26:
-		name = "Unassigned";
-		break;
-	case 27:
-		name = "Pay Station using Coin Control Signalling";
-		break;
-	case 28:
-		name = "Unassigned";
-		break;
-	case 29:
-		name = "Prison/Inmate Service";
-		break;
-	case 30:
-	case 31:
-	case 32:
-		name = "Intercept";
-		break;
-	case 33:
-		name = "Unassigned";
-		break;
-	case 34:
-		name = "Telco Operator Handled Call";
-		break;
-	case 35:
-	case 36:
-	case 37:
-	case 38:
-	case 39:
-		name = "Unassigned";
-		break;
-	case 40:
-	case 41:
-	case 42:
-	case 43:
-	case 44:
-	case 45:
-	case 46:
-	case 47:
-	case 48:
-	case 49:
-		name = "Unrestricted Use - locally determined by carrier";
-		break;
-	case 50:
-	case 51:
-		name = "Unassigned";
-		break;
-	case 52:
-		name = "OUTWATS";
-		break;
-	case 53:
-	case 54:
-	case 55:
-	case 56:
-	case 57:
-	case 58:
-	case 59:
-		name = "Unassigned";
-		break;
-	case 60:
-		name = "TRS Unrestricted Line";
-		break;
-	case 61:
-		name = "Cellular Wireless PCS Type 1";
-		break;
-	case 62:
-		name = "Cellular Wireless PCS Type 2";
-		break;
-	case 63:
-		name = "Cellular Wireless PCS Roaming";
-		break;
-	case 64:
-	case 65:
-		name = "Unassigned";
-		break;
-	case 66:
-		name = "TRS Hotel Motel";
-		break;
-	case 67:
-		name = "TRS Restricted Line";
-		break;
-	case 68:
-	case 69:
-		name = "Unassigned";
-		break;
-	case 70:
-		name = "Pay Station No network Coin Control Signalling";
-		break;
-	case 71:
-	case 72:
-	case 73:
-	case 74:
-	case 75:
-	case 76:
-	case 77:
-	case 78:
-	case 79:
-		name = "Unassigned";
-		break;
-	case 80:
-	case 81:
-	case 82:
-	case 83:
-	case 84:
-	case 85:
-	case 86:
-	case 87:
-	case 88:
-	case 89:
-		name = "Reserved";
-		break;
-	case 90:
-	case 91:
-	case 92:
-		name = "Unassigned";
-		break;
-	case 93:
-		name = "Private Virtual Network Type of service call";
-		break;
-	case 94:
-	case 95:
-	case 96:
-	case 97:
-	case 98:
-	case 99:
-		name = "Unassigned";
-		break;
 
-	default:
-		name = "Unknown to Asterisk ";
-		
+	switch (parm[0]) {
+		case 0:
+			name = " Plain Old Telephone Service POTS";
+			break;
+		case 1:
+			name = " Multiparty line";
+			break;
+		case 2:
+			name = " ANI Failure";
+			break;
+		case 3:
+		case 4:
+		case 5:
+			name = " Unassigned";
+			break;
+		case 6:
+			name = " Station Level Rating";
+			break;
+		case 7:
+			name = " Special Operator Handling Required";
+			break;
+		case 8:
+		case 9:
+			name = "Unassigned";
+			break;
+		case 10:
+			name = "Not assignable";
+			break;
+		case 11:
+			name = "Unassigned";
+			break;
+		case 12:
+		case 13:
+		case 14:
+		case 15:
+		case 16:
+		case 17:
+		case 18:
+		case 19:
+			name = "Not assignable";
+			break;
+		case 20:
+			name = "Automatic Identified Outward Dialing";
+			break;
+		case 21:
+		case 22:
+			name = "Unassigned";
+			break;
+		case 23:
+			name = "Coin or Non-Coin";
+			break;
+		case 24:
+		case 25:
+			name = "Toll Free Service translated to POTS";
+			break;
+		case 26:
+			name = "Unassigned";
+			break;
+		case 27:
+			name = "Pay Station using Coin Control Signalling";
+			break;
+		case 28:
+			name = "Unassigned";
+			break;
+		case 29:
+			name = "Prison/Inmate Service";
+			break;
+		case 30:
+		case 31:
+		case 32:
+			name = "Intercept";
+			break;
+		case 33:
+			name = "Unassigned";
+			break;
+		case 34:
+			name = "Telco Operator Handled Call";
+			break;
+		case 35:
+		case 36:
+		case 37:
+		case 38:
+		case 39:
+			name = "Unassigned";
+			break;
+		case 40:
+		case 41:
+		case 42:
+		case 43:
+		case 44:
+		case 45:
+		case 46:
+		case 47:
+		case 48:
+		case 49:
+			name = "Unrestricted Use - locally determined by carrier";
+			break;
+		case 50:
+		case 51:
+			name = "Unassigned";
+			break;
+		case 52:
+			name = "OUTWATS";
+			break;
+		case 53:
+		case 54:
+		case 55:
+		case 56:
+		case 57:
+		case 58:
+		case 59:
+			name = "Unassigned";
+			break;
+		case 60:
+			name = "TRS Unrestricted Line";
+			break;
+		case 61:
+			name = "Cellular Wireless PCS Type 1";
+			break;
+		case 62:
+			name = "Cellular Wireless PCS Type 2";
+			break;
+		case 63:
+			name = "Cellular Wireless PCS Roaming";
+			break;
+		case 64:
+		case 65:
+			name = "Unassigned";
+			break;
+		case 66:
+			name = "TRS Hotel Motel";
+			break;
+		case 67:
+			name = "TRS Restricted Line";
+			break;
+		case 68:
+		case 69:
+			name = "Unassigned";
+			break;
+		case 70:
+			name = "Pay Station No network Coin Control Signalling";
+			break;
+		case 71:
+		case 72:
+		case 73:
+		case 74:
+		case 75:
+		case 76:
+		case 77:
+		case 78:
+		case 79:
+			name = "Unassigned";
+			break;
+		case 80:
+		case 81:
+		case 82:
+		case 83:
+		case 84:
+		case 85:
+		case 86:
+		case 87:
+		case 88:
+		case 89:
+			name = "Reserved";
+			break;
+		case 90:
+		case 91:
+		case 92:
+			name = "Unassigned";
+			break;
+		case 93:
+			name = "Private Virtual Network Type of service call";
+			break;
+		case 94:
+		case 95:
+		case 96:
+		case 97:
+		case 98:
+		case 99:
+			name = "Unassigned";
+			break;
+
+		default:
+			name = "Unknown to Asterisk ";
 	}
 	ss7_message(ss7, "\t\t\tLine info code: %s\n", name);
 	ss7_message(ss7, "\t\t\tValue: %d\n", parm[0]);
 
-
 	return 1;
-	
 }
 
 static FUNC_RECV(originating_line_information_receive) 
 {
+	c->oli_ani2 = parm[0];
+	c->oli_present = -1; 	/* Setting this to -1 . To keep track and put back if OLI is left untouched in dialplan */
+
 	return 1;
 }
 
 static FUNC_SEND(originating_line_information_transmit) 
 {
-	parm[0] = 0x00;  /* This value is setting OLI equal to POTS line. */
-	return 1;	 /*  Will want to have this be set in SIP.conf or thru dialplan and passed here */
+	if (c->oli_present == 0 || c->oli_ani2 < 0) {  /* Allow dialplan to strip OLI parm if you don't want to resend what was received */
+		return 0;}
+	else if (c->oli_ani2 < 99) {
+		parm[0] = c->oli_ani2;  
+		return 1;
+	} else {
+		parm[0] = 0x00; /* This value is setting OLI equal to POTS line. */
+		return 1;
+	}   
 }
-
 
 static FUNC_DUMP(carrier_identification_dump)
 {
@@ -973,7 +982,7 @@ static FUNC_SEND(carrier_identification_transmit)
 	parm[0] = 0x22;  /* 4 digit CIC */
 	parm[1] = 0x00;  /* would send default 0000 */
 	parm[2] = 0x00;
-	
+
 	return 3;
 }
 
@@ -995,6 +1004,13 @@ static FUNC_SEND(hop_counter_transmit)
 
 static FUNC_RECV(charge_number_receive)
 {
+	int oddeven = (parm[0] >> 7) & 0x1;
+
+	isup_get_number(c->charge_number, &parm[2], len - 2, oddeven);
+
+	c->charge_nai = parm[0] & 0x7f;                /* Nature of Address Indicator */
+	c->charge_num_plan = (parm[1] >> 4) & 0x7;
+
 	return len;
 }
 
@@ -1014,18 +1030,18 @@ static FUNC_DUMP(charge_number_dump)
 	return len;
 }
 
-static FUNC_SEND(charge_number_transmit)
+static FUNC_SEND(charge_number_transmit)  //ANSI network
 {
-       int oddeven, datalen;
+	int oddeven, datalen;
 
-	if (!c->calling_party_num[0] || strlen(c->calling_party_num) != 10)  /* check to make sure we have 10 digit callerid to put in charge number */
+	if (!c->charge_number[0]  || strlen(c->charge_number) != 10)  /* check to make sure we have 10 digit callerid to put in charge number */
 		return 0;
 
-	isup_put_number(&parm[2], c->calling_party_num, &datalen, &oddeven);  /* use the value from callerid in sip.conf to fill charge number */
-										     
-	parm[0] = (oddeven << 7) | 0x1;        /* Nature of Address Indicator = odd/even and ANI of the Calling party, subscriber number */
-	parm[1] = (1 << 4) | 0x0;           /* Assume E.164 ISDN numbering plan, calling number complete and make sure reserved bits are zero */
-	    
+	isup_put_number(&parm[2], c->charge_number, &datalen, &oddeven);  /* use the value from callerid in sip.conf to fill charge number */
+
+	parm[0] = (oddeven << 7) | c->charge_nai;        /* Nature of Address Indicator = odd/even and ANI of the Calling party, subscriber number */
+	parm[1] = (1 << 4) | 0x0;       //c->charge_num_plan    /* Assume E.164 ISDN numbering plan, calling number complete and make sure reserved bits are zero */
+
 	return datalen + 2;
 
 }
@@ -1220,24 +1236,39 @@ void isup_set_call_dpc(struct isup_call *c, unsigned int dpc)
 
 void isup_set_called(struct isup_call *c, const char *called, unsigned char called_nai, const struct ss7 *ss7)
 {
-    if (called && called[0]) {
-    	if (ss7->switchtype == SS7_ITU)
-    		snprintf(c->called_party_num, sizeof(c->called_party_num), "%s#", called);
-    	else
-    		snprintf(c->called_party_num, sizeof(c->called_party_num), "%s", called);
-	c->called_nai = called_nai;
-    }
-    
+	if (called && called[0]) {
+		if (ss7->switchtype == SS7_ITU)
+			snprintf(c->called_party_num, sizeof(c->called_party_num), "%s#", called);
+		else
+			snprintf(c->called_party_num, sizeof(c->called_party_num), "%s", called);
+		c->called_nai = called_nai;
+	}
+
+}
+
+void isup_set_oli(struct isup_call *c, unsigned int oli_ani2, unsigned int oli_present)
+{
+	c->oli_ani2 = oli_ani2;
+	c->oli_present = oli_present;
 }
 
 void isup_set_calling(struct isup_call *c, const char *calling, unsigned char calling_nai, unsigned char presentation_ind, unsigned char screening_ind)
 {
-    if (calling && calling[0]) {
-    	strncpy(c->calling_party_num, calling, sizeof(c->calling_party_num));
-	c->calling_nai = calling_nai;
-	c->presentation_ind = presentation_ind;
-	c->screening_ind = screening_ind;
-    }
+	if (calling && calling[0]) {
+		strncpy(c->calling_party_num, calling, sizeof(c->calling_party_num));
+		c->calling_nai = calling_nai;
+		c->presentation_ind = presentation_ind;
+		c->screening_ind = screening_ind;
+	}
+}
+
+void isup_set_charge(struct isup_call *c, const char *charge, unsigned char charge_nai, unsigned char charge_num_plan)
+{
+	if (charge && charge[0]) {
+		strncpy(c->charge_number, charge, sizeof(c->charge_number));
+		c->charge_nai = charge_nai;
+		c->charge_num_plan = charge_num_plan;
+	}
 }
 
 void isup_init_call(struct ss7 *ss7, struct isup_call *c, int cic, unsigned int dpc)
@@ -1450,7 +1481,7 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 	for (x = 0; x < sizeof(messages)/sizeof(struct message_data); x++)
 		if (messages[x].messagetype == messagetype)
 			ourmessage = x;
-			
+
 	if (ourmessage < 0) {
 		ss7_error(ss7, "Unable to find message %d in message list!\n", mh->type);
 		return -1;
@@ -1515,7 +1546,7 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 		while (parms[x] > -1) {
 			res = do_parm(ss7, c, mh->type, parms[x], (void *)(mh->data + offset), len, PARM_TYPE_OPTIONAL, 1);
 			x++;
-	
+
 			if (res < 0) {
 				ss7_error(ss7, "!! Unable to add optional parameter '%s'\n", param2str(parms[x]));
 				return -1;
@@ -1523,7 +1554,7 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 
 			if (res > 0)
 				addedparms++;
-	
+
 			len -= res;
 			offset += res;
 		}
@@ -1668,6 +1699,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 	unsigned char *opt_ptr = NULL;
 	ss7_event *e;
 
+
 	mh = (struct isup_h*) buf;
 	if (ss7->switchtype == SS7_ITU) {
 		cic = mh->cic[0] | ((mh->cic[1] << 8) & 0x0f);
@@ -1698,7 +1730,6 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 			fixedparams = 3;
 			varparams = 2;
 			parms = ansi_iam_params;
-				
 		} else if (messages[ourmessage].messagetype == ISUP_RLC) {
 			optparams = 0;
 		}
@@ -1716,6 +1747,8 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 		case ISUP_CGUA:
 		case ISUP_CGU:
 		case ISUP_UCIC:
+		case ISUP_LPA:
+		case ISUP_CCR:
 			c = __isup_new_call(ss7, 1);
 			c->dpc = opc;
 			c->cic = cic;
@@ -1799,6 +1832,11 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 			e->iam.calling_nai = c->calling_nai;
 			e->iam.presentation_ind = c->presentation_ind;
 			e->iam.screening_ind = c->screening_ind;
+			strncpy(e->iam.charge_number, c->charge_number, sizeof(e->iam.charge_number));
+			e->iam.charge_nai = c->charge_nai;
+			e->iam.charge_num_plan = c->charge_num_plan;
+			e->iam.oli_ani2 = c->oli_ani2;
+			e->iam.oli_present = c->oli_present;
 			e->iam.call = c;
 			return 0;
 		case ISUP_GRS:
@@ -1856,6 +1894,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 		case ISUP_CCR:
 			e->e = ISUP_EVENT_CCR;
 			e->ccr.cic = c->cic;
+			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_BLO:
 			e->e = ISUP_EVENT_BLO;
@@ -1870,6 +1909,11 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 		case ISUP_BLA:
 			e->e = ISUP_EVENT_BLA;
 			e->bla.cic = c->cic;
+			isup_free_call(ss7, c);
+			return 0;
+		case ISUP_LPA:
+			e->e = ISUP_EVENT_LPA;
+			e->lpa.cic = c->cic;
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_UBA:
@@ -1960,7 +2004,7 @@ int isup_gra(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc)
 	call.cic = begincic;
 	call.range = endcic - begincic;
 	call.dpc = dpc;
-	
+
 	if (call.range > 31)
 		return -1;
 
@@ -1972,7 +2016,7 @@ int isup_cgb(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsign
 	if (!ss7)
 		return -1;
 
- 	return isup_send_cicgroupmessage(ss7, ISUP_CGB, begincic, endcic, dpc, state, type);
+	return isup_send_cicgroupmessage(ss7, ISUP_CGB, begincic, endcic, dpc, state, type);
 }
 
 int isup_cgu(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsigned char state[], int type)
@@ -1980,14 +2024,14 @@ int isup_cgu(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsign
 	if (!ss7)
 		return -1;
 
- 	return isup_send_cicgroupmessage(ss7, ISUP_CGU, begincic, endcic, dpc, state, type);
+	return isup_send_cicgroupmessage(ss7, ISUP_CGU, begincic, endcic, dpc, state, type);
 }
 
 int isup_cgba(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsigned char state[], int type)
 {
 	if (!ss7)
 		return -1;
- 	return isup_send_cicgroupmessage(ss7, ISUP_CGBA, begincic, endcic, dpc, state, type);
+	return isup_send_cicgroupmessage(ss7, ISUP_CGBA, begincic, endcic, dpc, state, type);
 }
 
 int isup_cgua(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsigned char state[], int type)
@@ -2110,6 +2154,14 @@ int isup_bla(struct ss7 *ss7, int cic, unsigned int dpc)
 	return isup_send_message_ciconly(ss7, ISUP_BLA, cic, dpc);
 }
 
+int isup_lpa(struct ss7 *ss7, int cic, unsigned int dpc)
+{
+	if (!ss7)
+		return -1;
+
+	return isup_send_message_ciconly(ss7, ISUP_LPA, cic, dpc);
+}
+
 int isup_ucic(struct ss7 *ss7, int cic, unsigned int dpc)
 {
 	if (!ss7)
@@ -2117,7 +2169,6 @@ int isup_ucic(struct ss7 *ss7, int cic, unsigned int dpc)
 
 	return isup_send_message_ciconly(ss7, ISUP_UCIC, cic, dpc);
 }
-
 
 int isup_uba(struct ss7 *ss7, int cic, unsigned int dpc)
 {

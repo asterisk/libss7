@@ -41,6 +41,7 @@ Software Foundation
 #define ISUP_EVENT_RSC		21
 #define ISUP_EVENT_CPG		22
 #define ISUP_EVENT_UCIC		23
+#define ISUP_EVENT_LPA 		24
 
 /* Different SS7 types */
 #define SS7_ITU		(1 << 0)
@@ -58,10 +59,18 @@ Software Foundation
 #define SS7_NI_NAT_SPARE		0x03
 
 /* Nature of Address Indicator */
-#define SS7_NAI_SUBSCRIBER             0x01
-#define SS7_NAI_UNKNOWN                0x02
-#define SS7_NAI_NATIONAL               0x03
-#define SS7_NAI_INTERNATIONAL          0x04
+#define SS7_NAI_SUBSCRIBER             	0x01
+#define SS7_NAI_UNKNOWN			0x02
+#define SS7_NAI_NATIONAL               	0x03
+#define SS7_NAI_INTERNATIONAL          	0x04
+
+/* Charge Number Nature of Address Indicator ANSI */
+#define SS7_ANI_CALLING_PARTY_SUB_NUMBER			0x01	/* ANI of the calling party; subscriber number */
+#define SS7_ANI_NOTAVAIL_OR_NOTPROVIDED				0x02	/* ANI not available or not provided */
+#define SS7_ANI_CALLING_PARTY_NATIONAL_NUMBER			0x03	/* ANI of the calling party; national number */
+#define SS7_ANI_CALLED_PARTY_SUB_NUMBER				0x05	/* ANI of the called party; subscriber number */
+#define SS7_ANI_CALLED_PARTY_NOT_PRESENT  			0x06	/* ANI of the called party; no number present */
+#define SS7_ANI_CALLED_PARTY_NATIONAL_NUMBER 			0x07	/* ANT of the called patty; national number */
 
 /* Address Presentation */
 #define SS7_PRESENTATION_ALLOWED                       0x00
@@ -96,6 +105,11 @@ typedef struct {
 	unsigned char calling_nai;
 	unsigned char presentation_ind;
 	unsigned char screening_ind;
+	char charge_number[50];
+	unsigned char charge_nai;
+	unsigned char charge_num_plan;
+	int oli_ani2;
+	int oli_present;
 	struct isup_call *call;
 } ss7_event_iam;
 
@@ -185,6 +199,7 @@ typedef union {
 	ss7_event_ciconly ucic;
 	ss7_event_rsc rsc;
 	ss7_event_cpg cpg;
+	ss7_event_ciconly lpa;
 } ss7_event;
 
 void ss7_set_message(void (*func)(struct ss7 *ss7, char *message));
@@ -244,6 +259,8 @@ int isup_rlc(struct ss7 *ss7, struct isup_call *c);
 
 int isup_cpg(struct ss7 *ss7, struct isup_call *c, int event);
 
+int isup_lpa(struct ss7 *ss7, int cic, unsigned int dpc);
+
 int isup_gra(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc);
 
 int isup_grs(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc);
@@ -260,6 +277,8 @@ int isup_blo(struct ss7 *ss7, int cic, unsigned int dpc);
 
 int isup_ubl(struct ss7 *ss7, int cic, unsigned int dpc);
 
+int isup_ccr(struct ss7 *ss7, int cic, unsigned int dpc);
+
 int isup_bla(struct ss7 *ss7, int cic, unsigned int dpc);
 
 int isup_ucic(struct ss7 *ss7, int cic, unsigned int dpc);
@@ -275,5 +294,9 @@ void isup_set_call_dpc(struct isup_call *c, unsigned int dpc);
 void isup_set_called(struct isup_call *c, const char *called, unsigned char called_nai, const struct ss7 *ss7);
 
 void isup_set_calling(struct isup_call *c, const char *calling, unsigned char calling_nai, unsigned char presentation_ind, unsigned char screening_ind);
+
+void isup_set_charge(struct isup_call *c, const char *charge, unsigned char charge_nai, unsigned char charge_num_plan);
+
+void isup_set_oli(struct isup_call *c, unsigned int oli_ani2, unsigned int oli_present);
 
 #endif /* _LIBSS7_H */
