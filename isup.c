@@ -1427,7 +1427,7 @@ static int dump_parm(struct ss7 *ss7, int message, int parm, unsigned char *parm
 	}
 
 	/* This is if we don't find it....  */
-	ss7_message(ss7, "\t\tParm: Unknown");
+	ss7_message(ss7, "\t\tParm: Unknown (%d)", optparm->type);
 	optparm = (struct isup_parm_opt *)parmbuf;
 	ss7_dump_buf(ss7, 3, optparm->data, optparm->len);
 	return optparm->len + 2;
@@ -1677,8 +1677,10 @@ int isup_dump(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len)
 			res = dump_parm(ss7, mh->type, optparm->type, (void *)(mh->data + offset), optparm->len, PARM_TYPE_OPTIONAL);
 
 			if (res < 0) {
+#if 0
 				ss7_message(ss7, "Unhandled optional parameter 0x%x '%s'\n", optparm->type, param2str(optparm->type));
 				isup_dump_buffer(ss7, optparm->data, optparm->len);
+#endif
 				res = optparm->len + 2;
 			}
 
