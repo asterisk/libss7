@@ -957,8 +957,8 @@ static FUNC_RECV(originating_line_information_receive)
 static FUNC_SEND(originating_line_information_transmit) 
 {
 	if (c->oli_present == 0 || c->oli_ani2 < 0) {  /* Allow dialplan to strip OLI parm if you don't want to resend what was received */
-		return 0;}
-	else if (c->oli_ani2 < 99) {
+		return 0;
+	} else if (c->oli_ani2 < 99) {
 		parm[0] = c->oli_ani2;  
 		return 1;
 	} else {
