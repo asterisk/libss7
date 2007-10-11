@@ -133,7 +133,6 @@ struct isup_call {
 	unsigned char charge_nai;
 	unsigned char charge_num_plan;
 	int oli_ani2;
-	int oli_present;
 	int range;
 	unsigned char status[255];
 	int transcap;

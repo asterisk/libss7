@@ -109,7 +109,6 @@ typedef struct {
 	unsigned char charge_nai;
 	unsigned char charge_num_plan;
 	int oli_ani2;
-	int oli_present;
 	struct isup_call *call;
 } ss7_event_iam;
 
@@ -297,6 +296,6 @@ void isup_set_calling(struct isup_call *c, const char *calling, unsigned char ca
 
 void isup_set_charge(struct isup_call *c, const char *charge, unsigned char charge_nai, unsigned char charge_num_plan);
 
-void isup_set_oli(struct isup_call *c, unsigned int oli_ani2, unsigned int oli_present);
+void isup_set_oli(struct isup_call *c, int oli_ani2);
 
 #endif /* _LIBSS7_H */

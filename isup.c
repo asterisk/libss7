@@ -949,14 +949,13 @@ static FUNC_DUMP(originating_line_information_dump)
 static FUNC_RECV(originating_line_information_receive) 
 {
 	c->oli_ani2 = parm[0];
-	c->oli_present = -1; 	/* Setting this to -1 . To keep track and put back if OLI is left untouched in dialplan */
 
 	return 1;
 }
 
 static FUNC_SEND(originating_line_information_transmit) 
 {
-	if (c->oli_present == 0 || c->oli_ani2 < 0) {  /* Allow dialplan to strip OLI parm if you don't want to resend what was received */
+	if (c->oli_ani2 < 0) {  /* Allow dialplan to strip OLI parm if you don't want to resend what was received */
 		return 0;
 	} else if (c->oli_ani2 < 99) {
 		parm[0] = c->oli_ani2;  
@@ -1202,12 +1201,19 @@ static char * param2str(int parm)
 	return "Unknown";
 }
 
+static void init_isup_call(struct isup_call *c)
+{
+	c->oli_ani2 = -1;
+}
+
 static struct isup_call * __isup_new_call(struct ss7 *ss7, int nolink)
 {
 	struct isup_call *c, *cur;
 	c = calloc(1, sizeof(struct isup_call));
 	if (!c)
 		return NULL;
+
+	init_isup_call(c);
 
 	if (nolink)
 		return c;
@@ -1246,10 +1252,9 @@ void isup_set_called(struct isup_call *c, const char *called, unsigned char call
 
 }
 
-void isup_set_oli(struct isup_call *c, unsigned int oli_ani2, unsigned int oli_present)
+void isup_set_oli(struct isup_call *c, int oli_ani2)
 {
 	c->oli_ani2 = oli_ani2;
-	c->oli_present = oli_present;
 }
 
 void isup_set_calling(struct isup_call *c, const char *calling, unsigned char calling_nai, unsigned char presentation_ind, unsigned char screening_ind)
@@ -1836,7 +1841,6 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 			e->iam.charge_nai = c->charge_nai;
 			e->iam.charge_num_plan = c->charge_num_plan;
 			e->iam.oli_ani2 = c->oli_ani2;
-			e->iam.oli_present = c->oli_present;
 			e->iam.call = c;
 			return 0;
 		case ISUP_GRS:
