@@ -132,6 +132,12 @@ ITU style SS7 support
 ANSI-style signalling support
 Called and Calling Nature of Address Indicator
 CallerID presentation&screening
+UCIC and LPA messages
+ANI2 - Originating line interface parameter (ANSI)
+Charge number parameter (ANSI)
+Hop counter paramter
+Carrier identification paramter - (very simple, not configurable)
+SS7 debug looks *MUCH* nicer
 
 TODO:
 =====
