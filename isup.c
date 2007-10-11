@@ -1427,8 +1427,8 @@ static int dump_parm(struct ss7 *ss7, int message, int parm, unsigned char *parm
 	}
 
 	/* This is if we don't find it....  */
-	ss7_message(ss7, "\t\tParm: Unknown (%d)", optparm->type);
 	optparm = (struct isup_parm_opt *)parmbuf;
+	ss7_message(ss7, "\t\tUnknown Parameter (0x%x):\n", optparm->type);
 	ss7_dump_buf(ss7, 3, optparm->data, optparm->len);
 	return optparm->len + 2;
 }
