@@ -296,7 +296,9 @@ static int net_mng_receive(struct ss7 *ss7, struct mtp2 *mtp2, unsigned char *bu
 		}
 		return 0;
 	} else {
+#if 0
 		ss7_message(ss7, "NET MNG message type %s received\n", net_mng_message2str(h0, h1));
+#endif
 		return 0;
 	}
 }
