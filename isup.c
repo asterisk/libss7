@@ -1253,6 +1253,33 @@ static FUNC_SEND(redirection_info_transmit)
 	return 2;
 }
 
+static FUNC_DUMP(original_called_num_dump)
+{
+	int oddeven = (parm[0] >> 7) & 0x1;
+	char numbuf[64] = "";
+
+	ss7_message(ss7, "\t\t\tOdd/even: %x\n", (parm[0] >> 7) & 0x1);
+	ss7_message(ss7, "\t\t\tNature of address: %x\n", parm[0] & 0x7f);
+	ss7_message(ss7, "\t\t\tNumbering plan: %x\n", (parm[1] >> 4) & 0x7);
+	ss7_message(ss7, "\t\t\tPresentation: %x\n", (parm[1] >> 2) & 0x3);
+
+	isup_get_number(numbuf, &parm[2], len - 2, oddeven);
+
+	ss7_message(ss7, "\t\t\tAddress signals: %s\n", numbuf);
+
+	return len;
+}
+
+static FUNC_RECV(original_called_num_receive)
+{
+	return len;
+}
+
+static FUNC_SEND(original_called_num_transmit)
+{
+	return len;
+}
+
 static struct parm_func parms[] = {
 	{ISUP_PARM_NATURE_OF_CONNECTION_IND, "Nature of Connection Indicator", nature_of_connection_ind_dump, nature_of_connection_ind_receive, nature_of_connection_ind_transmit },
 	{ISUP_PARM_FORWARD_CALL_IND, "Forward Call Indicator", forward_call_ind_dump, forward_call_ind_receive, forward_call_ind_transmit },
@@ -1288,6 +1315,7 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_LOCATION_NUMBER, "Location Number"},
 	{ISUP_PARM_ORIG_LINE_INFO, "Originating line information", originating_line_information_dump, originating_line_information_receive, originating_line_information_transmit},
 	{ISUP_PARM_REDIRECTION_INFO, "Redirection Information", redirection_info_dump, redirection_info_receive, redirection_info_transmit},
+	{ISUP_PARM_ORIGINAL_CALLED_NUM, "Original called number", original_called_num_dump, original_called_num_receive, original_called_num_transmit},
 };
 
 static char * param2str(int parm)
