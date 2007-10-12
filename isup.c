@@ -1154,6 +1154,105 @@ static FUNC_SEND(event_info_transmit)
 	return 1;
 }
 
+static FUNC_DUMP(redirection_info_dump)
+{
+	char *redirect_ind, *orig_redir_reas, *redir_reas;
+
+	switch (parm[0] & 0x7) {
+		case 0:
+			redirect_ind = "No Redirection (national use)";
+			break;
+		case 1:
+			redirect_ind = "Call rerouted (national use)";
+			break;
+		case 2:
+			redirect_ind = "Call rerouted, all rediection information presentation restricted (national use)";
+			break;
+		case 3:
+			redirect_ind = "Call diverted";
+			break;
+		case 4:
+			redirect_ind = "Call diverted, all redirection information presentation restricted";
+			break;
+		case 5:
+			redirect_ind = "Call rerouted, redirection number presentation restricted (national use)";
+			break;
+		case 6:
+			redirect_ind = "Call diversion, redirection number presentation restricted (national use)";
+			break;
+		case 7:
+			redirect_ind = "spare";
+			break;
+		default:
+			redirect_ind = "Unknown";
+			break;
+	}
+
+	ss7_message(ss7, "\t\t\tRedirecting indicator: %s (%d)\n", redirect_ind, parm[0] & 0x7);
+
+	switch ((parm[0] >> 4) & 0xf) {
+		case 0:
+			orig_redir_reas = "Unknown/not available";
+			break;
+		case 1:
+			orig_redir_reas = "User busy (national use)";
+			break;
+		case 2:
+			orig_redir_reas = "No reply (national use)";
+			break;
+		case 3:
+			orig_redir_reas = "Unconditional (national use)";
+			break;
+		default:
+			orig_redir_reas = "spare";
+			break;
+	}
+
+	ss7_message(ss7, "\t\t\tOriginal redirection reason: %s (%d)\n", orig_redir_reas, (parm[0] >> 4) & 0xf);
+	ss7_message(ss7, "\t\t\tRedirection counter: %d\n", parm[1] & 0x7);
+
+	switch ((parm[1] >> 4) & 0xf) {
+		case 0:
+			orig_redir_reas = "Unknown/not available";
+			break;
+		case 1:
+			redir_reas = "User busy";
+			break;
+		case 2:
+			redir_reas = "No reply";
+			break;
+		case 3:
+			redir_reas = "Unconditional";
+			break;
+		case 4:
+			redir_reas = "Deflection during alerting";
+			break;
+		case 5:
+			redir_reas = "Deflection immediate response";
+			break;
+		case 6:
+			redir_reas = "Mobile subscriber not reachable";
+			break;
+		default:
+			redir_reas = "spare";
+			break;
+	}
+
+	ss7_message(ss7, "\t\t\tRedirecting reason: %s (%d)\n", redir_reas, (parm[1] >> 4) & 0xf);
+
+	return 2;
+}
+
+static FUNC_RECV(redirection_info_receive)
+{
+	return 2;
+}
+
+static FUNC_SEND(redirection_info_transmit)
+{
+	return 2;
+}
+
 static struct parm_func parms[] = {
 	{ISUP_PARM_NATURE_OF_CONNECTION_IND, "Nature of Connection Indicator", nature_of_connection_ind_dump, nature_of_connection_ind_receive, nature_of_connection_ind_transmit },
 	{ISUP_PARM_FORWARD_CALL_IND, "Forward Call Indicator", forward_call_ind_dump, forward_call_ind_receive, forward_call_ind_transmit },
@@ -1188,6 +1287,7 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_OPT_FORWARD_CALL_INDICATOR, "Optional forward call indicator"},
 	{ISUP_PARM_LOCATION_NUMBER, "Location Number"},
 	{ISUP_PARM_ORIG_LINE_INFO, "Originating line information", originating_line_information_dump, originating_line_information_receive, originating_line_information_transmit},
+	{ISUP_PARM_REDIRECTION_INFO, "Redirection Information", redirection_info_dump, redirection_info_receive, redirection_info_transmit},
 };
 
 static char * param2str(int parm)
