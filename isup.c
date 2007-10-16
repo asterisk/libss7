@@ -457,7 +457,6 @@ static FUNC_DUMP(called_party_num_dump)
 	int oddeven = (parm[0] >> 7) & 0x1;
 	char numbuf[64] = "";
 
-	ss7_message(ss7, "\t\t\tOdd/even: %x\n", (parm[0] >> 7) & 0x1);
 	ss7_message(ss7, "\t\t\tNature of address: %x\n", parm[0] & 0x7f);
 	ss7_message(ss7, "\t\t\tNI: %x\n", (parm[1] >> 7) & 0x1);
 	ss7_message(ss7, "\t\t\tNumbering plan: %x\n", (parm[1] >> 4) & 0x7);
@@ -706,7 +705,6 @@ static FUNC_DUMP(calling_party_num_dump)
 	int oddeven = (parm[0] >> 7) & 0x1;
 	char numbuf[64] = "";
 
-	ss7_message(ss7, "\t\t\tOdd/even: %x\n", (parm[0] >> 7) & 0x1);
 	ss7_message(ss7, "\t\t\tNature of address: %x\n", parm[0] & 0x7f);
 	ss7_message(ss7, "\t\t\tNI: %x\n", (parm[1] >> 7) & 0x1);
 	ss7_message(ss7, "\t\t\tNumbering plan: %x\n", (parm[1] >> 4) & 0x7);
@@ -940,8 +938,7 @@ static FUNC_DUMP(originating_line_information_dump)
 		default:
 			name = "Unknown to Asterisk ";
 	}
-	ss7_message(ss7, "\t\t\tLine info code: %s\n", name);
-	ss7_message(ss7, "\t\t\tValue: %d\n", parm[0]);
+	ss7_message(ss7, "\t\t\tLine info code: %s (%d)\n", name, parm[0]);
 
 	return 1;
 }
@@ -1018,7 +1015,6 @@ static FUNC_DUMP(charge_number_dump)
 	int oddeven = (parm[0] >> 7) & 0x1;
 	char numbuf[64] = "";
 
-	ss7_message(ss7, "\t\t\tOdd/even: %x\n", (parm[0] >> 7) & 0x1);
 	ss7_message(ss7, "\t\t\tNature of address: %x\n", parm[0] & 0x7f);
 	ss7_message(ss7, "\t\t\tNumbering plan: %x\n", (parm[1] >> 4) & 0x7);
 
@@ -1258,7 +1254,6 @@ static FUNC_DUMP(original_called_num_dump)
 	int oddeven = (parm[0] >> 7) & 0x1;
 	char numbuf[64] = "";
 
-	ss7_message(ss7, "\t\t\tOdd/even: %x\n", (parm[0] >> 7) & 0x1);
 	ss7_message(ss7, "\t\t\tNature of address: %x\n", parm[0] & 0x7f);
 	ss7_message(ss7, "\t\t\tNumbering plan: %x\n", (parm[1] >> 4) & 0x7);
 	ss7_message(ss7, "\t\t\tPresentation: %x\n", (parm[1] >> 2) & 0x3);
