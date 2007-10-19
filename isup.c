@@ -981,6 +981,19 @@ static FUNC_SEND(carrier_identification_transmit)
 
 	return 3;
 }
+static FUNC_DUMP(jip_dump)
+{
+	char numbuf[64] = "";
+	
+	isup_get_number(numbuf, &parm[0], len , 0);
+	ss7_message(ss7, "\t\t\tJIP: %s\n", numbuf);
+	return len;
+}
+
+static FUNC_RECV(jip_receive)
+{ 
+	return len;
+}
 
 static FUNC_DUMP(hop_counter_dump)
 {
@@ -1311,6 +1324,7 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_ORIG_LINE_INFO, "Originating line information", originating_line_information_dump, originating_line_information_receive, originating_line_information_transmit},
 	{ISUP_PARM_REDIRECTION_INFO, "Redirection Information", redirection_info_dump, redirection_info_receive, redirection_info_transmit},
 	{ISUP_PARM_ORIGINAL_CALLED_NUM, "Original called number", original_called_num_dump, original_called_num_receive, original_called_num_transmit},
+	{ISUP_PARM_JIP, "Jurisdiction Information Parameter", jip_dump, jip_receive, NULL},
 };
 
 static char * param2str(int parm)
