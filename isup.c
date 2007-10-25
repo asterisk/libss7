@@ -319,14 +319,60 @@ static FUNC_RECV(forward_call_ind_receive)
 
 static FUNC_DUMP(forward_call_ind_dump)
 {
-	ss7_message(ss7, "\t\t\tNat/Intl Call Ind: %d\n", parm[0] & 1);
-	ss7_message(ss7, "\t\t\tEnd to End Method Ind: %d\n", (parm[0] >> 1) & 3);
-	ss7_message(ss7, "\t\t\tInterworking Ind: %d\n", (parm[0] >> 3) & 1);
-	ss7_message(ss7, "\t\t\tEnd to End Info Ind: %d\n", (parm[0] >> 4) & 1);
-	ss7_message(ss7, "\t\t\tISDN User Part Ind: %d\n", (parm[0] >> 5) & 1);
-	ss7_message(ss7, "\t\t\tISDN User Part Pref Ind: %d\n", (parm[0] >> 6) & 3);
-	ss7_message(ss7, "\t\t\tISDN Access Ind: %d\n", parm[1] & 1);
-	ss7_message(ss7, "\t\t\tSCCP Method Ind: %d\n", (parm[1] >> 1) & 3);
+	char *cb_str, *hg_str, *kj_str;
+	switch ((parm[0] >> 1) & 3) {
+		case 0:
+			cb_str = "no end-to-end";
+			break;
+		case 1:
+			cb_str = "pass-along";
+			break;
+		case 2:
+			cb_str = "SCCP";
+			break;
+		case 3:
+			cb_str = "pass-along and SCCP";
+			break;
+	}
+
+	switch ((parm[0] >> 6) & 3) {
+		case 0:
+			hg_str = "ISDN user part preferred all the way";
+			break;
+		case 1:
+			hg_str = "ISDN user part not preferred all the way";
+			break;
+		case 2:
+			hg_str = "ISDN user part requried all the way";
+			break;
+		case 3:
+			hg_str = "spare";
+			break;
+	}
+
+	switch ((parm[1] >> 1) & 3) {
+		case 0:
+			kj_str = "no indication";
+			break;
+		case 1:
+			kj_str = "connectionless method available";
+			break;
+		case 2:
+			kj_str = "connection oriented method available";
+			break;
+		case 3:
+			kj_str = "connectionless and connection oriented method available";
+			break;
+	}
+
+	ss7_message(ss7, "\t\t\tNat/Intl Call Ind: call to be treated as a %s call (%d)\n", (parm[0] & 1) ? "international" : "national", parm[0] & 1);
+	ss7_message(ss7, "\t\t\tEnd to End Method Ind: %s method(s) available (%d)\n", cb_str, (parm[0] >> 1) & 3);
+	ss7_message(ss7, "\t\t\tInterworking Ind: %sinterworking encountered (%d)\n", ((parm[0] >> 3) & 1) ? "" : "no ", (parm[0] >> 3) & 1);
+	ss7_message(ss7, "\t\t\tEnd to End Info Ind: %send-to-end information available (%d)\n", ((parm[0]>>4)&1) ? "" : "no ", (parm[0] >> 4) & 1);
+	ss7_message(ss7, "\t\t\tISDN User Part Ind: ISDN user part %sused all the way (%d)\n", ((parm[0]>>5)&1) ? "" : "not ", (parm[0] >> 5) & 1);
+	ss7_message(ss7, "\t\t\tISDN User Part Pref Ind: %s (%d)\n", hg_str, (parm[0] >> 6) & 3);
+	ss7_message(ss7, "\t\t\tISDN Access Ind: originating access %s (%d)\n", (parm[1] & 1) ? "ISDN" : "non-ISDN", parm[1] & 1);
+	ss7_message(ss7, "\t\t\tSCCP Method Ind: %s (%d)\n", kj_str, (parm[1] >> 1) & 3);
 	return 2;
 }
 
@@ -1288,9 +1334,108 @@ static FUNC_SEND(original_called_num_transmit)
 	return len;
 }
 
+static FUNC_DUMP(echo_control_info_dump)
+{
+	unsigned char ba = parm[0] & 0x3;
+	unsigned char dc = (parm[0] >> 2) & 0x3;
+	unsigned char fe = (parm[0] >> 4) & 0x3;
+	unsigned char hg = (parm[0] >> 6) & 0x3;
+	char *ba_str, *dc_str, *fe_str, *hg_str;
+
+	switch (ba) {
+		case 0:
+			ba_str = "no information";
+			break;
+		case 1:
+			ba_str = "outgoing echo control device not included and not available";
+			break;
+		case 2:
+			ba_str = "outgoing echo control device included";
+			break;
+		case 3:
+			ba_str = "outgoing echo control device not included but available";
+			break;
+		default:
+			ba_str = "unknown";
+			break;
+	}
+
+	switch (dc) {
+		case 0:
+			dc_str = "no information";
+			break;
+		case 1:
+			dc_str = "incoming echo control device not included and not available";
+			break;
+		case 2:
+			dc_str = "incoming echo control device included";
+			break;
+		case 3:
+			dc_str = "incoming echo control device not included but available";
+			break;
+		default:
+			dc_str = "unknown";
+			break;
+	}
+
+	switch (fe) {
+		case 0:
+			fe_str = "no information";
+			break;
+		case 1:
+			fe_str = "outgoing echo control device activation request";
+			break;
+		case 2:
+			fe_str = "outgoing echo control device deactivation request";
+			break;
+		case 3:
+			fe_str = "spare";
+			break;
+		default:
+			fe_str = "unknown";
+			break;
+	}
+
+	switch (hg) {
+		case 0:
+			hg_str = "no information";
+			break;
+		case 1:
+			hg_str = "incoming echo control device activation request";
+			break;
+		case 2:
+			hg_str = "incoming echo control device deactivation request";
+			break;
+		case 3:
+			fe_str = "spare";
+			break;
+		default:
+			fe_str = "unknown";
+			break;
+	}
+
+	ss7_message(ss7, "\t\t\tOutgoing echo control device information: %s (%d)\n", ba_str, ba);
+	ss7_message(ss7, "\t\t\tIncoming echo control device information: %s (%d)\n", dc_str, dc);
+	ss7_message(ss7, "\t\t\tOutgoing echo control device request: %s (%d)\n", fe_str, fe);
+	ss7_message(ss7, "\t\t\tIncoming echo control device request: %s (%d)\n", hg_str, hg);
+
+	return len;
+}
+
+static FUNC_DUMP(parameter_compat_info_dump)
+{
+	return len;
+}
+
+static FUNC_DUMP(propagation_delay_cntr_dump)
+{
+	ss7_message(ss7, "\t\t\tDelay: %dms\n", (unsigned short)(((parm[0] & 0xff) << 8) | (parm[0] & 0xff)));
+	return len;
+}
+
 static struct parm_func parms[] = {
 	{ISUP_PARM_NATURE_OF_CONNECTION_IND, "Nature of Connection Indicator", nature_of_connection_ind_dump, nature_of_connection_ind_receive, nature_of_connection_ind_transmit },
-	{ISUP_PARM_FORWARD_CALL_IND, "Forward Call Indicator", forward_call_ind_dump, forward_call_ind_receive, forward_call_ind_transmit },
+	{ISUP_PARM_FORWARD_CALL_IND, "Forward Call Indicators", forward_call_ind_dump, forward_call_ind_receive, forward_call_ind_transmit },
 	{ISUP_PARM_CALLING_PARTY_CAT, "Calling Party Category", calling_party_cat_dump, calling_party_cat_receive, calling_party_cat_transmit},
 	{ISUP_PARM_TRANSMISSION_MEDIUM_REQS, "Transmission Medium Requirements", transmission_medium_reqs_dump, transmission_medium_reqs_receive, transmission_medium_reqs_transmit},
 	{ISUP_PARM_USER_SERVICE_INFO, "User Service Information", NULL, user_service_info_receive, user_service_info_transmit},
@@ -1312,7 +1457,7 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_GENERIC_DIGITS, "Generic Digits"},
 	{ISUP_PARM_GENERIC_NAME, "Generic Name"},
 	{ISUP_PARM_GENERIC_NOTIFICATION_IND, "Generic Notification Indication"},
-	{ISUP_PARM_PROPAGATION_DELAY, "Propagation Delay"},
+	{ISUP_PARM_PROPAGATION_DELAY, "Propagation Delay Counter", propagation_delay_cntr_dump},
 	{ISUP_PARM_HOP_COUNTER, "Hop Counter", hop_counter_dump, hop_counter_receive, hop_counter_transmit},
 	{ISUP_PARM_BACKWARD_CALL_IND, "Backward Call Indicator", backward_call_ind_dump, backward_call_ind_receive, backward_call_ind_transmit},
 	{ISUP_PARM_OPT_BACKWARD_CALL_IND, "Optional Backward Call Indicator", opt_backward_call_ind_dump, opt_backward_call_ind_receive, NULL},
@@ -1325,6 +1470,8 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_REDIRECTION_INFO, "Redirection Information", redirection_info_dump, redirection_info_receive, redirection_info_transmit},
 	{ISUP_PARM_ORIGINAL_CALLED_NUM, "Original called number", original_called_num_dump, original_called_num_receive, original_called_num_transmit},
 	{ISUP_PARM_JIP, "Jurisdiction Information Parameter", jip_dump, jip_receive, NULL},
+	{ISUP_PARM_ECHO_CONTROL_INFO, "Echo Control Information", echo_control_info_dump, NULL, NULL},
+	{ISUP_PARM_PARAMETER_COMPAT_INFO, "Parameter Compatibility Information", parameter_compat_info_dump, NULL, NULL},
 };
 
 static char * param2str(int parm)

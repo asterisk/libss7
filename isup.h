@@ -106,6 +106,9 @@ Contains definitions and data structurs for the ISUP portion of SS7
 #define ISUP_PARM_REDIRECTION_INFO 0x13
 #define ISUP_PARM_ORIGINAL_CALLED_NUM 0x28
 #define ISUP_PARM_JIP 0xc4
+#define ISUP_PARM_ECHO_CONTROL_INFO 0x37
+#define ISUP_PARM_PARAMETER_COMPAT_INFO 0x39
+
 
 
 /* ISUP Parameter Pseudo-type */
