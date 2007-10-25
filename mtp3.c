@@ -219,7 +219,7 @@ static char * net_mng_message2str(int h0, int h1)
 	return "Unknown";
 }
 
-static int net_mng_dump(struct ss7 *ss7, struct mtp2 *mtp2, unsigned char *buf, int len)
+static int net_mng_dump(struct ss7 *ss7, struct mtp2 *mtp2, unsigned char userpart, unsigned char *buf, int len)
 {
 	unsigned char *headerptr = buf + rl_size(ss7);
 	unsigned char h1, h0;
@@ -230,7 +230,8 @@ static int net_mng_dump(struct ss7 *ss7, struct mtp2 *mtp2, unsigned char *buf, 
 	h0 = get_h0(headerptr);
 
 	ss7_message(ss7, "\tH0: %x H1: %x\n", h0, h1);
-	ss7_message(ss7, "\tMessage type: %s\n", net_mng_message2str(h0, h1));
+	if (userpart == SIG_NET_MNG)
+		ss7_message(ss7, "\tMessage type: %s\n", net_mng_message2str(h0, h1));
 	ss7_dump_buf(ss7, 1, headerptr, 1);
 	return 0;
 }
@@ -461,7 +462,7 @@ int mtp3_dump(struct ss7 *ss7, struct mtp2 *link, void *msg, int len)
 		case SIG_NET_MNG:
 		case SIG_STD_TEST:
 		case SIG_SPEC_TEST:
-			return net_mng_dump(ss7, link, sif, siflen);
+			return net_mng_dump(ss7, link, userpart, sif, siflen);
 		case SIG_ISUP:
 			return isup_dump(ss7, link, sif + rlsize, siflen - rlsize);
 		case SIG_SCCP:
