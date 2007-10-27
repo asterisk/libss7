@@ -42,6 +42,7 @@ Software Foundation
 #define ISUP_EVENT_CPG		22
 #define ISUP_EVENT_UCIC		23
 #define ISUP_EVENT_LPA 		24
+#define ISUP_EVENT_CQM 		25
 
 /* Different SS7 types */
 #define SS7_ITU		(1 << 0)
@@ -179,6 +180,7 @@ typedef union {
 	ss7_event_generic gen;
 	ss7_event_iam iam;
 	ss7_event_cicrange grs;
+	ss7_event_cicrange cqm;
 	ss7_event_cicrange gra;
 	ss7_event_cicrange cgb;
 	ss7_event_cicrange cgu;
@@ -286,6 +288,9 @@ int isup_uba(struct ss7 *ss7, int cic, unsigned int dpc);
 
 int isup_rsc(struct ss7 *ss7, int cic, unsigned int dpc);
 
+int isup_cqr(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsigned char status[]);
+
+/* Various call related sets */
 void isup_init_call(struct ss7 *ss7, struct isup_call *c, int cic, unsigned int dpc);
 
 void isup_set_call_dpc(struct isup_call *c, unsigned int dpc);
@@ -297,5 +302,6 @@ void isup_set_calling(struct isup_call *c, const char *calling, unsigned char ca
 void isup_set_charge(struct isup_call *c, const char *charge, unsigned char charge_nai, unsigned char charge_num_plan);
 
 void isup_set_oli(struct isup_call *c, int oli_ani2);
+/* End of call related sets */
 
 #endif /* _LIBSS7_H */

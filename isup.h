@@ -108,6 +108,7 @@ Contains definitions and data structurs for the ISUP portion of SS7
 #define ISUP_PARM_JIP 0xc4
 #define ISUP_PARM_ECHO_CONTROL_INFO 0x37
 #define ISUP_PARM_PARAMETER_COMPAT_INFO 0x39
+#define ISUP_PARM_CIRCUIT_STATE_IND 0x26
 
 
 

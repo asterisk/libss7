@@ -65,6 +65,8 @@ static int cpg_params[] = { ISUP_PARM_EVENT_INFO, -1};
 
 static int cicgroup_params[] = { ISUP_PARM_CIRCUIT_GROUP_SUPERVISION_IND, ISUP_PARM_RANGE_AND_STATUS, -1};
 
+static int cqr_params[] = { ISUP_PARM_RANGE_AND_STATUS, ISUP_PARM_CIRCUIT_STATE_IND, -1};
+
 static int empty_params[] = { -1};
 
 static struct message_data {
@@ -96,6 +98,8 @@ static struct message_data {
 	{ISUP_RSC, 0, 0, 0, empty_params},
 	{ISUP_CPG, 1, 0, 1, cpg_params},
 	{ISUP_UCIC, 0, 0, 0, empty_params},
+	{ISUP_CQM, 0, 1, 0, greset_params},
+	{ISUP_CQR, 0, 2, 0, cqr_params},
 };
 
 static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagetype, int parms[]);
@@ -710,6 +714,10 @@ static FUNC_RECV(range_and_status_receive)
 	c->range = parm[0];
 	numcics = c->range + 1;
 
+	/* No status for these messages */
+	if ((messagetype == ISUP_CQR) || (messagetype == ISUP_CQM) || (messagetype == ISUP_GRS))
+		return len;
+
 	for (i = 0; i < numcics; i++) {
 		if (parm[1 + (i/8)] & (1 << (i%8)))
 			c->status[i] = 1;
@@ -727,7 +735,8 @@ static FUNC_SEND(range_and_status_transmit)
 
 	parm[0] = c->range & 0xff;
 
-	if (messagetype == ISUP_GRS)
+	/* No status for these messages */
+	if ((messagetype == ISUP_CQR) || (messagetype == ISUP_CQM) || (messagetype == ISUP_GRS))
 		return 1;
 
 	statuslen = (numcics / 8) + !!(numcics % 8);
@@ -1433,6 +1442,94 @@ static FUNC_DUMP(propagation_delay_cntr_dump)
 	return len;
 }
 
+static FUNC_DUMP(circuit_state_ind_dump)
+{
+	unsigned char dcbits, babits, febits;
+	char *ba_str, *dc_str, *fe_str;
+	int i;
+	
+	for (i = 0; i < len; i++) {
+		babits = parm[i] & 0x3;
+		dcbits = (parm[i] >> 2) & 0x3;
+		febits = (parm[i] >> 4) & 0x3;
+
+		if (dcbits == 0) {
+			switch (babits) {
+				case 0:
+					ba_str = "transient";
+					break;
+				case 1:
+				case 2:
+					ba_str = "spare";
+					break;
+				case 3:
+					ba_str = "unequipped";
+					break;
+			}
+		} else {
+			switch (babits) {
+				case 0:
+					ba_str = "no blocking (active)";
+					break;
+				case 1:
+					ba_str = "locally blocked";
+					break;
+				case 2:
+					ba_str = "remotely blocked";
+					break;
+				case 3:
+					ba_str = "locally and remotely blocked";
+					break;
+			}
+
+			switch (dcbits) {
+				case 1:
+					dc_str = "circuit incoming busy";
+					break;
+				case 2:
+					dc_str = "circuit outgoing busy";
+					break;
+				case 3:
+					dc_str = "idle";
+					break;
+			}
+
+			switch (febits) {
+				case 0:
+					fe_str = "no blocking (active)";
+					break;
+				case 1:
+					fe_str = "locally blocked";
+					break;
+				case 2:
+					fe_str = "remotely blocked";
+					break;
+				case 3:
+					fe_str = "locally and remotely blocked";
+					break;
+			}
+
+		}
+
+		ss7_message(ss7, "\t\t\tMaintenance blocking state: %s (%d)\n", ba_str, babits);
+		if (!dcbits)
+			continue;
+		ss7_message(ss7, "\t\t\tCall processing state: %s (%d)\n", dc_str, dcbits);
+		ss7_message(ss7, "\t\t\tHardware blocking state: %s (%d)\n", fe_str, febits);
+	}
+	return len;
+}
+
+static FUNC_SEND(circuit_state_ind_transmit)
+{
+	int numcics = c->range + 1, i;
+
+	for (i = 0; i < numcics; i++)
+		parm[i] = c->status[i];
+
+	return numcics;
+}
+
 static struct parm_func parms[] = {
 	{ISUP_PARM_NATURE_OF_CONNECTION_IND, "Nature of Connection Indicator", nature_of_connection_ind_dump, nature_of_connection_ind_receive, nature_of_connection_ind_transmit },
 	{ISUP_PARM_FORWARD_CALL_IND, "Forward Call Indicators", forward_call_ind_dump, forward_call_ind_receive, forward_call_ind_transmit },
@@ -1472,6 +1569,7 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_JIP, "Jurisdiction Information Parameter", jip_dump, jip_receive, NULL},
 	{ISUP_PARM_ECHO_CONTROL_INFO, "Echo Control Information", echo_control_info_dump, NULL, NULL},
 	{ISUP_PARM_PARAMETER_COMPAT_INFO, "Parameter Compatibility Information", parameter_compat_info_dump, NULL, NULL},
+	{ISUP_PARM_CIRCUIT_STATE_IND, "Circuit State Indicator", circuit_state_ind_dump, NULL, circuit_state_ind_transmit},
 };
 
 static char * param2str(int parm)
@@ -2129,6 +2227,12 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 			e->iam.oli_ani2 = c->oli_ani2;
 			e->iam.call = c;
 			return 0;
+		case ISUP_CQM:
+			e->e = ISUP_EVENT_CQM;
+			e->cqm.startcic = cic;
+			e->cqm.endcic = cic + c->range;
+			isup_free_call(ss7, c); /* Won't need this again */
+			return 0;
 		case ISUP_GRS:
 			e->e = ISUP_EVENT_GRS;
 			e->grs.startcic = cic;
@@ -2266,6 +2370,24 @@ static int isup_send_cicgroupmessage(struct ss7 *ss7, int messagetype, int begin
 		return -1;
 
 	return isup_send_message(ss7, &call, messagetype, cicgroup_params);
+}
+
+int isup_cqr(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsigned char status[])
+{
+	struct isup_call call;
+	int i;
+
+	for (i = 0; (i + begincic) <= endcic; i++)
+		call.status[i] = status[i];
+
+	call.cic = begincic;
+	call.range = endcic - begincic;
+	call.dpc = dpc;
+
+	if (call.range > 31)
+		return -1;
+
+	return isup_send_message(ss7, &call, ISUP_CQR, cqr_params);
 }
 
 int isup_grs(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc)
@@ -2467,4 +2589,5 @@ int isup_uba(struct ss7 *ss7, int cic, unsigned int dpc)
 
 	return isup_send_message_ciconly(ss7, ISUP_UBA, cic, dpc);
 }
+
 /* Janelle is the bomb (Again) */
