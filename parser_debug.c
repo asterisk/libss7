@@ -43,7 +43,7 @@ int main(int argc, char **argv)
 
 	printf("\n");
 
-	ss7_add_link(ss7, 10);
+	ss7_add_link(ss7, SS7_TRANSPORT_ZAP, 10);
 
 	ss7->debug = SS7_DEBUG_MTP2 | SS7_DEBUG_MTP3 | SS7_DEBUG_ISUP;
 	ss7->links[0]->state = MTP_INSERVICE;

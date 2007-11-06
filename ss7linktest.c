@@ -267,7 +267,7 @@ int main(int argc, char *argv[])
 	ss7_set_network_ind(ss7, SS7_NI_NAT);
 
 	ss7_set_debug(ss7, 0xfffffff);
-	if ((ss7_add_link(ss7, fd))) {
+	if ((ss7_add_link(ss7, SS7_TRANSPORT_ZAP, fd))) {
 		perror("ss7_add_link");
 		exit(1);
 	}
