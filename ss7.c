@@ -161,23 +161,29 @@ void ss7_link_noalarm(struct ss7 *ss7, int fd)
 	mtp3_noalarm(ss7, fd);
 }
 
-int ss7_add_link(struct ss7 *ss7, int fd)
+int ss7_add_link(struct ss7 *ss7, int transport, int fd)
 {
 	struct mtp2 *m;
 
 	if (ss7->numlinks >= SS7_MAX_LINKS)
 		return -1;
 
-	m = mtp2_new(fd, ss7->switchtype);
-	
-	if (!m)
-		return -1;
+	if (transport == SS7_TRANSPORT_ZAP) {
+		m = mtp2_new(fd, ss7->switchtype);
+		
+		if (!m)
+			return -1;
 
-	m->slc = ss7->numlinks;
-	ss7->numlinks += 1;
-	m->master = ss7;
+		m->slc = ss7->numlinks;
+		ss7->numlinks += 1;
+		m->master = ss7;
 
-	ss7->links[ss7->numlinks - 1] = m;
+		ss7->links[ss7->numlinks - 1] = m;
+	}
+
+	if (transport == SS7_TRANSPORT_TCP) {
+		/* TODO */
+	}
 
 	return 0;
 }

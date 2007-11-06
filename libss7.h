@@ -92,6 +92,10 @@ Software Foundation
 #define CPG_EVENT_CFNR		0x05
 #define CPG_EVENT_CFU		0x06
 
+/* SS7 transport types */
+#define SS7_TRANSPORT_ZAP	0
+#define SS7_TRANSPORT_TCP	1
+
 struct ss7;
 struct isup_call;
 
@@ -214,7 +218,7 @@ int ss7_schedule_run(struct ss7 *ss7);
 
 struct timeval *ss7_schedule_next(struct ss7 *ss7);
 
-int ss7_add_link(struct ss7 *ss7, int fd);
+int ss7_add_link(struct ss7 *ss7, int transport, int fd);
 
 int ss7_set_adjpc(struct ss7 *ss7, int fd, unsigned int pc);
 
