@@ -113,6 +113,11 @@ typedef struct {
 	char charge_number[50];
 	unsigned char charge_nai;
 	unsigned char charge_num_plan;
+	unsigned char gen_add_num_plan;
+	unsigned char gen_add_nai;
+	char gen_add_number[50];
+	unsigned char gen_add_pres_ind;
+	unsigned char gen_add_type;
 	int oli_ani2;
 	struct isup_call *call;
 } ss7_event_iam;
@@ -306,6 +311,8 @@ void isup_set_calling(struct isup_call *c, const char *calling, unsigned char ca
 void isup_set_charge(struct isup_call *c, const char *charge, unsigned char charge_nai, unsigned char charge_num_plan);
 
 void isup_set_oli(struct isup_call *c, int oli_ani2);
+
+void isup_set_gen_address(struct isup_call *c, const char *gen_number, unsigned char gen_add_nai, unsigned char gen_pres_ind, unsigned char gen_num_plan, unsigned char gen_add_type);
 /* End of call related sets */
 
 #endif /* _LIBSS7_H */

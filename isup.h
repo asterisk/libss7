@@ -140,6 +140,11 @@ struct isup_call {
 	char charge_number[ISUP_MAX_NUM];
 	unsigned char charge_nai;
 	unsigned char charge_num_plan;
+	unsigned char gen_add_num_plan;
+	unsigned char gen_add_nai;
+	char gen_add_number[ISUP_MAX_NUM];
+	unsigned char gen_add_pres_ind;
+	unsigned char gen_add_type;
 	int oli_ani2;
 	int range;
 	unsigned char status[255];

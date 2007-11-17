@@ -46,7 +46,7 @@ static int iam_params[] = {ISUP_PARM_NATURE_OF_CONNECTION_IND, ISUP_PARM_FORWARD
 	ISUP_PARM_TRANSMISSION_MEDIUM_REQS, ISUP_PARM_CALLED_PARTY_NUM, ISUP_PARM_CALLING_PARTY_NUM, -1}; /* Don't have optional IEs */
 
 static int ansi_iam_params[] = {ISUP_PARM_NATURE_OF_CONNECTION_IND, ISUP_PARM_FORWARD_CALL_IND, ISUP_PARM_CALLING_PARTY_CAT,
-	ISUP_PARM_USER_SERVICE_INFO, ISUP_PARM_CALLED_PARTY_NUM, ISUP_PARM_CALLING_PARTY_NUM, ISUP_PARM_CHARGE_NUMBER, ISUP_PARM_ORIG_LINE_INFO, -1}; /* Include Charge number Don't have optional IEs */
+	ISUP_PARM_USER_SERVICE_INFO, ISUP_PARM_CALLED_PARTY_NUM, ISUP_PARM_CALLING_PARTY_NUM, ISUP_PARM_CHARGE_NUMBER, ISUP_PARM_ORIG_LINE_INFO,ISUP_PARM_GENERIC_ADDR, -1}; /* Include Charge number Don't have optional IEs */
 
 
 static int acm_params[] = {ISUP_PARM_BACKWARD_CALL_IND, -1};
@@ -1317,19 +1317,71 @@ static FUNC_SEND(redirection_info_transmit)
 	return 2;
 }
 
+static FUNC_DUMP(generic_address_dump)
+{
+	int oddeven = (parm[1] >> 7) & 0x1;
+	char numbuf[64] = "";
+	
+	ss7_message(ss7, "\t\t\tType of address: %x\n", parm[0]);
+	ss7_message(ss7, "\t\t\tNature of address: %x\n", parm[1] & 0x7f);
+	ss7_message(ss7, "\t\t\tOddEven: %x\n", (parm[1] >> 7) & 0x1);
+	ss7_message(ss7, "\t\t\tReserved: %x\n", parm[2] & 0x3);
+	ss7_message(ss7, "\t\t\tPresentation: %x\n", (parm[2] >> 2) & 0x3);
+	ss7_message(ss7, "\t\t\tNumbering plan: %x\n", (parm[2] >> 4) & 0x7);
+	
+	isup_get_number(numbuf, &parm[3], len - 3, oddeven);
+	
+	ss7_message(ss7, "\t\t\tAddress signals: %s\n", numbuf);
+	
+	return len;
+}
+
+static FUNC_RECV(generic_address_receive)
+{
+	int oddeven = (parm[1] >> 7) & 0x1;
+	
+	c->gen_add_type = parm[0];
+	c->gen_add_nai = parm[1] & 0x7f;
+	c->gen_add_pres_ind = (parm[2] >> 2) & 0x3;
+	c->gen_add_num_plan = (parm[2] >> 4) & 0x7;
+	
+	isup_get_number(c->gen_add_number, &parm[3], len - 3, oddeven);
+	
+	return len;
+}
+
+static FUNC_SEND(generic_address_transmit)
+{
+	
+	int oddeven, datalen;
+	
+	if (!c->gen_add_number[0])
+		return 0;
+	
+	isup_put_number(&parm[3], c->gen_add_number, &datalen, &oddeven);
+	
+	parm[0] = c->gen_add_type;
+	parm[1] = (oddeven << 7) | c->gen_add_nai;      /* Nature of Address Indicator */
+	parm[2] = (c->gen_add_num_plan << 4) |                           
+		((c->gen_add_pres_ind & 0x3) << 2) |
+		( 0x00 & 0x3);
+	
+	return datalen + 3;
+}
+
 static FUNC_DUMP(original_called_num_dump)
 {
 	int oddeven = (parm[0] >> 7) & 0x1;
 	char numbuf[64] = "";
-
+	
 	ss7_message(ss7, "\t\t\tNature of address: %x\n", parm[0] & 0x7f);
 	ss7_message(ss7, "\t\t\tNumbering plan: %x\n", (parm[1] >> 4) & 0x7);
 	ss7_message(ss7, "\t\t\tPresentation: %x\n", (parm[1] >> 2) & 0x3);
-
+	
 	isup_get_number(numbuf, &parm[2], len - 2, oddeven);
-
+	
 	ss7_message(ss7, "\t\t\tAddress signals: %s\n", numbuf);
-
+	
 	return len;
 }
 
@@ -1550,7 +1602,7 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_CONNECTION_REQ, "Connection Request"},
 	{ISUP_PARM_CUG_INTERLOCK_CODE, "Interlock Code"},
 	{ISUP_PARM_EGRESS_SERV, "Egress Service"},
-	{ISUP_PARM_GENERIC_ADDR, "Generic Address"},
+	{ISUP_PARM_GENERIC_ADDR, "Generic Address", generic_address_dump, generic_address_receive, generic_address_transmit},
 	{ISUP_PARM_GENERIC_DIGITS, "Generic Digits"},
 	{ISUP_PARM_GENERIC_NAME, "Generic Name"},
 	{ISUP_PARM_GENERIC_NOTIFICATION_IND, "Generic Notification Indication"},
@@ -1655,6 +1707,17 @@ void isup_set_charge(struct isup_call *c, const char *charge, unsigned char char
 		strncpy(c->charge_number, charge, sizeof(c->charge_number));
 		c->charge_nai = charge_nai;
 		c->charge_num_plan = charge_num_plan;
+	}
+}
+
+void isup_set_gen_address(struct isup_call *c, const char *gen_number, unsigned char gen_add_nai, unsigned char gen_pres_ind, unsigned char gen_num_plan, unsigned char gen_add_type)
+{
+	if (gen_number && gen_number[0]) {
+		strncpy(c->gen_add_number, gen_number, sizeof(c->gen_add_number));
+		c->gen_add_nai = gen_add_nai;
+		c->gen_add_pres_ind = gen_pres_ind;
+		c->gen_add_num_plan = gen_num_plan;
+		c->gen_add_type = gen_add_type;
 	}
 }
 
@@ -2225,6 +2288,11 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 			e->iam.charge_nai = c->charge_nai;
 			e->iam.charge_num_plan = c->charge_num_plan;
 			e->iam.oli_ani2 = c->oli_ani2;
+			e->iam.gen_add_nai = c->gen_add_nai;
+			e->iam.gen_add_num_plan = c->gen_add_num_plan;
+			strncpy(e->iam.gen_add_number, c->gen_add_number, sizeof(e->iam.gen_add_number));
+			e->iam.gen_add_pres_ind = c->gen_add_pres_ind;
+			e->iam.gen_add_type = c->gen_add_type;
 			e->iam.call = c;
 			return 0;
 		case ISUP_CQM:
