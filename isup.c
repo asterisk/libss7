@@ -2037,9 +2037,9 @@ int isup_dump(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len)
 	mh = (struct isup_h*) buf;
 
 	if (ss7->switchtype == SS7_ITU) {
-		cic = mh->cic[0] | ((mh->cic[1] << 8) & 0x0f);
+		cic = mh->cic[0] | ((mh->cic[1] & 0x0f) << 8);
 	} else {
-		cic = mh->cic[0] | ((mh->cic[1] << 8) & 0x3f);
+		cic = mh->cic[0] | ((mh->cic[1] & 0x3f) << 8);
 	}
 	/* Find us in the message list */
 	for (x = 0; x < sizeof(messages)/sizeof(struct message_data); x++)
@@ -2154,9 +2154,9 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 
 	mh = (struct isup_h*) buf;
 	if (ss7->switchtype == SS7_ITU) {
-		cic = mh->cic[0] | ((mh->cic[1] << 8) & 0x0f);
+		cic = mh->cic[0] | ((mh->cic[1] & 0x0f) << 8);
 	} else {
-		cic = mh->cic[0] | ((mh->cic[1] << 8) & 0x3f);
+		cic = mh->cic[0] | ((mh->cic[1] & 0x3f) << 8);
 	}
 
 	/* Find us in the message list */
