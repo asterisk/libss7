@@ -451,6 +451,8 @@ static int to_idle(struct mtp2 *link)
 		return -1;
 	}
 
+	mtp2_setstate(link, MTP_NOTALIGNED);
+
 	return 0;
 }
 
@@ -474,9 +476,7 @@ int mtp2_setstate(struct mtp2 *link, int newstate)
 			ss7_schedule_del(link->master, &link->t2);
 			switch (newstate) {
 				case MTP_IDLE:
-					if (to_idle(link))
-						return -1;
-					break;
+					return to_idle(link);
 				case MTP_ALIGNED:
 				case MTP_PROVING:
 					if (newstate == MTP_ALIGNED)
@@ -503,9 +503,7 @@ int mtp2_setstate(struct mtp2 *link, int newstate)
 
 			switch (newstate) {
 				case MTP_IDLE:
-					if (to_idle(link))
-						return -1;
-					break;
+					return to_idle(link);
 				case MTP_PROVING:
 					link->t4 = ss7_schedule_event(link->master, link->provingperiod, t4_expiry, link);
 			}
@@ -516,9 +514,7 @@ int mtp2_setstate(struct mtp2 *link, int newstate)
 
 			switch (newstate) {
 				case MTP_IDLE:
-					if (to_idle(link))
-						return -1;
-					break;
+					return to_idle(link);
 				case MTP_PROVING:
 					link->t4 = ss7_schedule_event(link->master, link->provingperiod, t4_expiry, link);
 					break;
@@ -550,9 +546,7 @@ int mtp2_setstate(struct mtp2 *link, int newstate)
 			/* Our timer expired, it should be cleaned up already */
 			switch (newstate) {
 				case MTP_IDLE:
-					if (to_idle(link))
-						return -1;
-					break;
+					return to_idle(link);
 				case MTP_ALIGNEDREADY:
 					link->t1 = ss7_schedule_event(link->master, link->timers.t1, t1_expiry, link);
 					if (mtp2_fisu(link, 0)) {
@@ -642,6 +636,8 @@ static int lssu_rx(struct mtp2 *link, struct mtp_su_head *h, int len)
 			break;
 		case MTP_ALIGNEDREADY:
 		case MTP_INSERVICE:
+			if ((lssutype != LSSU_SIOS) && (lssutype != LSSU_SIO))
+				mtp_message(link->master, "Got LSSU of type %d while link is in state %d.  Re-Aligning\n", lssutype, link->state);
 			return mtp2_setstate(link, MTP_IDLE);
 
 	}
