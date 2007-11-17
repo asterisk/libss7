@@ -571,13 +571,7 @@ int mtp2_setstate(struct mtp2 *link, int newstate)
 			link->state = newstate;
 			return 0;
 		case MTP_INSERVICE:
-			switch (newstate) {
-				case MTP_IDLE:
-					return to_idle(link);
-				default:
-					mtp_error(link->master, "Unable to change state from %d to %d\n", link->state, newstate);
-					return 0;
-			}
+			return to_idle(link);
 	}
 	return 0;
 }

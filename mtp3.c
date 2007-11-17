@@ -584,8 +584,10 @@ void mtp3_alarm(struct ss7 *ss7, int fd)
 			break;
 		}
 	}
-	if (winner > -1)
+	if (winner > -1) {
 		ss7->mtp2_linkstate[winner] = MTP2_LINKSTATE_INALARM;
+		mtp2_stop(ss7->links[winner]);
+	}
 
 	for (i = 0; i < ss7->numlinks; i++) {
 		/* Let's count how many links are up while we're going through them */
