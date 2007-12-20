@@ -12,13 +12,21 @@ License:
 libss7 is covered under the GPL (Gnu Public License) version 2.  For more
 information, see http://www.gnu.org/
 
-Tested Switches:
-================
+A few tested switches:
+======================
 Siemens EWSD - (ITU style) MTP2 and MTP3 comes up, ISUP inbound and outbound calls work as well.
 DTI DXC 4K - (ANSI style) 56kbps link, MTP2 and MTP3 come up, ISUP inbound and outbound calls work as well.
 Huawei M800 - (ITU style) MTP2 and MTP3 comes up, ISUP National, International inbound and outbound calls work as well, CallerID presentation&screening work.
 
-Thanks:
+and many more...
+
+Some carriers integrated with:
+==============================
+T-Systems Germany
+Etel
+COLT
+
+Thanks to:
 =======
 Mark Spencer, for writing Asterisk and libpri and being such a great friend and boss.
 
@@ -27,6 +35,8 @@ Luciano Ramos, for donating a link in getting the first "real" ITU switch workin
 Collin Rose and John Lodden, John for introducing me to Collin, and Collin for the first
 "real" ANSI link and for holding my hand through the remaining changes that had to be 
 done for ANSI switches.
+
+Alan McMillan for numerous ANSI related updates, changes, testing, and additional parameter support.
 
 To Use:
 =======
@@ -135,8 +145,8 @@ CallerID presentation&screening
 UCIC and LPA messages
 ANI2 - Originating line interface parameter (ANSI)
 Charge number parameter (ANSI)
-Hop counter paramter
-Carrier identification paramter - (very simple, not configurable)
+Hop counter parameter
+Carrier identification parameter - (very simple, not configurable)
 SS7 debug looks *MUCH* nicer
 
 TODO:

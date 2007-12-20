@@ -43,6 +43,8 @@ Software Foundation
 #define ISUP_EVENT_UCIC		23
 #define ISUP_EVENT_LPA 		24
 #define ISUP_EVENT_CQM 		25
+#define ISUP_EVENT_FAR		26
+#define ISUP_EVENT_FAA		27
 
 /* Different SS7 types */
 #define SS7_ITU		(1 << 0)
@@ -118,6 +120,15 @@ typedef struct {
 	char gen_add_number[50];
 	unsigned char gen_add_pres_ind;
 	unsigned char gen_add_type;
+	char gen_dig_number[50];
+	unsigned char gen_dig_type;
+	unsigned char gen_dig_scheme;
+	char jip_number[50];
+	unsigned char lspi_type;
+	unsigned char lspi_scheme;
+	unsigned char lspi_context;
+	unsigned char lspi_spare;
+	char lspi_ident[50];
 	int oli_ani2;
 	struct isup_call *call;
 } ss7_event_iam;
@@ -155,6 +166,8 @@ typedef struct {
 typedef struct {
 	int e;
 	int cic;
+	unsigned int call_ref_ident;
+	unsigned int call_ref_pc;
 	struct isup_call *call;
 } ss7_event_acm;
 
@@ -184,6 +197,23 @@ typedef struct {
 	unsigned char event;
 } ss7_event_cpg;
 
+typedef struct {
+	int e;
+	int cic;
+	unsigned int call_ref_ident;
+	unsigned int call_ref_pc;
+	struct isup_call *call;
+} ss7_event_faa;
+
+typedef struct {
+	int e;
+	int cic;
+	unsigned int call_ref_ident;
+	unsigned int call_ref_pc;
+	struct isup_call *call;
+} ss7_event_far;
+
+
 typedef union {
 	int e;
 	ss7_event_generic gen;
@@ -199,6 +229,8 @@ typedef union {
 	ss7_event_ciconly rlc;
 	ss7_event_anm anm;
 	ss7_event_acm acm;
+	ss7_event_faa faa;
+	ss7_event_far far;
 	ss7_event_con con;
 	ss7_event_cot cot;
 	ss7_event_ciconly ccr;
@@ -263,6 +295,10 @@ struct isup_call * isup_new_call(struct ss7 *ss7);
 
 int isup_acm(struct ss7 *ss7, struct isup_call *c);
 
+int isup_faa(struct ss7 *ss7, struct isup_call *c);
+
+int isup_far(struct ss7 *ss7, struct isup_call *c);
+
 int isup_rel(struct ss7 *ss7, struct isup_call *c, int cause);
 
 int isup_rlc(struct ss7 *ss7, struct isup_call *c);
@@ -313,6 +349,17 @@ void isup_set_charge(struct isup_call *c, const char *charge, unsigned char char
 void isup_set_oli(struct isup_call *c, int oli_ani2);
 
 void isup_set_gen_address(struct isup_call *c, const char *gen_number, unsigned char gen_add_nai, unsigned char gen_pres_ind, unsigned char gen_num_plan, unsigned char gen_add_type);
+
+void isup_set_gen_digits(struct isup_call *c, const char *gen_number, unsigned char gen_dig_type, unsigned char gen_dig_scheme);
+
+void isup_set_jip_digits(struct isup_call *c, const char *jip_number);
+
+void isup_set_lspi(struct isup_call *c, const char *lspi_ident, unsigned char lspi_type, unsigned char lspi_scheme, unsigned char lspi_context);
+
+void isup_set_callref(struct isup_call *c, unsigned int call_ref_ident, unsigned int call_ref_pc);
+
 /* End of call related sets */
+
+
 
 #endif /* _LIBSS7_H */

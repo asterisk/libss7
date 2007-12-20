@@ -43,13 +43,19 @@ struct parm_func {
 };
 
 static int iam_params[] = {ISUP_PARM_NATURE_OF_CONNECTION_IND, ISUP_PARM_FORWARD_CALL_IND, ISUP_PARM_CALLING_PARTY_CAT,
-	ISUP_PARM_TRANSMISSION_MEDIUM_REQS, ISUP_PARM_CALLED_PARTY_NUM, ISUP_PARM_CALLING_PARTY_NUM, -1}; /* Don't have optional IEs */
+	ISUP_PARM_TRANSMISSION_MEDIUM_REQS, ISUP_PARM_CALLED_PARTY_NUM, ISUP_PARM_CALLING_PARTY_NUM, -1};
 
 static int ansi_iam_params[] = {ISUP_PARM_NATURE_OF_CONNECTION_IND, ISUP_PARM_FORWARD_CALL_IND, ISUP_PARM_CALLING_PARTY_CAT,
-	ISUP_PARM_USER_SERVICE_INFO, ISUP_PARM_CALLED_PARTY_NUM, ISUP_PARM_CALLING_PARTY_NUM, ISUP_PARM_CHARGE_NUMBER, ISUP_PARM_ORIG_LINE_INFO,ISUP_PARM_GENERIC_ADDR, -1}; /* Include Charge number Don't have optional IEs */
+	ISUP_PARM_USER_SERVICE_INFO, ISUP_PARM_CALLED_PARTY_NUM, ISUP_PARM_CALLING_PARTY_NUM, ISUP_PARM_CHARGE_NUMBER, 
+	ISUP_PARM_ORIG_LINE_INFO, ISUP_PARM_GENERIC_ADDR, ISUP_PARM_GENERIC_DIGITS, ISUP_PARM_JIP, 
+	ISUP_PARM_LOCAL_SERVICE_PROVIDER_IDENTIFICATION, -1};
 
 
 static int acm_params[] = {ISUP_PARM_BACKWARD_CALL_IND, -1};
+
+static int faa_params[] = {ISUP_PARM_FACILITY_IND, ISUP_PARM_CALL_REF, -1};
+
+static int far_params[] = {ISUP_PARM_FACILITY_IND, ISUP_PARM_CALL_REF, -1};
 
 static int anm_params[] = { -1};
 
@@ -100,6 +106,8 @@ static struct message_data {
 	{ISUP_UCIC, 0, 0, 0, empty_params},
 	{ISUP_CQM, 0, 1, 0, greset_params},
 	{ISUP_CQR, 0, 2, 0, cqr_params},
+	{ISUP_FAA, 1, 0, 1, faa_params},
+	{ISUP_FAR, 1, 0, 1, far_params}
 };
 
 static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagetype, int parms[]);
@@ -149,6 +157,12 @@ static char * message2str(unsigned char message)
 			return "UCIC";
 		case ISUP_LPA:
 			return "LPA";
+		case ISUP_FAA:
+			return "FAA";
+		case ISUP_FAR:
+			return "FAR";
+		case ISUP_FRJ:
+			return "FRJ";
 		default:
 			return "Unknown";
 	}
@@ -228,10 +242,31 @@ static void isup_dump_buffer(struct ss7 *ss7, unsigned char *data, int len)
 static void isup_get_number(char *dest, unsigned char *src, int srclen, int oddeven)
 {
 	int i;
-	for (i = 0; i < ((srclen * 2) - oddeven); i++)
-		dest[i] = digit2char(src[i/2] >> ((i % 2) ? 4 : 0));
 
+	if (oddeven < 2) {
+		/* BCD odd or even */
+		for (i = 0; i < ((srclen * 2) - oddeven); i++)
+			dest[i] = digit2char(src[i/2] >> ((i % 2) ? 4 : 0));
+	} else {
+		/* oddeven = 2 for IA5 characters */
+		for (i = 0; i < srclen; i++)
+			dest[i] = src[i];
+	}
 	dest[i] = '\0'; 
+}
+
+
+static void isup_put_generic(unsigned char *dest, char *src, int *len)
+{
+	int i = 0;
+	int numlen = strlen(src);
+
+	*len = numlen;
+	
+	while (i < numlen) {
+		dest[i] = (src[i]);
+		i++;
+	}
 }
 
 static void isup_put_number(unsigned char *dest, char *src, int *len, int *oddeven)
@@ -1047,7 +1082,19 @@ static FUNC_DUMP(jip_dump)
 
 static FUNC_RECV(jip_receive)
 { 
+	isup_get_number(c->jip_number, &parm[0], len, 0);
 	return len;
+}
+
+static FUNC_RECV(jip_transmit)
+{ 
+	int oddeven, datalen;
+	
+	if  (c->jip_number && c->jip_number[0]) {
+		isup_put_number(&parm[0], c->jip_number, &datalen, &oddeven);
+		return datalen;
+	}
+	return 0;
 }
 
 static FUNC_DUMP(hop_counter_dump)
@@ -1369,6 +1416,56 @@ static FUNC_SEND(generic_address_transmit)
 	return datalen + 3;
 }
 
+
+static FUNC_DUMP(generic_digits_dump)
+{
+	int oddeven = (parm[0] >> 5) & 0x7;
+	char numbuf[64] = "";
+	
+	ss7_message(ss7, "\t\t\tType of digits: %x\n", parm[0] & 0x1f);
+	ss7_message(ss7, "\t\t\tEncoding Scheme: %x\n", (parm[0] >> 5) & 0x7);
+	isup_get_number(numbuf, &parm[1], len - 1, oddeven);
+	ss7_message(ss7, "\t\t\tAddress digits: %s\n", numbuf);
+
+	return len;
+	
+}
+
+static FUNC_RECV(generic_digits_receive)
+{
+	c->gen_dig_scheme = (parm[0] >> 5) & 0x7;
+	c->gen_dig_type = parm[0] & 0x1f;
+	
+	isup_get_number(c->gen_dig_number, &parm[1], len - 1, c->gen_dig_scheme);
+	return len;
+}
+
+static FUNC_SEND(generic_digits_transmit)
+{
+	int oddeven, datalen;
+	
+	if (!c->gen_dig_number[0])
+		return 0;
+	
+	switch (c->gen_dig_type) {
+		case 0:
+		case 1:
+		case 2: /* used for sending digit strings */
+			isup_put_number(&parm[1], c->gen_dig_number, &datalen, &oddeven);
+			parm[0] = (oddeven << 5 ) | c->gen_dig_type;
+			break;
+		case 3:	 /*used for sending BUSINESS COMM. GROUP IDENTIY type */
+			isup_put_generic(&parm[1], c->gen_dig_number, &datalen);
+			parm[0] = (c->gen_dig_scheme << 5 ) | c->gen_dig_type;
+			break;
+		default:
+			isup_put_number(&parm[1], c->gen_dig_number, &datalen, &oddeven);
+			parm[0] = (oddeven << 5 ) | c->gen_dig_type;
+			break;
+	}
+	return datalen + 1;
+}
+
 static FUNC_DUMP(original_called_num_dump)
 {
 	int oddeven = (parm[0] >> 7) & 0x1;
@@ -1582,6 +1679,131 @@ static FUNC_SEND(circuit_state_ind_transmit)
 	return numcics;
 }
 
+static FUNC_DUMP(tns_dump)
+{
+	ss7_message(ss7, "\t\t\tType of Network: %x\n", (parm[0] >> 4) & 0x7);
+	ss7_message(ss7, "\t\t\tNetwork ID plan: %x\n", parm[0] & 0xf);
+	ss7_message(ss7, "\t\t\tNetwork ID: %x %x\n", parm[1], parm[2]);
+	ss7_message(ss7, "\t\t\tCircuit Code: %x\n", (parm[3] >> 4) & 0xf);
+	
+	return len;
+}
+
+static FUNC_SEND(tns_transmit)
+{
+	return 0;
+}
+
+static FUNC_RECV(tns_receive)
+{
+	return len;
+}
+
+static FUNC_SEND(lspi_transmit)
+{
+	/* On Nortel this needs to be set to ARM the RLT functionality. */
+	/* This causes the Nortel switch to return the CALLREFERENCE Parm on the ACM of the outgoing call */
+	/* This parm has more fields that can be set but Nortel DMS-250/500 needs it set as below */
+	if (c->lspi_scheme) {
+		parm[0] = c->lspi_scheme << 5 | c->lspi_type;  /* only setting parms for NORTEL RLT on IMT trktype */
+		return 1;
+	}
+	return 0;
+}
+
+static FUNC_RECV(lspi_receive)
+{
+	c->lspi_type = parm[0] & 0x1f;
+	c->lspi_scheme = parm[0] >> 5 & 0x7;
+	c->lspi_context = parm[1] & 0xf;
+	isup_get_number(c->lspi_ident, &parm[2], len - 2, c->lspi_scheme);
+	
+	return len;
+}
+
+static FUNC_DUMP(lspi_dump)
+{
+	ss7_message(ss7, "\t\t\tLSPI Type: %x\n", parm[0] & 0x1f);
+	ss7_message(ss7, "\t\t\tEncoding Scheme: %x\n", (parm[0] >> 5) & 0x7);
+	ss7_message(ss7, "\t\t\tContext ID: %x\n", parm[1] & 0xf);
+	ss7_message(ss7, "\t\t\tSpare: %x\n", (parm[1] >> 4) & 0xf);
+	ss7_message(ss7, "\t\t\tLSP Identity: %x\n", parm[2]);
+	
+	return len;
+}
+
+static FUNC_DUMP(call_ref_dump)
+{
+	unsigned int ptc, callr;
+	
+	callr = parm[0] | (parm[1] << 8) | (parm[2] << 16);
+	if (ss7->switchtype == SS7_ANSI)
+		ptc = parm[3] | (parm[4] << 8) | (parm[5] << 16);
+	else
+		ptc = parm[3] | (parm[4] << 8);
+	
+	ss7_message(ss7, "\t\t\tCall identity: %d\n", callr);
+	if (ss7->switchtype == SS7_ANSI)
+		ss7_message(ss7, "\t\t\tPC: Net-CLstr-Mbr: %d-%d-%d\n",(ptc >> 16) & 0xff, (ptc >> 8) & 0xff, ptc & 0xff);
+	else
+		ss7_message(ss7, "\t\t\tPC: 0x%x\n", ptc);
+	
+	return len;
+}
+
+static FUNC_SEND(call_ref_transmit)
+{
+	if (c->call_ref_ident) {
+		if (ss7->switchtype == SS7_ANSI) {
+			parm[0] = c->call_ref_ident & 0xff;
+			parm[1] = (c->call_ref_ident >> 8) & 0xff;
+			parm[2] = (c->call_ref_ident >> 16) & 0xff;
+			parm[3] = c->call_ref_pc & 0xff;
+			parm[4] = (c->call_ref_pc >> 8) & 0xff;
+			parm[5] = (c->call_ref_pc >> 16) & 0xff;
+			return 6;
+		} else {
+			parm[0] = c->call_ref_ident & 0xff;
+			parm[1] = (c->call_ref_ident >> 8) & 0xff;
+			parm[2] = (c->call_ref_ident >> 16) & 0xff;
+			parm[3] = c->call_ref_pc & 0xff;
+			parm[4] = (c->call_ref_pc >> 8) & 0x3f;
+			return 5;
+		}
+	}
+	return 0;
+}
+
+static FUNC_RECV(call_ref_receive)
+{
+	if (ss7->switchtype == SS7_ANSI) {
+		c->call_ref_ident = parm[0] | (parm[1] << 8) | (parm[2] << 16);
+		c->call_ref_pc = parm[3] | (parm[4] << 8) | (parm[5] << 16);
+	} else {
+		c->call_ref_ident = parm[0] | (parm[1] << 8) | (parm[2] << 16);
+		c->call_ref_pc = parm[3] | ((parm[4] & 0x3f) << 8);
+	}
+	return len;
+}
+
+static FUNC_DUMP(facility_ind_dump)
+{
+	ss7_message(ss7, "\t\t\tFacility Indicator: %x\n", parm[0]);
+	return 1;
+}
+
+static FUNC_RECV(facility_ind_receive)
+{
+	return 1;
+}
+
+static FUNC_SEND(facility_ind_transmit)
+{
+	parm[0] = 0x10; /* Setting Value to Nortel DMS-250/500 needs for RLT */
+	return 1;
+}
+
+
 static struct parm_func parms[] = {
 	{ISUP_PARM_NATURE_OF_CONNECTION_IND, "Nature of Connection Indicator", nature_of_connection_ind_dump, nature_of_connection_ind_receive, nature_of_connection_ind_transmit },
 	{ISUP_PARM_FORWARD_CALL_IND, "Forward Call Indicators", forward_call_ind_dump, forward_call_ind_receive, forward_call_ind_transmit },
@@ -1593,7 +1815,7 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_CONTINUITY_IND, "Continuity Indicator", continuity_ind_dump, continuity_ind_receive, continuity_ind_transmit},
 	{ISUP_PARM_ACCESS_TRANS, "Access Transport"},
 	{ISUP_PARM_BUSINESS_GRP, "Business Group"},
-	{ISUP_PARM_CALL_REF, "Call Reference"},
+	{ISUP_PARM_CALL_REF, "Call Reference", call_ref_dump, call_ref_receive, call_ref_transmit},
 	{ISUP_PARM_CALLING_PARTY_NUM, "Calling Party Number", calling_party_num_dump, calling_party_num_receive, calling_party_num_transmit},
 	{ISUP_PARM_CARRIER_ID, "Carrier Identification", carrier_identification_dump, carrier_identification_receive, carrier_identification_transmit},
 	{ISUP_PARM_SELECTION_INFO, "Selection Information"},
@@ -1603,8 +1825,9 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_CUG_INTERLOCK_CODE, "Interlock Code"},
 	{ISUP_PARM_EGRESS_SERV, "Egress Service"},
 	{ISUP_PARM_GENERIC_ADDR, "Generic Address", generic_address_dump, generic_address_receive, generic_address_transmit},
-	{ISUP_PARM_GENERIC_DIGITS, "Generic Digits"},
+	{ISUP_PARM_GENERIC_DIGITS, "Generic Digits", generic_digits_dump, generic_digits_receive, generic_digits_transmit},
 	{ISUP_PARM_GENERIC_NAME, "Generic Name"},
+	{ISUP_PARM_TRANSIT_NETWORK_SELECTION, "Transit Network Selection", tns_dump, tns_receive, tns_transmit},
 	{ISUP_PARM_GENERIC_NOTIFICATION_IND, "Generic Notification Indication"},
 	{ISUP_PARM_PROPAGATION_DELAY, "Propagation Delay Counter", propagation_delay_cntr_dump},
 	{ISUP_PARM_HOP_COUNTER, "Hop Counter", hop_counter_dump, hop_counter_receive, hop_counter_transmit},
@@ -1618,10 +1841,12 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_ORIG_LINE_INFO, "Originating line information", originating_line_information_dump, originating_line_information_receive, originating_line_information_transmit},
 	{ISUP_PARM_REDIRECTION_INFO, "Redirection Information", redirection_info_dump, redirection_info_receive, redirection_info_transmit},
 	{ISUP_PARM_ORIGINAL_CALLED_NUM, "Original called number", original_called_num_dump, original_called_num_receive, original_called_num_transmit},
-	{ISUP_PARM_JIP, "Jurisdiction Information Parameter", jip_dump, jip_receive, NULL},
+	{ISUP_PARM_JIP, "Jurisdiction Information Parameter", jip_dump, jip_receive, jip_transmit},
 	{ISUP_PARM_ECHO_CONTROL_INFO, "Echo Control Information", echo_control_info_dump, NULL, NULL},
 	{ISUP_PARM_PARAMETER_COMPAT_INFO, "Parameter Compatibility Information", parameter_compat_info_dump, NULL, NULL},
 	{ISUP_PARM_CIRCUIT_STATE_IND, "Circuit State Indicator", circuit_state_ind_dump, NULL, circuit_state_ind_transmit},
+	{ISUP_PARM_LOCAL_SERVICE_PROVIDER_IDENTIFICATION, "Local Service Provider ID", lspi_dump, lspi_receive, lspi_transmit},
+	{ISUP_PARM_FACILITY_IND, "Facility Indicator", facility_ind_dump, facility_ind_receive, facility_ind_transmit},
 };
 
 static char * param2str(int parm)
@@ -1719,6 +1944,38 @@ void isup_set_gen_address(struct isup_call *c, const char *gen_number, unsigned 
 		c->gen_add_num_plan = gen_num_plan;
 		c->gen_add_type = gen_add_type;
 	}
+}
+
+void isup_set_gen_digits(struct isup_call *c, const char *gen_number, unsigned char gen_dig_type, unsigned char gen_dig_scheme)
+{
+	if (gen_number && gen_number[0]) {
+		strncpy(c->gen_dig_number, gen_number, sizeof(c->gen_dig_number));
+		c->gen_dig_type = gen_dig_type;
+		c->gen_dig_scheme = gen_dig_scheme;
+	}
+}
+
+void isup_set_jip_digits(struct isup_call *c, const char *jip_number)
+{
+	if (jip_number && jip_number[0]) {
+		strncpy(c->jip_number, jip_number, sizeof(c->jip_number));
+	}
+}
+
+void isup_set_lspi(struct isup_call *c, const char *lspi_ident, unsigned char lspi_type, unsigned char lspi_scheme, unsigned char lspi_context)
+{
+	if (lspi_ident && lspi_ident[0]) {
+		strncpy(c->lspi_ident, lspi_ident, sizeof(c->lspi_ident));
+		c->lspi_context = lspi_context;
+		c->lspi_scheme = lspi_scheme;
+		c->lspi_type = lspi_type;
+	}
+}
+
+void isup_set_callref(struct isup_call *c, unsigned int call_ref_ident, unsigned int call_ref_pc)
+{
+	c->call_ref_ident = call_ref_ident;
+	c->call_ref_pc = call_ref_pc;
 }
 
 void isup_init_call(struct ss7 *ss7, struct isup_call *c, int cic, unsigned int dpc)
@@ -2293,6 +2550,14 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 			strncpy(e->iam.gen_add_number, c->gen_add_number, sizeof(e->iam.gen_add_number));
 			e->iam.gen_add_pres_ind = c->gen_add_pres_ind;
 			e->iam.gen_add_type = c->gen_add_type;
+			strncpy(e->iam.gen_dig_number, c->gen_dig_number, sizeof(e->iam.gen_dig_number));
+			e->iam.gen_dig_type = c->gen_dig_type;
+			e->iam.gen_dig_scheme = c->gen_dig_scheme;
+			strncpy(e->iam.jip_number, c->jip_number, sizeof(e->iam.jip_number));
+			e->iam.lspi_type = c->lspi_type;
+			e->iam.lspi_scheme = c->lspi_scheme;
+			e->iam.lspi_context = c->lspi_context;
+			strncpy(e->iam.lspi_ident, c->lspi_ident, sizeof(e->iam.lspi_ident));
 			e->iam.call = c;
 			return 0;
 		case ISUP_CQM:
@@ -2330,6 +2595,8 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 		case ISUP_ACM:
 			e->e = ISUP_EVENT_ACM;
 			e->acm.cic = c->cic;
+			e->acm.call_ref_ident = c->call_ref_ident;
+			e->acm.call_ref_pc = c->call_ref_pc;
 			e->acm.call = c;
 			return 0;
 		case ISUP_CON:
@@ -2414,6 +2681,20 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 			e->e = ISUP_EVENT_UCIC;
 			e->ucic.cic = c->cic;
 			isup_free_call(ss7, c);
+			return 0;
+		case ISUP_FAA:
+			e->e = ISUP_EVENT_FAA;
+			e->faa.cic = c->cic;
+			e->faa.call_ref_ident = c->call_ref_ident;
+			e->faa.call_ref_pc = c->call_ref_pc;
+			e->faa.call = c;
+			return 0;
+		case ISUP_FAR:
+			e->e = ISUP_EVENT_FAR;
+			e->far.cic = c->cic;
+			e->far.call_ref_ident = c->call_ref_ident;
+			e->far.call_ref_pc = c->call_ref_pc;
+			e->far.call = c;
 			return 0;
 		default:
 			ss7_error(ss7, "!! Unable to handle message type %s\n", message2str(mh->type));
@@ -2539,6 +2820,27 @@ int isup_acm(struct ss7 *ss7, struct isup_call *c)
 		return -1;
 
 	return isup_send_message(ss7, c, ISUP_ACM, acm_params);
+}
+
+int isup_faa(struct ss7 *ss7, struct isup_call *c)
+{
+	if (!ss7 || !c)
+		return -1;
+	
+	return isup_send_message(ss7, c, ISUP_FAA, faa_params);
+}
+
+int isup_far(struct ss7 *ss7, struct isup_call *c)
+{
+	if (!ss7 || !c)
+		return -1;
+	
+	if (c->next && c->next->call_ref_ident) {
+		c->call_ref_ident = c->next->call_ref_ident;
+		c->call_ref_pc = c->next->call_ref_pc;
+		return isup_send_message(ss7, c, ISUP_FAR, far_params);
+	}
+	return -1;
 }
 
 int isup_anm(struct ss7 *ss7, struct isup_call *c)

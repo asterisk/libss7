@@ -109,6 +109,9 @@ Contains definitions and data structurs for the ISUP portion of SS7
 #define ISUP_PARM_ECHO_CONTROL_INFO 0x37
 #define ISUP_PARM_PARAMETER_COMPAT_INFO 0x39
 #define ISUP_PARM_CIRCUIT_STATE_IND 0x26
+#define ISUP_PARM_TRANSIT_NETWORK_SELECTION 0x23
+#define ISUP_PARM_LOCAL_SERVICE_PROVIDER_IDENTIFICATION 0xe4
+#define ISUP_PARM_FACILITY_IND 0x18
 
 
 
@@ -145,7 +148,19 @@ struct isup_call {
 	char gen_add_number[ISUP_MAX_NUM];
 	unsigned char gen_add_pres_ind;
 	unsigned char gen_add_type;
+	char gen_dig_number[ISUP_MAX_NUM];
+	unsigned char gen_dig_type;
+	unsigned char gen_dig_scheme;
+	char jip_number[ISUP_MAX_NUM];
+	unsigned char lspi_type;
+	unsigned char lspi_scheme;
+	unsigned char lspi_context;
+	unsigned char lspi_spare;
+	char lspi_ident[ISUP_MAX_NUM];
 	int oli_ani2;
+	unsigned int call_ref_ident;
+	unsigned int call_ref_pc;
+	
 	int range;
 	unsigned char status[255];
 	int transcap;
