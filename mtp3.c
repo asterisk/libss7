@@ -158,7 +158,20 @@ static inline unsigned char  get_h1(unsigned char *byte)
 
 static inline struct mtp2 * sls_to_link(struct ss7 *ss7, unsigned char sls)
 {
-	return ss7->links[sls % ss7->numlinks];
+	if (ss7->mtp2_linkstate[sls % ss7->numlinks] == MTP2_LINKSTATE_UP)
+		return ss7->links[sls % ss7->numlinks];
+	else {
+		struct mtp2 *winner = ss7->links[0];
+
+		for (i = 0; i < ss7->numlinks; i++) {
+			if (ss7->mtp2_linkstate[i] == MTP2_LINKSTATE_UP) {
+				winner = ss7->links[i];
+				break;
+			}
+		}
+
+		return winner;
+	}
 }
 
 struct net_mng_message net_mng_messages[] = {
