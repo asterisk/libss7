@@ -162,6 +162,7 @@ static inline struct mtp2 * sls_to_link(struct ss7 *ss7, unsigned char sls)
 		return ss7->links[sls % ss7->numlinks];
 	else {
 		struct mtp2 *winner = ss7->links[0];
+		int i;
 
 		for (i = 0; i < ss7->numlinks; i++) {
 			if (ss7->mtp2_linkstate[i] == MTP2_LINKSTATE_UP) {
@@ -385,7 +386,15 @@ static int std_test_receive(struct ss7 *ss7, struct mtp2 *mtp2, unsigned char *b
 		drl.type = ss7->switchtype;
 		drl.dpc = rl.opc;
 		drl.opc = ss7->pc;
+#if 0
 		drl.sls = mtp2->slc;
+#else
+		/* 
+		 * I hate that we would have to do this, but it would seem that
+		 * some telcos set things up stupid enough that we have to
+		 */
+		drl.sls = rl.sls;
+#endif
 
 		layer4 = ss7_msg_userpart(m);
 
