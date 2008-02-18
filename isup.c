@@ -2559,11 +2559,13 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 			e->iam.lspi_context = c->lspi_context;
 			strncpy(e->iam.lspi_ident, c->lspi_ident, sizeof(e->iam.lspi_ident));
 			e->iam.call = c;
+			e->iam.opc = opc; /* keep OPC information */
 			return 0;
 		case ISUP_CQM:
 			e->e = ISUP_EVENT_CQM;
 			e->cqm.startcic = cic;
 			e->cqm.endcic = cic + c->range;
+			e->cqm.opc = opc; /* keep OPC information */
 			isup_free_call(ss7, c); /* Won't need this again */
 			return 0;
 		case ISUP_GRS:
@@ -2571,6 +2573,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 			e->grs.startcic = cic;
 			e->grs.endcic = cic + c->range;
 			isup_free_call(ss7, c); /* Won't need this again */
+			e->grs.opc = opc; /* keep OPC information */
 			return 0;
 		case ISUP_GRA:
 			e->e = ISUP_EVENT_GRA;
@@ -2578,6 +2581,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 			e->gra.endcic = cic + c->range;
 			for (i = 0; i < (c->range + 1); i++)
 				e->gra.status[i] = c->status[i];
+			e->gra.opc = opc; /* keep OPC information */
 
 			isup_free_call(ss7, c); /* Won't need this again */
 			return 0;
@@ -2585,12 +2589,14 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 			e->e = ISUP_EVENT_RSC;
 			e->rsc.cic = cic;
 			e->rsc.call = c;
+			e->rsc.opc = opc; /* keep OPC information */
 			return 0;
 		case ISUP_REL:
 			e->e = ISUP_EVENT_REL;
 			e->rel.cic = c->cic;
 			e->rel.call = c;
 			e->rel.cause = c->cause;
+			e->rel.opc = opc; /* keep OPC information */
 			return 0;
 		case ISUP_ACM:
 			e->e = ISUP_EVENT_ACM;
@@ -2598,20 +2604,24 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 			e->acm.call_ref_ident = c->call_ref_ident;
 			e->acm.call_ref_pc = c->call_ref_pc;
 			e->acm.call = c;
+			e->acm.opc = opc; /* keep OPC information */
 			return 0;
 		case ISUP_CON:
 			e->e = ISUP_EVENT_CON;
 			e->con.cic = c->cic;
 			e->con.call = c;
+			e->con.opc = opc; /* keep OPC information */
 			return 0;
 		case ISUP_ANM:
 			e->e = ISUP_EVENT_ANM;
 			e->anm.cic = c->cic;
 			e->anm.call = c;
+			e->anm.opc = opc; /* keep OPC information */
 			return 0;
 		case ISUP_RLC:
 			e->e = ISUP_EVENT_RLC;
 			e->rlc.cic = c->cic;
+			e->rlc.opc = opc; /* keep OPC information */
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_COT:
@@ -2619,35 +2629,42 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 			e->cot.cic = c->cic;
 			e->cot.passed = c->cot_check_passed;
 			e->cot.call = c;
+			e->cot.opc = opc; /* keep OPC information */
 			return 0;
 		case ISUP_CCR:
 			e->e = ISUP_EVENT_CCR;
 			e->ccr.cic = c->cic;
+			e->ccr.opc = opc; /* keep OPC information */
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_BLO:
 			e->e = ISUP_EVENT_BLO;
 			e->blo.cic = c->cic;
+			e->blo.opc = opc; /* keep OPC information */
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_UBL:
 			e->e = ISUP_EVENT_UBL;
 			e->ubl.cic = c->cic;
+			e->ubl.opc = opc; /* keep OPC information */
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_BLA:
 			e->e = ISUP_EVENT_BLA;
 			e->bla.cic = c->cic;
+			e->bla.opc = opc; /* keep OPC information */
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_LPA:
 			e->e = ISUP_EVENT_LPA;
 			e->lpa.cic = c->cic;
+			e->lpa.opc = opc; /* keep OPC information */
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_UBA:
 			e->e = ISUP_EVENT_UBA;
 			e->uba.cic = c->cic;
+			e->uba.opc = opc; /* keep OPC information */
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_CGB:
@@ -2658,6 +2675,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 
 			for (i = 0; i < (c->range + 1); i++)
 				e->cgb.status[i] = c->status[i];
+			e->cgb.opc = opc; /* keep OPC information */
 
 			isup_free_call(ss7, c);
 			return 0;
@@ -2669,17 +2687,20 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 
 			for (i = 0; i < (c->range + 1); i++)
 				e->cgu.status[i] = c->status[i];
+			e->cgu.opc = opc; /* keep OPC information */
 
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_CPG:
 			e->e = ISUP_EVENT_CPG;
 			e->cpg.cic = c->cic;
+			e->cpg.opc = opc; /* keep OPC information */
 			e->cpg.event = c->event_info;
 			return 0;
 		case ISUP_UCIC:
 			e->e = ISUP_EVENT_UCIC;
 			e->ucic.cic = c->cic;
+			e->ucic.opc = opc; /* keep OPC information */
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_FAA:
@@ -2687,6 +2708,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 			e->faa.cic = c->cic;
 			e->faa.call_ref_ident = c->call_ref_ident;
 			e->faa.call_ref_pc = c->call_ref_pc;
+			e->ucic.opc = opc; /* keep OPC information */
 			e->faa.call = c;
 			return 0;
 		case ISUP_FAR:
@@ -2694,6 +2716,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 			e->far.cic = c->cic;
 			e->far.call_ref_ident = c->call_ref_ident;
 			e->far.call_ref_pc = c->call_ref_pc;
+			e->ucic.opc = opc; /* keep OPC information */
 			e->far.call = c;
 			return 0;
 		default:

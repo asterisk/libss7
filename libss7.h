@@ -130,6 +130,7 @@ typedef struct {
 	unsigned char lspi_spare;
 	char lspi_ident[50];
 	int oli_ani2;
+	unsigned int opc;
 	struct isup_call *call;
 } ss7_event_iam;
 
@@ -137,29 +138,34 @@ typedef struct {
 	int e;
 	int cic;
 	int cause;
+	unsigned int opc;
 	struct isup_call *call;
 } ss7_event_rel;
 
 typedef struct {
 	int e;
 	int cic;
+	unsigned int opc;
 } ss7_event_ciconly;
 
 typedef struct {
 	int e;
 	int cic;
+	unsigned int opc;
 	struct isup_call *call;
 } ss7_event_con;
 
 typedef struct {
 	int e;
 	int cic;
+	unsigned int opc;
 	struct isup_call *call;
 } ss7_event_rsc;
 
 typedef struct {
 	int e;
 	int cic;
+	unsigned int opc;
 	struct isup_call *call;
 } ss7_event_anm;
 
@@ -168,6 +174,7 @@ typedef struct {
 	int cic;
 	unsigned int call_ref_ident;
 	unsigned int call_ref_pc;
+	unsigned int opc;
 	struct isup_call *call;
 } ss7_event_acm;
 
@@ -176,6 +183,7 @@ typedef struct {
 	int startcic;
 	int endcic;
 	int type;
+	unsigned int opc;
 	unsigned char status[255];
 } ss7_event_cicrange;
 
@@ -183,6 +191,7 @@ typedef struct {
 	int e;
 	int cic;
 	int passed;
+	unsigned int opc;
 	struct isup_call *call;
 } ss7_event_cot;
 
@@ -194,6 +203,7 @@ typedef struct {
 typedef struct {
 	int e;
 	int cic;
+	unsigned int opc;
 	unsigned char event;
 } ss7_event_cpg;
 
@@ -202,6 +212,7 @@ typedef struct {
 	int cic;
 	unsigned int call_ref_ident;
 	unsigned int call_ref_pc;
+	unsigned int opc;
 	struct isup_call *call;
 } ss7_event_faa;
 
@@ -210,6 +221,7 @@ typedef struct {
 	int cic;
 	unsigned int call_ref_ident;
 	unsigned int call_ref_pc;
+	unsigned int opc;
 	struct isup_call *call;
 } ss7_event_far;
 
