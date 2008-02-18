@@ -129,6 +129,11 @@ typedef struct {
 	unsigned char lspi_context;
 	unsigned char lspi_spare;
 	char lspi_ident[50];
+	/* If orig_called_num contains a valid number, consider the other orig_called* values valid */
+	char orig_called_num[50];
+	unsigned char orig_called_nai;
+	unsigned char orig_called_pres_ind;
+	unsigned char orig_called_screening_ind;
 	int oli_ani2;
 	unsigned int opc;
 	struct isup_call *call;

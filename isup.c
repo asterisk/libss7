@@ -1484,6 +1484,14 @@ static FUNC_DUMP(original_called_num_dump)
 
 static FUNC_RECV(original_called_num_receive)
 {
+	int oddeven = (parm[0] >> 7) & 0x1;
+
+	isup_get_number(c->orig_called_num, &parm[2], len - 2, oddeven);
+
+	c->orig_called_nai = parm[0] & 0x7f;
+	c->orig_called_pres_ind = (parm[1] >> 2) & 0x3;
+	c->orig_called_screening_ind = parm[1] & 0x3;
+
 	return len;
 }
 
@@ -2558,6 +2566,10 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 			e->iam.lspi_scheme = c->lspi_scheme;
 			e->iam.lspi_context = c->lspi_context;
 			strncpy(e->iam.lspi_ident, c->lspi_ident, sizeof(e->iam.lspi_ident));
+			strncpy(e->iam.orig_called_num, c->orig_called_num, sizeof(e->iam.orig_called_num));
+			e->iam.orig_called_nai = c->orig_called_nai;
+			e->iam.orig_called_pres_ind = c->orig_called_pres_ind;
+			e->iam.orig_called_screening_ind = c->orig_called_screening_ind;
 			e->iam.call = c;
 			e->iam.opc = opc; /* keep OPC information */
 			return 0;

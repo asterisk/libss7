@@ -160,6 +160,10 @@ struct isup_call {
 	int oli_ani2;
 	unsigned int call_ref_ident;
 	unsigned int call_ref_pc;
+	char orig_called_num[ISUP_MAX_NUM];
+	unsigned char orig_called_nai;
+	unsigned char orig_called_pres_ind;
+	unsigned char orig_called_screening_ind;
 	
 	int range;
 	unsigned char status[255];
