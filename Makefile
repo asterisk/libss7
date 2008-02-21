@@ -14,7 +14,13 @@ LDCONFIG_FLAGS=-n
 SOFLAGS=-Wl,-hlibss7.so.1
 LDCONFIG=/sbin/ldconfig
 
-all: depend $(STATIC_LIBRARY) $(DYNAMIC_LIBRARY) ss7test ss7linktest parser_debug
+UTILITIES=parser_debug
+
+ifneq ($(wildcard /usr/include/zaptel/zaptel.h),)
+	UTILITIES+=ss7test ss7linktest
+endif
+
+all: depend $(STATIC_LIBRARY) $(DYNAMIC_LIBRARY) $(UTILITIES)
 
 %.lo : %.c
 	$(CC) -g -fPIC $(CFLAGS) -o $@ -c $<
