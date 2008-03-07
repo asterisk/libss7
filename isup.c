@@ -322,19 +322,19 @@ static FUNC_DUMP(nature_of_connection_ind_dump)
 	con>>=2; 
 	switch (con & 0x03) {
 		case 0:
-			continuity = "Check not required (0)";
+			continuity = "Check not required";
 			break;
 		case 1:
-			continuity = "Check required on this circuit (1)";
+			continuity = "Check required on this circuit";
 			break;
 		case 2:
-			continuity = "Check required on previous circuit (2)";
+			continuity = "Check performed on a previous circuit";
 			break;
 		case 3:
-			continuity = "spare (3)";
+			continuity = "spare";
 			break;
 	}
-	ss7_message(ss7, "\t\t\tContinuity Check: %s\n", continuity);
+	ss7_message(ss7, "\t\t\tContinuity Check: %s (%d)\n", continuity, con & 0x3);
 	con>>=2;
 	con &= 0x01;
 
