@@ -1364,6 +1364,23 @@ static FUNC_SEND(redirection_info_transmit)
 	return 2;
 }
 
+static FUNC_DUMP(generic_name_dump)
+{
+	unsigned int typeofname = (parm[0] >> 5) & 0x7;
+	unsigned int avail = (parm[0] >> 4) & 0x1;
+	unsigned int presentation = parm[0] & 0x3;
+	char name[ISUP_MAX_NAME + 1];
+
+	memcpy(name, &parm[1], len - 1);
+
+	ss7_message(ss7, "\t\t\tType of Name: %s (%d)\n", (typeofname == 1) ? "Calling Name" : "Unknown", typeofname);
+	ss7_message(ss7, "\t\t\tAvail: %s (%d)\n", (avail == 1) ? "Name not available" : "Name available, or availability unknown", avail);
+	ss7_message(ss7, "\t\t\tPresentation: %d\n",  presentation);
+	ss7_message(ss7, "\t\t\tName: %s\n", name);
+
+	return len;
+}
+
 static FUNC_DUMP(generic_address_dump)
 {
 	int oddeven = (parm[1] >> 7) & 0x1;
@@ -1834,7 +1851,7 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_EGRESS_SERV, "Egress Service"},
 	{ISUP_PARM_GENERIC_ADDR, "Generic Address", generic_address_dump, generic_address_receive, generic_address_transmit},
 	{ISUP_PARM_GENERIC_DIGITS, "Generic Digits", generic_digits_dump, generic_digits_receive, generic_digits_transmit},
-	{ISUP_PARM_GENERIC_NAME, "Generic Name"},
+	{ISUP_PARM_GENERIC_NAME, "Generic Name", generic_name_dump},
 	{ISUP_PARM_TRANSIT_NETWORK_SELECTION, "Transit Network Selection", tns_dump, tns_receive, tns_transmit},
 	{ISUP_PARM_GENERIC_NOTIFICATION_IND, "Generic Notification Indication"},
 	{ISUP_PARM_PROPAGATION_DELAY, "Propagation Delay Counter", propagation_delay_cntr_dump},

@@ -130,6 +130,8 @@ struct isup_h {
 
 #define CIC_SIZE 2
 #define ISUP_MAX_NUM 64
+/* From GR-317 for the generic name filed */
+#define ISUP_MAX_NAME 15
 
 struct mtp2;
 
