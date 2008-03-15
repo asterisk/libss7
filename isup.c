@@ -598,6 +598,30 @@ static FUNC_SEND(backward_call_ind_transmit)
 
 static FUNC_DUMP(backward_call_ind_dump)
 {
+	unsigned char ba = parm[0] & 0x3;
+	unsigned char dc = (parm[0] >> 2) & 0x3;
+	unsigned char fe = (parm[0] >> 4) & 0x3;
+	unsigned char hg = (parm[0] >> 6) & 0x3;
+	unsigned char i = parm[1] & 0x1;
+	unsigned char j = (parm[1] >> 1) & 0x1;
+	unsigned char k = (parm[1] >> 2) & 0x1;
+	unsigned char l = (parm[1] >> 3) & 0x1;
+	unsigned char m = (parm[1] >> 4) & 0x1;
+	unsigned char n = (parm[1] >> 5) & 0x1;
+	unsigned char pq = (parm[1] >> 7) & 0x3;
+
+	ss7_message(ss7, "\t\t\tCharge indicator: %d\n", ba);
+	ss7_message(ss7, "\t\t\tCalled party's status indicator: %d\n", dc);
+	ss7_message(ss7, "\t\t\tCalled party's category indicator: %d\n", fe);
+	ss7_message(ss7, "\t\t\tEnd to End method indicator: %d\n", hg);
+	ss7_message(ss7, "\t\t\tInterworking indicator: %d\n", i);
+	ss7_message(ss7, "\t\t\tEnd to End information indicator: %d\n", j);
+	ss7_message(ss7, "\t\t\tISDN user part indicator: %d\n", k);
+	ss7_message(ss7, "\t\t\tHolding indicator: %d\n", l);
+	ss7_message(ss7, "\t\t\tISDN access indicator: %d\n", m);
+	ss7_message(ss7, "\t\t\tEcho control device indicator: %d\n", n);
+	ss7_message(ss7, "\t\t\tSCCP method indicator: %d\n", pq);
+
 	return 2;
 }
 
