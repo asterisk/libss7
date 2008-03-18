@@ -745,6 +745,9 @@ static FUNC_DUMP(cause_dump)
 		case 42:
 			cause = "Switching equipment congestion";
 			break;
+		case 47:
+			cause = "Resource unavailable, unspecified";
+			break;
 /* TODO: Finish the rest of these */
 		default:
 			cause = "Unknown";
@@ -2150,8 +2153,9 @@ static int dump_parm(struct ss7 *ss7, int message, int parm, unsigned char *parm
 						len = parms[x].dump(ss7, message, parmbuf, maxlen);
 						break;
 					case PARM_TYPE_VARIABLE:
-						parms[x].dump(ss7, message, parmbuf + 1, parmbuf[0]);
-						len = 1 + parmbuf[0];
+						len = parmbuf[0];
+						parmbuf = &parmbuf[1];
+						parms[x].dump(ss7, message, parmbuf, len);
 						break;
 					case PARM_TYPE_OPTIONAL:
 						optparm = (struct isup_parm_opt *)parmbuf;
