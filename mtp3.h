@@ -59,7 +59,7 @@ void mtp3_noalarm(struct ss7 *ss7, int fd);
 
 void mtp3_start(struct ss7 *ss7);
 
-unsigned char sls_next(struct ss7 *ss7);
+unsigned char ansi_sls_next(struct ss7 *ss7);
 
 int set_routinglabel(unsigned char *sif, struct routing_label *rl);
 

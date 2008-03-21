@@ -2031,6 +2031,10 @@ void isup_init_call(struct ss7 *ss7, struct isup_call *c, int cic, unsigned int 
 {
 	c->cic = cic;
 	c->dpc = dpc;
+	if (ss7->switchtype == SS7_ANSI)
+		c->sls = ansi_sls_next(ss7);
+	else
+		c->sls = cic & 0xf;
 }
 
 static struct isup_call * isup_find_call(struct ss7 *ss7, struct routing_label *rl, int cic)
@@ -2210,16 +2214,12 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 	}
 
 	rlptr = ss7_msg_userpart(msg);
+
+
 	rl.opc = ss7->pc;
-
-	if (ss7->switchtype == SS7_ANSI) {
-		rl.sls = sls_next(ss7);
-	} else
-		rl.sls = c->cic & 0xf;
-
 	/* use CIC's DPC instead of linkset's DPC */
-
 	rl.dpc = c->dpc;
+	rl.sls = c->sls;
 	rl.type = ss7->switchtype;
 	rlsize = set_routinglabel(rlptr, &rl);
 	mh = (struct isup_h *)(rlptr + rlsize); /* Note to self, do NOT put a typecasted pointer next to an addition operation */

@@ -181,7 +181,7 @@ struct isup_call {
 	int cicgroupsupervisiontype;
 	unsigned char event_info;
 	unsigned short cic;
-	unsigned short sls;
+	unsigned char sls;
 	struct isup_call *next;
 	/* set DPC according to CIC's DPC, not linkset */
 	unsigned int dpc;
