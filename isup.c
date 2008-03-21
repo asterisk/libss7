@@ -2033,13 +2033,13 @@ void isup_init_call(struct ss7 *ss7, struct isup_call *c, int cic, unsigned int 
 	c->dpc = dpc;
 }
 
-static struct isup_call * isup_find_call(struct ss7 *ss7, unsigned int opc, int cic)
+static struct isup_call * isup_find_call(struct ss7 *ss7, struct routing_label *rl, int cic)
 {
 	struct isup_call *cur, *winner = NULL;
 
 	cur = ss7->calls;
 	while (cur) {
-		if ((cur->cic == cic) && (cur->dpc == opc)) {
+		if ((cur->cic == cic) && (cur->dpc == rl->opc)) {
 			winner = cur;
 			break;
 		}
@@ -2049,7 +2049,8 @@ static struct isup_call * isup_find_call(struct ss7 *ss7, unsigned int opc, int 
 	if (!winner) {
 		winner = __isup_new_call(ss7, 0);
 		winner->cic = cic;
-		winner->dpc = opc;
+		winner->dpc = rl->opc;
+		winner->sls = rl->sls;
 	}
 
 	return winner;
@@ -2443,7 +2444,7 @@ int isup_dump(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len)
 	return 0;
 }
 
-int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned char *buf, int len)
+int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, unsigned char *buf, int len)
 {
 	unsigned short cic;
 	struct isup_h *mh;
@@ -2455,6 +2456,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 	int fixedparams = 0, varparams = 0, optparams = 0;
 	int res, x;
 	unsigned char *opt_ptr = NULL;
+	unsigned int opc = rl->opc;
 	ss7_event *e;
 
 
@@ -2508,11 +2510,11 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, unsigned int opc, unsigned 
 		case ISUP_LPA:
 		case ISUP_CCR:
 			c = __isup_new_call(ss7, 1);
-			c->dpc = opc;
+			c->dpc = rl->opc;
 			c->cic = cic;
 			break;
 		default:
-			c = isup_find_call(ss7, opc, cic);
+			c = isup_find_call(ss7, rl, cic);
 	}
 
 	if (!c) {

@@ -17,8 +17,8 @@ Software Foundation
 #include <sys/time.h>
 #include <stdio.h>
 #include "libss7.h"
-#include "mtp2.h"
-#include "mtp3.h"
+/* #include "mtp2.h" */
+/* #include "mtp3.h" */
 
 /* ISUP parameters */
 
@@ -39,8 +39,17 @@ Software Foundation
 #define SS7_STATE_DOWN	0
 #define SS7_STATE_UP 1
 
+typedef unsigned int point_code;
+
+struct routing_label {
+	unsigned int type;
+	point_code dpc;
+	point_code opc;
+	unsigned char sls;
+};
+
 struct ss7_msg {
-	unsigned char buf[MTP_MAX_SIZE];
+	unsigned char buf[512];
 	unsigned int size;
 	struct ss7_msg *next;
 };

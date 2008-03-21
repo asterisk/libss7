@@ -14,6 +14,8 @@ Software Foundation
 #ifndef _MTP3_H
 #define _MTP3_H
 
+#include "ss7_internal.h"
+
 /* Service Indicator bits for Service Information Octet */
 /* Bits 4-1 */
 #define SIG_NET_MNG		0x00
@@ -33,15 +35,6 @@ Software Foundation
 #define MTP2_LINKSTATE_INALARM	1
 #define MTP2_LINKSTATE_ALIGNING	2
 #define MTP2_LINKSTATE_UP	3
-
-typedef unsigned int point_code;
-
-struct routing_label {
-	unsigned int type;
-	point_code dpc;
-	point_code opc;
-	unsigned char sls;
-};
 
 struct net_mng_message {
 	int h0;

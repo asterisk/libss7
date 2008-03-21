@@ -528,7 +528,7 @@ int mtp3_receive(struct ss7 *ss7, struct mtp2 *link, void *msg, int len)
 			return std_test_receive(ss7, link, sif, siflen);
 		case SIG_ISUP:
 			/* Skip the routing label */
-			return isup_receive(ss7, link, rl.opc, sif + rlsize, siflen - rlsize);
+			return isup_receive(ss7, link, &rl, sif + rlsize, siflen - rlsize);
 		case SIG_NET_MNG:
 			return net_mng_receive(ss7, link, sif, siflen);
 		case SIG_SCCP:

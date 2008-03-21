@@ -15,6 +15,8 @@ Contains definitions and data structurs for the ISUP portion of SS7
 #ifndef _SS7_ISUP_H
 #define _SS7_ISUP_H
 
+#include "ss7_internal.h"
+
 /* ISUP messages */
 #define ISUP_IAM	0x01
 #define ISUP_SAM	0x02
@@ -179,13 +181,13 @@ struct isup_call {
 	int cicgroupsupervisiontype;
 	unsigned char event_info;
 	unsigned short cic;
-	unsigned short slc;
+	unsigned short sls;
 	struct isup_call *next;
 	/* set DPC according to CIC's DPC, not linkset */
 	unsigned int dpc;
 };
 
-int isup_receive(struct ss7 *ss7, struct mtp2 *sl, unsigned int opc, unsigned char *sif, int len);
+int isup_receive(struct ss7 *ss7, struct mtp2 *sl, struct routing_label *rl, unsigned char *sif, int len);
 
 int isup_dump(struct ss7 *ss7, struct mtp2 *sl, unsigned char *sif, int len);
 #endif /* _SS7_ISUP_H */
