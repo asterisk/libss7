@@ -114,8 +114,7 @@ Contains definitions and data structurs for the ISUP portion of SS7
 #define ISUP_PARM_TRANSIT_NETWORK_SELECTION 0x23
 #define ISUP_PARM_LOCAL_SERVICE_PROVIDER_IDENTIFICATION 0xe4
 #define ISUP_PARM_FACILITY_IND 0x18
-
-
+#define ISUP_PARM_REDIRECTING_NUMBER 0x0b 
 
 /* ISUP Parameter Pseudo-type */
 struct isup_parm_opt {
@@ -132,8 +131,8 @@ struct isup_h {
 
 #define CIC_SIZE 2
 #define ISUP_MAX_NUM 64
-/* From GR-317 for the generic name filed */
-#define ISUP_MAX_NAME 15
+/* From GR-317 for the generic name filed: 15 + 1 */
+#define ISUP_MAX_NAME 16
 
 struct mtp2;
 
@@ -168,7 +167,14 @@ struct isup_call {
 	unsigned char orig_called_nai;
 	unsigned char orig_called_pres_ind;
 	unsigned char orig_called_screening_ind;
-	
+	char redirecting_num[ISUP_MAX_NUM];
+	unsigned char redirecting_num_nai;
+	unsigned char redirecting_num_presentation_ind;
+	unsigned char redirecting_num_screening_ind;
+	unsigned char generic_name_typeofname;
+	unsigned char generic_name_avail;
+	unsigned char generic_name_presentation;
+	char generic_name[ISUP_MAX_NAME];
 	int range;
 	unsigned char status[255];
 	int transcap;

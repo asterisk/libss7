@@ -45,6 +45,8 @@ Software Foundation
 #define ISUP_EVENT_CQM 		25
 #define ISUP_EVENT_FAR		26
 #define ISUP_EVENT_FAA		27
+#define ISUP_EVENT_CVT		28
+#define ISUP_EVENT_CVR		29
 
 /* Different SS7 types */
 #define SS7_ITU		(1 << 0)
@@ -134,8 +136,17 @@ typedef struct {
 	unsigned char orig_called_nai;
 	unsigned char orig_called_pres_ind;
 	unsigned char orig_called_screening_ind;
+	char redirecting_num[50];
+	unsigned char redirecting_num_nai;
+	unsigned char redirecting_num_presentation_ind;
+	unsigned char redirecting_num_screening_ind;
+	unsigned char generic_name_typeofname;
+	unsigned char generic_name_avail;
+	unsigned char generic_name_presentation;
+	char generic_name[50];
 	int oli_ani2;
 	unsigned int opc;
+	
 	struct isup_call *call;
 } ss7_event_iam;
 
@@ -251,6 +262,7 @@ typedef union {
 	ss7_event_con con;
 	ss7_event_cot cot;
 	ss7_event_ciconly ccr;
+	ss7_event_ciconly cvt;
 	ss7_event_ciconly blo;
 	ss7_event_ciconly ubl;
 	ss7_event_ciconly bla;
@@ -349,6 +361,8 @@ int isup_ucic(struct ss7 *ss7, int cic, unsigned int dpc);
 int isup_uba(struct ss7 *ss7, int cic, unsigned int dpc);
 
 int isup_rsc(struct ss7 *ss7, int cic, unsigned int dpc);
+
+int isup_cvr(struct ss7 *ss7, int cic, unsigned int dpc);
 
 int isup_cqr(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsigned char status[]);
 

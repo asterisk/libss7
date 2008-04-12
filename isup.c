@@ -102,6 +102,8 @@ static struct message_data {
 	{ISUP_BLA, 0, 0, 0, empty_params},
 	{ISUP_UBA, 0, 0, 0, empty_params},
 	{ISUP_RSC, 0, 0, 0, empty_params},
+	{ISUP_CVR, 0, 0, 0, empty_params},
+	{ISUP_CVT, 0, 0, 0, empty_params},
 	{ISUP_CPG, 1, 0, 1, cpg_params},
 	{ISUP_UCIC, 0, 0, 0, empty_params},
 	{ISUP_CQM, 0, 1, 0, greset_params},
@@ -163,6 +165,10 @@ static char * message2str(unsigned char message)
 			return "FAR";
 		case ISUP_FRJ:
 			return "FRJ";
+		case ISUP_CVT:
+			return "CVT";
+		case ISUP_CVR:
+			return "CVR";
 		default:
 			return "Unknown";
 	}
@@ -1168,7 +1174,7 @@ static FUNC_SEND(charge_number_transmit)  //ANSI network
 {
 	int oddeven, datalen;
 
-	if (!c->charge_number[0]  || strlen(c->charge_number) != 10)  /* check to make sure we have 10 digit callerid to put in charge number */
+	if (!c->charge_number[0])
 		return 0;
 
 	isup_put_number(&parm[2], c->charge_number, &datalen, &oddeven);  /* use the value from callerid in sip.conf to fill charge number */
@@ -1386,6 +1392,15 @@ static FUNC_RECV(redirection_info_receive)
 static FUNC_SEND(redirection_info_transmit)
 {
 	return 2;
+}
+
+static FUNC_RECV(generic_name_receive)
+{
+	c->generic_name_typeofname = (parm[0] >> 5) & 0x7;
+	c->generic_name_avail = (parm[0] >> 4) & 0x1;
+	c->generic_name_presentation = parm[0] & 0x3;
+	memcpy(c->generic_name, &parm[1], len - 1);
+	return len;
 }
 
 static FUNC_DUMP(generic_name_dump)
@@ -1852,6 +1867,57 @@ static FUNC_SEND(facility_ind_transmit)
 	return 1;
 }
 
+static FUNC_DUMP(redirecting_number_dump)
+{
+	int oddeven = (parm[0] >> 7) & 0x1;
+	char numbuf[64] = "";
+	
+	ss7_message(ss7, "\t\t\tNature of address: %x\n", parm[0] & 0x7f);
+	ss7_message(ss7, "\t\t\tNI: %x\n", (parm[1] >> 7) & 0x1);
+	ss7_message(ss7, "\t\t\tNumbering plan: %x\n", (parm[1] >> 4) & 0x7);
+	ss7_message(ss7, "\t\t\tPresentation: %x\n", (parm[1] >> 2) & 0x3);
+	ss7_message(ss7, "\t\t\tScreening: %x\n", parm[1] & 0x3);
+	
+	isup_get_number(numbuf, &parm[2], len - 2, oddeven);
+	
+	ss7_message(ss7, "\t\t\tAddress signals: %s\n", numbuf);
+	
+	return len;
+}
+
+static FUNC_RECV(redirecting_number_receive)
+{
+	int oddeven = (parm[0] >> 7) & 0x1;
+	
+	isup_get_number(c->redirecting_num, &parm[2], len - 2, oddeven);
+	
+	c->redirecting_num_nai = parm[0] & 0x7f;                /* Nature of Address Indicator */
+	c->redirecting_num_presentation_ind = (parm[1] >> 2) & 0x3;
+	c->redirecting_num_screening_ind = parm[1] & 0x3;
+	
+	return len;
+	
+}
+
+static FUNC_SEND(redirecting_number_transmit)
+{
+	return 0;	
+}	
+
+static FUNC_DUMP(access_transport_dump)
+{
+	return len;	
+}	
+static FUNC_RECV(access_transport_receive)
+{
+	return len;	
+}	
+
+static FUNC_SEND(access_transport_transmit)
+{
+	return len;	
+}	
+
 
 static struct parm_func parms[] = {
 	{ISUP_PARM_NATURE_OF_CONNECTION_IND, "Nature of Connection Indicator", nature_of_connection_ind_dump, nature_of_connection_ind_receive, nature_of_connection_ind_transmit },
@@ -1862,7 +1928,7 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_CALLED_PARTY_NUM, "Called Party Number", called_party_num_dump, called_party_num_receive, called_party_num_transmit},
 	{ISUP_PARM_CAUSE, "Cause Indicator", cause_dump, cause_receive, cause_transmit},
 	{ISUP_PARM_CONTINUITY_IND, "Continuity Indicator", continuity_ind_dump, continuity_ind_receive, continuity_ind_transmit},
-	{ISUP_PARM_ACCESS_TRANS, "Access Transport"},
+	{ISUP_PARM_ACCESS_TRANS, "Access Transport", access_transport_dump, access_transport_receive, access_transport_transmit},
 	{ISUP_PARM_BUSINESS_GRP, "Business Group"},
 	{ISUP_PARM_CALL_REF, "Call Reference", call_ref_dump, call_ref_receive, call_ref_transmit},
 	{ISUP_PARM_CALLING_PARTY_NUM, "Calling Party Number", calling_party_num_dump, calling_party_num_receive, calling_party_num_transmit},
@@ -1875,7 +1941,7 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_EGRESS_SERV, "Egress Service"},
 	{ISUP_PARM_GENERIC_ADDR, "Generic Address", generic_address_dump, generic_address_receive, generic_address_transmit},
 	{ISUP_PARM_GENERIC_DIGITS, "Generic Digits", generic_digits_dump, generic_digits_receive, generic_digits_transmit},
-	{ISUP_PARM_GENERIC_NAME, "Generic Name", generic_name_dump},
+	{ISUP_PARM_GENERIC_NAME, "Generic Name", generic_name_dump, generic_name_receive},
 	{ISUP_PARM_TRANSIT_NETWORK_SELECTION, "Transit Network Selection", tns_dump, tns_receive, tns_transmit},
 	{ISUP_PARM_GENERIC_NOTIFICATION_IND, "Generic Notification Indication"},
 	{ISUP_PARM_PROPAGATION_DELAY, "Propagation Delay Counter", propagation_delay_cntr_dump},
@@ -1896,6 +1962,7 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_CIRCUIT_STATE_IND, "Circuit State Indicator", circuit_state_ind_dump, NULL, circuit_state_ind_transmit},
 	{ISUP_PARM_LOCAL_SERVICE_PROVIDER_IDENTIFICATION, "Local Service Provider ID", lspi_dump, lspi_receive, lspi_transmit},
 	{ISUP_PARM_FACILITY_IND, "Facility Indicator", facility_ind_dump, facility_ind_receive, facility_ind_transmit},
+	{ISUP_PARM_REDIRECTING_NUMBER, "Redirecting Number", redirecting_number_dump, redirecting_number_receive, redirecting_number_transmit},
 };
 
 static char * param2str(int parm)
@@ -2509,6 +2576,8 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 		case ISUP_UCIC:
 		case ISUP_LPA:
 		case ISUP_CCR:
+		case ISUP_CVT:
+		case ISUP_CVR:
 			c = __isup_new_call(ss7, 1);
 			c->dpc = rl->opc;
 			c->cic = cic;
@@ -2613,6 +2682,10 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->iam.orig_called_nai = c->orig_called_nai;
 			e->iam.orig_called_pres_ind = c->orig_called_pres_ind;
 			e->iam.orig_called_screening_ind = c->orig_called_screening_ind;
+			strncpy(e->iam.redirecting_num, c->redirecting_num, sizeof(e->iam.redirecting_num));
+			e->iam.redirecting_num_nai = c->redirecting_num_nai;
+			e->iam.redirecting_num_presentation_ind = c->redirecting_num_presentation_ind;
+			e->iam.redirecting_num_screening_ind = c->redirecting_num_screening_ind;
 			e->iam.call = c;
 			e->iam.opc = opc; /* keep OPC information */
 			return 0;
@@ -2690,6 +2763,11 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->e = ISUP_EVENT_CCR;
 			e->ccr.cic = c->cic;
 			e->ccr.opc = opc; /* keep OPC information */
+			isup_free_call(ss7, c);
+			return 0;
+		case ISUP_CVT:
+			e->e = ISUP_EVENT_CVT;
+			e->cvt.cic = c->cic;
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_BLO:
@@ -3037,5 +3115,14 @@ int isup_uba(struct ss7 *ss7, int cic, unsigned int dpc)
 
 	return isup_send_message_ciconly(ss7, ISUP_UBA, cic, dpc);
 }
+
+int isup_cvr(struct ss7 *ss7, int cic, unsigned int dpc)
+{
+	if (!ss7)
+		return -1;
+	
+	return isup_send_message_ciconly(ss7, ISUP_CVR, cic, dpc);
+}
+
 
 /* Janelle is the bomb (Again) */
