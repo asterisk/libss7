@@ -383,6 +383,27 @@ void isup_set_gen_address(struct isup_call *c, const char *gen_number, unsigned 
 
 void isup_set_gen_digits(struct isup_call *c, const char *gen_number, unsigned char gen_dig_type, unsigned char gen_dig_scheme);
 
+enum {
+	GEN_NAME_PRES_ALLOWED = 0,
+	GEN_NAME_PRES_RESTRICTED = 1,
+	GEN_NAME_PRES_BLOCKING_TOGGLE = 2,
+	GEN_NAME_PRES_NO_INDICATION = 3,
+};
+
+enum {
+	GEN_NAME_AVAIL_AVAILABLE = 0,
+	GEN_NAME_AVAIL_NOT_AVAILABLE = 1
+};
+
+enum {
+	GEN_NAME_TYPE_CALLING_NAME = 1,
+	GEN_NAME_TYPE_ORIG_CALLED_NAME = 2,
+	GEN_NAME_TYPE_REDIRECTING_NAME = 3,
+	GEN_NAME_TYPE_CONNECTED_NAME = 4,
+};
+
+void isup_set_generic_name(struct isup_call *c, const char *generic_name, unsigned int typeofname, unsigned int availability, unsigned int presentation);
+
 void isup_set_jip_digits(struct isup_call *c, const char *jip_number);
 
 void isup_set_lspi(struct isup_call *c, const char *lspi_ident, unsigned char lspi_type, unsigned char lspi_scheme, unsigned char lspi_context);

@@ -47,7 +47,7 @@ static int iam_params[] = {ISUP_PARM_NATURE_OF_CONNECTION_IND, ISUP_PARM_FORWARD
 
 static int ansi_iam_params[] = {ISUP_PARM_NATURE_OF_CONNECTION_IND, ISUP_PARM_FORWARD_CALL_IND, ISUP_PARM_CALLING_PARTY_CAT,
 	ISUP_PARM_USER_SERVICE_INFO, ISUP_PARM_CALLED_PARTY_NUM, ISUP_PARM_CALLING_PARTY_NUM, ISUP_PARM_CHARGE_NUMBER, 
-	ISUP_PARM_ORIG_LINE_INFO, ISUP_PARM_GENERIC_ADDR, ISUP_PARM_GENERIC_DIGITS, ISUP_PARM_JIP, 
+	ISUP_PARM_ORIG_LINE_INFO, ISUP_PARM_GENERIC_ADDR, ISUP_PARM_GENERIC_DIGITS, ISUP_PARM_GENERIC_NAME, ISUP_PARM_JIP, 
 	ISUP_PARM_LOCAL_SERVICE_PROVIDER_IDENTIFICATION, -1};
 
 
@@ -1420,6 +1420,16 @@ static FUNC_DUMP(generic_name_dump)
 	return len;
 }
 
+static FUNC_SEND(generic_name_send)
+{
+	int namelen = strlen(c->generic_name);
+
+	parm[0] = (c->generic_name_typeofname << 5) | ((c->generic_name_avail & 0x1) << 4) | (c->generic_name_presentation & 0x3);
+	memcpy(&parm[1], c->generic_name, namelen);
+
+	return namelen + 1;
+}
+
 static FUNC_DUMP(generic_address_dump)
 {
 	int oddeven = (parm[1] >> 7) & 0x1;
@@ -1941,7 +1951,7 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_EGRESS_SERV, "Egress Service"},
 	{ISUP_PARM_GENERIC_ADDR, "Generic Address", generic_address_dump, generic_address_receive, generic_address_transmit},
 	{ISUP_PARM_GENERIC_DIGITS, "Generic Digits", generic_digits_dump, generic_digits_receive, generic_digits_transmit},
-	{ISUP_PARM_GENERIC_NAME, "Generic Name", generic_name_dump, generic_name_receive},
+	{ISUP_PARM_GENERIC_NAME, "Generic Name", generic_name_dump, generic_name_receive, generic_name_send},
 	{ISUP_PARM_TRANSIT_NETWORK_SELECTION, "Transit Network Selection", tns_dump, tns_receive, tns_transmit},
 	{ISUP_PARM_GENERIC_NOTIFICATION_IND, "Generic Notification Indication"},
 	{ISUP_PARM_PROPAGATION_DELAY, "Propagation Delay Counter", propagation_delay_cntr_dump},
@@ -2068,6 +2078,18 @@ void isup_set_gen_digits(struct isup_call *c, const char *gen_number, unsigned c
 		strncpy(c->gen_dig_number, gen_number, sizeof(c->gen_dig_number));
 		c->gen_dig_type = gen_dig_type;
 		c->gen_dig_scheme = gen_dig_scheme;
+	}
+}
+
+void isup_set_generic_name(struct isup_call *c, const char *generic_name, unsigned int typeofname, unsigned int availability, unsigned int presentation)
+{
+        if (generic_name && generic_name[0]) {
+		strncpy(c->generic_name, generic_name, sizeof(c->generic_name));
+		/* Terminate this just in case */
+		c->generic_name[ISUP_MAX_NAME - 1] = '\0';
+		c->generic_name_typeofname = typeofname;
+		c->generic_name_avail = availability;
+		c->generic_name_presentation = presentation;
 	}
 }
 
@@ -2674,6 +2696,10 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->iam.gen_dig_type = c->gen_dig_type;
 			e->iam.gen_dig_scheme = c->gen_dig_scheme;
 			strncpy(e->iam.jip_number, c->jip_number, sizeof(e->iam.jip_number));
+			strncpy(e->iam.generic_name, c->generic_name, sizeof(e->iam.generic_name));
+			e->iam.generic_name_typeofname = c->generic_name_typeofname;
+			e->iam.generic_name_avail = c->generic_name_avail;
+			e->iam.generic_name_presentation = c->generic_name_presentation;
 			e->iam.lspi_type = c->lspi_type;
 			e->iam.lspi_scheme = c->lspi_scheme;
 			e->iam.lspi_context = c->lspi_context;
