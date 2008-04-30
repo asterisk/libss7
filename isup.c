@@ -1420,7 +1420,7 @@ static FUNC_DUMP(generic_name_dump)
 	return len;
 }
 
-static FUNC_SEND(generic_name_send)
+static FUNC_SEND(generic_name_transmit)
 {
 	int namelen = strlen(c->generic_name);
 
@@ -1955,7 +1955,7 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_EGRESS_SERV, "Egress Service"},
 	{ISUP_PARM_GENERIC_ADDR, "Generic Address", generic_address_dump, generic_address_receive, generic_address_transmit},
 	{ISUP_PARM_GENERIC_DIGITS, "Generic Digits", generic_digits_dump, generic_digits_receive, generic_digits_transmit},
-	{ISUP_PARM_GENERIC_NAME, "Generic Name", generic_name_dump, generic_name_receive, generic_name_send},
+	{ISUP_PARM_GENERIC_NAME, "Generic Name", generic_name_dump, generic_name_receive, generic_name_transmit},
 	{ISUP_PARM_TRANSIT_NETWORK_SELECTION, "Transit Network Selection", tns_dump, tns_receive, tns_transmit},
 	{ISUP_PARM_GENERIC_NOTIFICATION_IND, "Generic Notification Indication"},
 	{ISUP_PARM_PROPAGATION_DELAY, "Propagation Delay Counter", propagation_delay_cntr_dump},
