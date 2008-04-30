@@ -1424,6 +1424,10 @@ static FUNC_SEND(generic_name_send)
 {
 	int namelen = strlen(c->generic_name);
 
+	/* Check to see if generic name is set before we try to add it */
+	if (!c->generic_name[0])
+		return 0;
+
 	parm[0] = (c->generic_name_typeofname << 5) | ((c->generic_name_avail & 0x1) << 4) | (c->generic_name_presentation & 0x3);
 	memcpy(&parm[1], c->generic_name, namelen);
 
