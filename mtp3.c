@@ -546,6 +546,14 @@ static void mtp3_event_link_up(struct mtp2 * link)
 	std_test_send(link);
 }
 
+static void mtp3_event_link_down(struct mtp2 *link)
+{
+	struct ss7 *ss7 = link->master;
+
+	/* Make sure we notify MTP3 that the link went down beneath us */
+	mtp3_setstate_mtp2link(ss7, link, MTP2_LINKSTATE_DOWN);
+}
+
 static struct mtp2 * slc_to_mtp2(struct ss7 *ss7, unsigned int slc)
 {
 	int i = 0;
@@ -571,6 +579,10 @@ ss7_event * mtp3_process_event(struct ss7 *ss7, ss7_event *e)
 		case MTP2_LINK_UP:
 			link = slc_to_mtp2(ss7, e->gen.data);
 			mtp3_event_link_up(link);
+			return e;
+		case MTP2_LINK_DOWN:
+			link = slc_to_mtp2(ss7, e->gen.data);
+			mtp3_event_link_down(link);
 			return e;
 		default:
 			return e;
