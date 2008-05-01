@@ -1,12 +1,14 @@
 CC=gcc
+GREP=grep
+AWK=awk
 
 OSARCH=$(shell uname -s)
 
 INSTALL_PREFIX?=
 INSTALL_BASE=/usr
 libdir?=$(INSTALL_BASE)/lib
-STATIC_OBJS=mtp2.o ss7_sched.o ss7.o mtp3.o isup.o
-DYNAMIC_OBJS=mtp2.o ss7_sched.o ss7.o mtp3.o isup.o
+STATIC_OBJS=mtp2.o ss7_sched.o ss7.o mtp3.o isup.o version.o
+DYNAMIC_OBJS=mtp2.o ss7_sched.o ss7.o mtp3.o isup.o version.o
 STATIC_LIBRARY=libss7.a
 DYNAMIC_LIBRARY=libss7.so.1.0
 CFLAGS=-Wall -Werror -Wstrict-prototypes -Wmissing-prototypes -g -fPIC
@@ -19,6 +21,10 @@ UTILITIES=parser_debug
 ifneq ($(wildcard /usr/include/zaptel/zaptel.h),)
 	UTILITIES+=ss7test ss7linktest
 endif
+
+export SS7VERSION
+
+SS7VERSION:=$(shell GREP=$(GREP) AWK=$(AWK) build_tools/make_version .)
 
 all: depend $(STATIC_LIBRARY) $(DYNAMIC_LIBRARY) $(UTILITIES)
 
@@ -41,6 +47,7 @@ install: $(STATIC_LIBRARY) $(DYNAMIC_LIBRARY)
 
 	if test $$(id -u) = 0; then $(LDCONFIG); fi
 
+
 $(STATIC_LIBRARY): $(STATIC_OBJS)
 	ar rcs $(STATIC_LIBRARY) $(STATIC_OBJS)
 	ranlib $(STATIC_LIBRARY)
@@ -50,6 +57,11 @@ $(DYNAMIC_LIBRARY): $(DYNAMIC_OBJS)
 	$(LDCONFIG) $(LDCONFIG_FLAGS) .
 	ln -sf libss7.so.1 libss7.so
 	$(SOSLINK)
+
+version.c:
+	@build_tools/make_version_c > $@.tmp
+	@cmp -s $@.tmp $@ || mv $@.tmp $@
+	@rm -f $@.tmp
 
 ss7test: ss7test.c $(STATIC_LIBRARY)
 	gcc -g -o ss7test ss7test.c libss7.a -lpthread
@@ -66,3 +78,5 @@ depend: .depend
 
 .depend:
 	./mkdep ${CLAGS} `ls *.c`
+
+.PHONY: version.c

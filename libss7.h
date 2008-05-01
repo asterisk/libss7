@@ -310,6 +310,7 @@ void ss7_link_noalarm(struct ss7 *ss7, int fd);
 
 char * ss7_event2str(int event);
 
+const char *ss7_get_version(void);
 
 /* ISUP call related message functions */
 
