@@ -571,7 +571,7 @@ int mtp2_setstate(struct mtp2 *link, int newstate)
 			link->state = newstate;
 			return 0;
 		case MTP_INSERVICE:
-			if (nextstate != MTP_INSERVICE) {
+			if (newstate != MTP_INSERVICE) {
 				e = ss7_next_empty_event(link->master);
 				if (!e) {
 					mtp_error(link->master, "Could not queue event\n");
