@@ -312,6 +312,8 @@ char * ss7_event2str(int event);
 
 const char *ss7_get_version(void);
 
+int ss7_pollflags(struct ss7 *ss7, int fd);
+
 /* ISUP call related message functions */
 
 /* Send an IAM */

@@ -90,6 +90,7 @@ struct mtp2 {
 	unsigned char lastfsnacked:7;
 	unsigned char curbib:1;
 	int fd;
+	int flags;
 
 	/* Timers */
 	int t1;
@@ -117,6 +118,10 @@ struct mtp2 {
 	struct ss7_msg *retransmit_pos;
 	struct ss7 *master;
 };
+
+/* Flags for the struct mtp2 flags parameter */
+#define MTP2_FLAG_ZAPMTP2 (1 << 0)
+#define MTP2_FLAG_WRITE (1 << 1)
 
 /* Initialize MTP link */
 int mtp2_start(struct mtp2 *link, int emergency);

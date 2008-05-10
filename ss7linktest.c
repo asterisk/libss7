@@ -75,7 +75,7 @@ void *ss7_run(void *data)
 			nextms += tv.tv_usec / 1000;
 		}
 		poller.fd = linkset->fd;
-		poller.events = POLLIN | POLLOUT | POLLPRI;
+		poller.events = ss7_pollflags(ss7, linkset->fd);
 		poller.revents = 0;
 
 		res = poll(&poller, 1, nextms);

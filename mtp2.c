@@ -217,6 +217,7 @@ static void mtp2_retransmit(struct mtp2 *link)
 {
 	struct ss7_msg *m;
 
+	link->flags |= MTP2_FLAG_WRITE;
 	/* Have to invert the current fib */
 	link->curfib = !link->curfib;
 
@@ -291,6 +292,10 @@ int mtp2_transmit(struct mtp2 *link)
 				add_txbuf(link, m);
 			}
 		}
+
+		if (h == buf) { /* We just sent a non MSU */
+			link->flags &= ~MTP2_FLAG_WRITE;
+		}
 	}
 
 	return res;
@@ -300,6 +305,8 @@ int mtp2_msu(struct mtp2 *link, struct ss7_msg *m)
 {
 	int len = m->size - MTP2_SIZE;
 	struct mtp_su_head *h = (struct mtp_su_head *) m->buf;
+
+	link->flags |= MTP2_FLAG_WRITE;
 
 	init_mtp2_header(link, h, 1, 0);
 
@@ -318,12 +325,14 @@ int mtp2_msu(struct mtp2 *link, struct ss7_msg *m)
 
 static int mtp2_lssu(struct mtp2 *link, int lssu_status)
 {
+	link->flags |= MTP2_FLAG_WRITE;
 	link->autotxsutype = lssu_status;
 	return 0;
 }
 
 static int mtp2_fisu(struct mtp2 *link, int nack)
 {
+	link->flags |= MTP2_FLAG_WRITE;
 	link->autotxsutype = FISU;
 	return 0;
 }

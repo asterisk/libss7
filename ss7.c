@@ -17,6 +17,9 @@ Contains user interface to ss7 library
 #include <unistd.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <zaptel/zaptel.h>
+#include <sys/ioctl.h>
+#include <sys/poll.h>
 #include "libss7.h"
 #include "ss7_internal.h"
 #include "mtp2.h"
@@ -168,7 +171,25 @@ int ss7_add_link(struct ss7 *ss7, int transport, int fd)
 	if (ss7->numlinks >= SS7_MAX_LINKS)
 		return -1;
 
+	if (transport == SS7_TRANSPORT_TCP) {
+	}
+
 	if (transport == SS7_TRANSPORT_ZAP) {
+		int zapmtp2 = 0;
+#ifdef ZT_SIG_MTP2
+		struct zt_params z;
+		int res;
+
+		res = ioctl(fd, ZT_GET_PARAMS, &z);
+		if (res)
+			return res;
+
+		if (z.sigtype == ZT_SIG_MTP2) {
+			printf("Found zapmtp2\n");
+			zapmtp2 = 1;
+		}
+
+#endif /* ZT_SIG_MTP2 */
 		m = mtp2_new(fd, ss7->switchtype);
 		
 		if (!m)
@@ -177,15 +198,38 @@ int ss7_add_link(struct ss7 *ss7, int transport, int fd)
 		m->slc = ss7->numlinks;
 		ss7->numlinks += 1;
 		m->master = ss7;
+		if (zapmtp2)
+			m->flags |= MTP2_FLAG_ZAPMTP2;
 
 		ss7->links[ss7->numlinks - 1] = m;
 	}
 
-	if (transport == SS7_TRANSPORT_TCP) {
-		/* TODO */
-	}
-
 	return 0;
+}
+
+int ss7_pollflags(struct ss7 *ss7, int fd)
+{
+	int i;
+	int winner = -1;
+	int flags = POLLPRI | POLLIN;
+
+	for (i = 0; i < ss7->numlinks; i++) {
+		if (ss7->links[i]->fd == fd) {
+			winner = i;
+			break;
+		}
+	}
+	
+	if (winner < 0)
+		return -1;
+
+	if (ss7->links[winner]->flags & MTP2_FLAG_ZAPMTP2) {
+		if (ss7->links[winner]->flags & MTP2_FLAG_WRITE)
+			flags |= POLLOUT;
+	} else
+		flags |= POLLOUT;
+
+	return flags;
 }
 
 /* TODO: Add entry to routing table instead */
