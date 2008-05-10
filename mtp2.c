@@ -324,20 +324,7 @@ static int mtp2_lssu(struct mtp2 *link, int lssu_status)
 
 static int mtp2_fisu(struct mtp2 *link, int nack)
 {
-	struct ss7_msg *m;
-	if (!nack) {
-		link->autotxsutype = FISU;
-		return 0;
-	}
-
-	/* We can't nack unless we actually send something */
-	m = ss7_msg_new();
-	if (!m) return -1;
-
-	if (nack) make_fisu(link, m->buf, &m->size, nack);
-
-	mtp2_queue_su(link, m);
-
+	link->autotxsutype = FISU;
 	return 0;
 }
 
