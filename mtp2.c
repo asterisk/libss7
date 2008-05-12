@@ -681,6 +681,8 @@ static int msu_rx(struct mtp2 *link, struct mtp_su_head *h, int len)
 
 	/* Ok, it's a valid MSU now and we can accept it */
 	link->lastfsnacked = h->fsn;
+	/* Set write flag since we need to update the FISUs with our new BSN */
+	link->flags |= MTP2_FLAG_WRITE;
 	/* The big function */
 	res = mtp3_receive(link->master, link, h->data, len - MTP2_SU_HEAD_SIZE);
 
