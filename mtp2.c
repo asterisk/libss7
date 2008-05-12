@@ -67,14 +67,18 @@ static inline char * linkstate2str(int linkstate)
 
 static inline void init_mtp2_header(struct mtp2 *link, struct mtp_su_head *h, int new, int nack)
 {
-	if (new)
+	if (new) {
 		link->curfsn += 1;
+		link->flags |= MTP2_FLAG_WRITE;
+	}
 
 	h->fib = link->curfib;
 	h->fsn = link->curfsn;
 	
-	if (nack)
+	if (nack) {
 		link->curbib = !link->curbib;
+		link->flags |= MTP2_FLAG_WRITE;
+	}
 
 	h->bib = link->curbib;
 	h->bsn = link->lastfsnacked;
@@ -119,6 +123,7 @@ static void reset_mtp(struct mtp2 *link)
 	link->curbib = 1;
 	link->lastfsnacked = 127;
 	link->retransmissioncount = 0;
+	link->flags |= MTP2_FLAG_WRITE;
 
 	flush_bufs(link);
 }
@@ -676,6 +681,7 @@ static int msu_rx(struct mtp2 *link, struct mtp_su_head *h, int len)
 		mtp_message(link->master, "Received out of sequence MSU w/ fsn of %d, lastfsnacked = %d, requesting retransmission\n", h->fsn, link->lastfsnacked);
 		link->retransmissioncount++;
 		link->curbib = !link->curbib;
+		link->flags |= MTP2_FLAG_WRITE;
 		return 0;
 	}
 
