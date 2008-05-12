@@ -2567,7 +2567,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 
 
 	if (ourmessage < 0) {
-		ss7_error(ss7, "!! Unable to handle message of type 0x%x\n", mh->type);
+		ss7_error(ss7, "!! Unable to handle message of type 0x%x on CIC %d\n", mh->type, cic);
 		return -1;
 	}
 
