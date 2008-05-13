@@ -140,6 +140,7 @@ struct isup_call {
 	char called_party_num[ISUP_MAX_NUM];
 	unsigned char called_nai;
 	char calling_party_num[ISUP_MAX_NUM];
+	unsigned char calling_party_cat;
 	unsigned char calling_nai;
 	unsigned char presentation_ind;
 	unsigned char screening_ind;

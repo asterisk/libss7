@@ -426,6 +426,7 @@ static FUNC_DUMP(forward_call_ind_dump)
 
 static FUNC_RECV(calling_party_cat_receive)
 {
+	c->calling_party_cat = parm[0];
 	return 1;
 }
 
@@ -463,6 +464,15 @@ static FUNC_DUMP(calling_party_cat_dump)
 			break;
 		case 11:
 			cattype = "Calling subscriber with priority";
+			break;
+		case 12:
+			cattype = "Data Call (voice band data)";
+			break;
+		case 13:
+			cattype = "Test Call";
+			break;
+		case 15:
+			cattype = "Payphone";
 			break;
 		default:
 			cattype = "Unknown";
@@ -1939,7 +1949,7 @@ static FUNC_SEND(access_transport_transmit)
 static struct parm_func parms[] = {
 	{ISUP_PARM_NATURE_OF_CONNECTION_IND, "Nature of Connection Indicator", nature_of_connection_ind_dump, nature_of_connection_ind_receive, nature_of_connection_ind_transmit },
 	{ISUP_PARM_FORWARD_CALL_IND, "Forward Call Indicators", forward_call_ind_dump, forward_call_ind_receive, forward_call_ind_transmit },
-	{ISUP_PARM_CALLING_PARTY_CAT, "Calling Party Category", calling_party_cat_dump, calling_party_cat_receive, calling_party_cat_transmit},
+	{ISUP_PARM_CALLING_PARTY_CAT, "Calling Party's Category", calling_party_cat_dump, calling_party_cat_receive, calling_party_cat_transmit},
 	{ISUP_PARM_TRANSMISSION_MEDIUM_REQS, "Transmission Medium Requirements", transmission_medium_reqs_dump, transmission_medium_reqs_receive, transmission_medium_reqs_transmit},
 	{ISUP_PARM_USER_SERVICE_INFO, "User Service Information", NULL, user_service_info_receive, user_service_info_transmit},
 	{ISUP_PARM_CALLED_PARTY_NUM, "Called Party Number", called_party_num_dump, called_party_num_receive, called_party_num_transmit},
