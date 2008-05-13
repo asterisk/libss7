@@ -109,7 +109,8 @@ static struct message_data {
 	{ISUP_CQM, 0, 1, 0, greset_params},
 	{ISUP_CQR, 0, 2, 0, cqr_params},
 	{ISUP_FAA, 1, 0, 1, faa_params},
-	{ISUP_FAR, 1, 0, 1, far_params}
+	{ISUP_FAR, 1, 0, 1, far_params},
+	{ISUP_CFN, 0, 1, 0, rel_params}
 };
 
 static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagetype, int parms[]);
@@ -169,6 +170,8 @@ static char * message2str(unsigned char message)
 			return "CVT";
 		case ISUP_CVR:
 			return "CVR";
+		case ISUP_CFN:
+			return "CFN";
 		default:
 			return "Unknown";
 	}
