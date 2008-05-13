@@ -2886,8 +2886,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->far.call = c;
 			return 0;
 		default:
-			ss7_error(ss7, "!! Unable to handle message type %s\n", message2str(mh->type));
-			return -1;
+			return 0;
 	}
 }
 
