@@ -2729,6 +2729,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->iam.redirecting_num_nai = c->redirecting_num_nai;
 			e->iam.redirecting_num_presentation_ind = c->redirecting_num_presentation_ind;
 			e->iam.redirecting_num_screening_ind = c->redirecting_num_screening_ind;
+			e->iam.calling_party_cat = c->calling_party_cat;
 			e->iam.call = c;
 			e->iam.opc = opc; /* keep OPC information */
 			return 0;
