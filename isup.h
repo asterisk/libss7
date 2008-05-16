@@ -115,6 +115,7 @@ Contains definitions and data structurs for the ISUP portion of SS7
 #define ISUP_PARM_LOCAL_SERVICE_PROVIDER_IDENTIFICATION 0xe4
 #define ISUP_PARM_FACILITY_IND 0x18
 #define ISUP_PARM_REDIRECTING_NUMBER 0x0b 
+#define ISUP_PARM_ACCESS_DELIVERY_INFO 0x2e
 
 /* ISUP Parameter Pseudo-type */
 struct isup_parm_opt {
@@ -192,6 +193,8 @@ struct isup_call {
 	struct isup_call *next;
 	/* set DPC according to CIC's DPC, not linkset */
 	unsigned int dpc;
+	/* Backward Call Indicator variables */
+	unsigned char called_party_status_ind;
 };
 
 int isup_receive(struct ss7 *ss7, struct mtp2 *sl, struct routing_label *rl, unsigned char *sif, int len);

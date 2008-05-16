@@ -193,6 +193,8 @@ typedef struct {
 	unsigned int call_ref_pc;
 	unsigned int opc;
 	struct isup_call *call;
+	/* Backward call indicator */
+	unsigned char called_party_status_ind;
 } ss7_event_acm;
 
 typedef struct {

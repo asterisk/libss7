@@ -605,6 +605,7 @@ static FUNC_SEND(called_party_num_transmit)
 
 static FUNC_RECV(backward_call_ind_receive)
 {
+	c->called_party_status_ind = (parm[0] >> 2) & 0x3;
 	return 2;
 }
 
@@ -2000,6 +2001,7 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_LOCAL_SERVICE_PROVIDER_IDENTIFICATION, "Local Service Provider ID", lspi_dump, lspi_receive, lspi_transmit},
 	{ISUP_PARM_FACILITY_IND, "Facility Indicator", facility_ind_dump, facility_ind_receive, facility_ind_transmit},
 	{ISUP_PARM_REDIRECTING_NUMBER, "Redirecting Number", redirecting_number_dump, redirecting_number_receive, redirecting_number_transmit},
+	{ISUP_PARM_ACCESS_DELIVERY_INFO, "Access Delivery Information", },
 };
 
 static char * param2str(int parm)
@@ -2787,6 +2789,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->acm.call_ref_pc = c->call_ref_pc;
 			e->acm.call = c;
 			e->acm.opc = opc; /* keep OPC information */
+			e->acm.called_party_status_ind = c->called_party_status_ind;
 			return 0;
 		case ISUP_CON:
 			e->e = ISUP_EVENT_CON;
