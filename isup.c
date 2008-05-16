@@ -651,6 +651,16 @@ static FUNC_RECV(opt_backward_call_ind_receive)
 
 static FUNC_DUMP(opt_backward_call_ind_dump)
 {
+	unsigned char a, b, c, d;
+	a = parm[0] & 1;
+	b = (parm[0] >> 1) & 1;
+	c = (parm[0] >> 2) & 1;
+	d = (parm[0] >> 3) & 1;
+
+	ss7_message("\t\t\tIn-band information indicator: %d\n", a);
+	ss7_message("\t\t\tCall diversion may occur indicator: %d\n", b);
+	ss7_message("\t\t\tSimple segmentation indicator: %d\n", c);
+	ss7_message("\t\t\tMLPP user indicator: %d\n", d);
 	return 1;
 }
 
