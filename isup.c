@@ -1140,11 +1140,11 @@ static FUNC_RECV(jip_receive)
 	return len;
 }
 
-static FUNC_RECV(jip_transmit)
+static FUNC_SEND(jip_transmit)
 { 
 	int oddeven, datalen;
 	
-	if  (c->jip_number && c->jip_number[0]) {
+	if  (c->jip_number[0]) {
 		isup_put_number(&parm[0], c->jip_number, &datalen, &oddeven);
 		return datalen;
 	}
