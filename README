@@ -27,7 +27,7 @@ Etel
 COLT
 
 Thanks to:
-=======
+==========
 Mark Spencer, for writing Asterisk and libpri and being such a great friend and boss.
 
 Luciano Ramos, for donating a link in getting the first "real" ITU switch working.
@@ -74,14 +74,26 @@ will not work against the current version of libss7, and you should switch to as
 instead.
 
 CONFIGURATION:
-In zaptel.conf, your signalling channel(s) should be a "dchan" and your bearers should
-be set as "bchan".
+In zaptel.conf, your signalling channel(s) should be a "mtp2" and your bearers should
+be set as "bchan".  If you have an older version of Zaptel (pre 1.4.11) that does not
+support the mtp2 channel type, it is strongly recommended that you update to a version that
+supports it.  If you cannot, or your card does not support the "mtp2" channel type, you
+can use "dchan" instead for your signalling link.  See NEWS-05-30-2008 for more details
+about the mtp2 channel type.
+
+zaptel.conf:
+============
+# For signalling link on Zap/24 and bearers on Zap/1-23
+mtp2=24
+bchan=1-23
 
 In the asterisk-ss7 branch, there is a sample zapata.conf that is installed which
 contains sample configuration for setting up an E1 link.
 
 In brief, here is a simple ss7 linkset setup:
 
+zapata.conf
+===========
 signalling = ss7
 ss7type = itu 		; or ansi if you are using an ANSI link
 
@@ -148,6 +160,9 @@ Charge number parameter (ANSI)
 Hop counter parameter
 Carrier identification parameter - (very simple, not configurable)
 SS7 debug looks *MUCH* nicer
+Kernel level MTP2 support (woohoo!) - See NEWS-05-30-2008 for more info
+* Many more messages are supported than are listed.  isup.c is the best place to look.
+
 
 TODO:
 =====
@@ -157,7 +172,7 @@ RDNIS
 Timer for last SU received so we know if layer2 goes out under us
 
 long term:
-SCCP support
+SCTP support (seems more people are interested in that than SCCP)
 
 For more information, please use the Asterisk-ss7 or Asterisk-dev mailing
 lists (I monitor them regularly) or email me directly.
