@@ -2469,7 +2469,7 @@ int isup_dump(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len)
 
 	ss7_message(ss7, "\t\tCIC: %d\n", cic);
 	ss7_dump_buf(ss7, 2, buf, 2);
-	ss7_message(ss7, "\t\tMessage Type: %s (0x%x)\n", message2str(mh->type), mh->type & 0xff);
+	ss7_message(ss7, "\t\tMessage Type: %s\n", message2str(mh->type), mh->type & 0xff);
 	ss7_dump_buf(ss7, 2, &buf[2], 1);
 
 	/* Find us in the message list */
