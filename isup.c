@@ -2466,6 +2466,12 @@ int isup_dump(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len)
 	} else {
 		cic = mh->cic[0] | ((mh->cic[1] & 0x3f) << 8);
 	}
+
+	ss7_message(ss7, "\t\tCIC: %d\n", cic);
+	ss7_dump_buf(ss7, 2, buf, 2);
+	ss7_message(ss7, "\t\tMessage Type: %s (0x%x)\n", message2str(mh->type), mh->type & 0xff);
+	ss7_dump_buf(ss7, 2, &buf[2], 1);
+
 	/* Find us in the message list */
 	for (x = 0; x < sizeof(messages)/sizeof(struct message_data); x++)
 		if (messages[x].messagetype == mh->type)
@@ -2475,11 +2481,6 @@ int isup_dump(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len)
 		ss7_error(ss7, "!! Unable to handle message of type 0x%x\n", mh->type);
 		return -1;
 	}
-
-	ss7_message(ss7, "\t\tCIC: %d\n", cic);
-	ss7_dump_buf(ss7, 2, buf, 2);
-	ss7_message(ss7, "\t\tMessage Type: %s\n", message2str(mh->type), mh->type & 0xff);
-	ss7_dump_buf(ss7, 2, &buf[2], 1);
 
 	fixedparams = messages[ourmessage].mand_fixed_params;
 	varparams = messages[ourmessage].mand_var_params;

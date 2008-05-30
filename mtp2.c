@@ -692,8 +692,6 @@ static int msu_rx(struct mtp2 *link, struct mtp_su_head *h, int len)
 	/* The big function */
 	res = mtp3_receive(link->master, link, h->data, len - MTP2_SU_HEAD_SIZE);
 
-	if (res < 0) /* Problem in higher layer */
-		mtp_error(link->master, "Received error from mtp3 layer: %d\n", res);
 	return res;
 }
 
