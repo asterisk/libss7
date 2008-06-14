@@ -2695,14 +2695,14 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 		}
 	}
 
-	e = ss7_next_empty_event(ss7);
-	if (!e) {
-		ss7_error(ss7, "Event queue full, unable to get next empty event\n");
-		return -1;
-	}
-
 	switch (mh->type) {
 		case ISUP_IAM:
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
 			e->e = ISUP_EVENT_IAM;
 			e->iam.cic = c->cic;
 			e->iam.transcap = c->transcap;
@@ -2747,6 +2747,12 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->iam.opc = opc; /* keep OPC information */
 			return 0;
 		case ISUP_CQM:
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
 			e->e = ISUP_EVENT_CQM;
 			e->cqm.startcic = cic;
 			e->cqm.endcic = cic + c->range;
@@ -2754,6 +2760,12 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			isup_free_call(ss7, c); /* Won't need this again */
 			return 0;
 		case ISUP_GRS:
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
 			e->e = ISUP_EVENT_GRS;
 			e->grs.startcic = cic;
 			e->grs.endcic = cic + c->range;
@@ -2761,6 +2773,12 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->grs.opc = opc; /* keep OPC information */
 			return 0;
 		case ISUP_GRA:
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
 			e->e = ISUP_EVENT_GRA;
 			e->gra.startcic = cic;
 			e->gra.endcic = cic + c->range;
@@ -2771,12 +2789,24 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			isup_free_call(ss7, c); /* Won't need this again */
 			return 0;
 		case ISUP_RSC:
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
 			e->e = ISUP_EVENT_RSC;
 			e->rsc.cic = cic;
 			e->rsc.call = c;
 			e->rsc.opc = opc; /* keep OPC information */
 			return 0;
 		case ISUP_REL:
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
 			e->e = ISUP_EVENT_REL;
 			e->rel.cic = c->cic;
 			e->rel.call = c;
@@ -2784,6 +2814,12 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->rel.opc = opc; /* keep OPC information */
 			return 0;
 		case ISUP_ACM:
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
 			e->e = ISUP_EVENT_ACM;
 			e->acm.cic = c->cic;
 			e->acm.call_ref_ident = c->call_ref_ident;
@@ -2793,24 +2829,48 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->acm.called_party_status_ind = c->called_party_status_ind;
 			return 0;
 		case ISUP_CON:
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
 			e->e = ISUP_EVENT_CON;
 			e->con.cic = c->cic;
 			e->con.call = c;
 			e->con.opc = opc; /* keep OPC information */
 			return 0;
 		case ISUP_ANM:
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
 			e->e = ISUP_EVENT_ANM;
 			e->anm.cic = c->cic;
 			e->anm.call = c;
 			e->anm.opc = opc; /* keep OPC information */
 			return 0;
 		case ISUP_RLC:
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
 			e->e = ISUP_EVENT_RLC;
 			e->rlc.cic = c->cic;
 			e->rlc.opc = opc; /* keep OPC information */
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_COT:
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
 			e->e = ISUP_EVENT_COT;
 			e->cot.cic = c->cic;
 			e->cot.passed = c->cot_check_passed;
@@ -2818,47 +2878,95 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->cot.opc = opc; /* keep OPC information */
 			return 0;
 		case ISUP_CCR:
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
 			e->e = ISUP_EVENT_CCR;
 			e->ccr.cic = c->cic;
 			e->ccr.opc = opc; /* keep OPC information */
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_CVT:
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
 			e->e = ISUP_EVENT_CVT;
 			e->cvt.cic = c->cic;
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_BLO:
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
 			e->e = ISUP_EVENT_BLO;
 			e->blo.cic = c->cic;
 			e->blo.opc = opc; /* keep OPC information */
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_UBL:
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
 			e->e = ISUP_EVENT_UBL;
 			e->ubl.cic = c->cic;
 			e->ubl.opc = opc; /* keep OPC information */
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_BLA:
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
 			e->e = ISUP_EVENT_BLA;
 			e->bla.cic = c->cic;
 			e->bla.opc = opc; /* keep OPC information */
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_LPA:
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
 			e->e = ISUP_EVENT_LPA;
 			e->lpa.cic = c->cic;
 			e->lpa.opc = opc; /* keep OPC information */
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_UBA:
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
 			e->e = ISUP_EVENT_UBA;
 			e->uba.cic = c->cic;
 			e->uba.opc = opc; /* keep OPC information */
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_CGB:
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
 			e->e = ISUP_EVENT_CGB;
 			e->cgb.startcic = cic;
 			e->cgb.endcic = cic + c->range;
@@ -2871,6 +2979,12 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_CGU:
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
 			e->e = ISUP_EVENT_CGU;
 			e->cgu.startcic = cic;
 			e->cgu.endcic = cic + c->range;
@@ -2883,18 +2997,36 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_CPG:
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
 			e->e = ISUP_EVENT_CPG;
 			e->cpg.cic = c->cic;
 			e->cpg.opc = opc; /* keep OPC information */
 			e->cpg.event = c->event_info;
 			return 0;
 		case ISUP_UCIC:
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
 			e->e = ISUP_EVENT_UCIC;
 			e->ucic.cic = c->cic;
 			e->ucic.opc = opc; /* keep OPC information */
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_FAA:
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
 			e->e = ISUP_EVENT_FAA;
 			e->faa.cic = c->cic;
 			e->faa.call_ref_ident = c->call_ref_ident;
@@ -2903,6 +3035,12 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->faa.call = c;
 			return 0;
 		case ISUP_FAR:
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
 			e->e = ISUP_EVENT_FAR;
 			e->far.cic = c->cic;
 			e->far.call_ref_ident = c->call_ref_ident;
@@ -2911,6 +3049,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->far.call = c;
 			return 0;
 		default:
+			isup_free_call(ss7, c);
 			return 0;
 	}
 }

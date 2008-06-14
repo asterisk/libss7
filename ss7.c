@@ -124,8 +124,10 @@ ss7_event * ss7_next_empty_event(struct ss7 *ss7)
 {
 	ss7_event *e;
 
-	if (ss7->ev_len == MAX_EVENTS)
+	if (ss7->ev_len == MAX_EVENTS) {
+		ss7_error(ss7, "Event queue full!\n");
 		return NULL;
+	}
 
 	e = &ss7->ev_q[(ss7->ev_h + ss7->ev_len) % MAX_EVENTS];
 	ss7->ev_len += 1;
