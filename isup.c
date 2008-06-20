@@ -172,6 +172,10 @@ static char * message2str(unsigned char message)
 			return "CVR";
 		case ISUP_CFN:
 			return "CFN";
+		case ISUP_IDR:
+			return "IDR";
+		case ISUP_IRS:
+			return "IRS";
 		default:
 			return "Unknown";
 	}
@@ -2630,6 +2634,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 		case ISUP_CCR:
 		case ISUP_CVT:
 		case ISUP_CVR:
+		case ISUP_CFN:
 			c = __isup_new_call(ss7, 1);
 			c->dpc = rl->opc;
 			c->cic = cic;
