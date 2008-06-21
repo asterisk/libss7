@@ -17,9 +17,7 @@ Contains user interface to ss7 library
 #include <unistd.h>
 #include <stdio.h>
 #include <stdarg.h>
-#if 0
 #include <zaptel/zaptel.h>
-#endif
 #include <sys/ioctl.h>
 #include <sys/poll.h>
 #include "libss7.h"
