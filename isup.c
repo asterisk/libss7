@@ -172,10 +172,6 @@ static char * message2str(unsigned char message)
 			return "CVR";
 		case ISUP_CFN:
 			return "CFN";
-		case ISUP_IDR:
-			return "IDR";
-		case ISUP_IRS:
-			return "IRS";
 		default:
 			return "Unknown";
 	}
@@ -2621,26 +2617,26 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 	/* Make sure we don't hijack a call associated isup_call for non call
 	 * associated messages */
 	switch (mh->type) {
-		case ISUP_BLO:
-		case ISUP_BLA:
-		case ISUP_UBL:
-		case ISUP_UBA:
-		case ISUP_CGB:
-		case ISUP_CGBA:
-		case ISUP_CGUA:
-		case ISUP_CGU:
-		case ISUP_UCIC:
-		case ISUP_LPA:
-		case ISUP_CCR:
-		case ISUP_CVT:
-		case ISUP_CVR:
-		case ISUP_CFN:
+		/* All of these messages are ones where a persistent call is associated with them and
+		should not generate a new, unlinked call, or free a call (unless explicitly done, link in RLC) */
+		case ISUP_IAM:
+		case ISUP_ANM:
+		case ISUP_ACM:
+		case ISUP_CPG:
+		case ISUP_COT:
+		case ISUP_CON:
+		case ISUP_REL:
+		case ISUP_RLC:
+		case ISUP_RSC:
+		case ISUP_FAA:
+		case ISUP_FAR:
+			c = isup_find_call(ss7, rl, cic);
+			break;
+		default:
 			c = __isup_new_call(ss7, 1);
 			c->dpc = rl->opc;
 			c->cic = cic;
 			break;
-		default:
-			c = isup_find_call(ss7, rl, cic);
 	}
 
 	if (!c) {
