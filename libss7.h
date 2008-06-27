@@ -98,6 +98,7 @@ Software Foundation
 
 /* SS7 transport types */
 #define SS7_TRANSPORT_ZAP	0
+#define SS7_TRANSPORT_DAHDI	0
 #define SS7_TRANSPORT_TCP	1
 
 struct ss7;
