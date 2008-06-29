@@ -10,7 +10,7 @@
 #include <pthread.h>
 #include <errno.h>
 #include <time.h>
-#include <zaptel/zaptel.h>
+#include <dahdi/user.h>
 #include "libss7.h"
 
 struct linkset {
@@ -92,17 +92,17 @@ void *ss7_run(void *data)
 		}
 
 		if (poller.revents & POLLPRI) {
-			if (ioctl(linkset->fd, ZT_GETEVENT, &x)) {
+			if (ioctl(linkset->fd, DAHDI_GETEVENT, &x)) {
 				perror("Error in exception retrieval!\n");
 			}
 			switch (x) {
-				case ZT_EVENT_OVERRUN:
+				case DAHDI_EVENT_OVERRUN:
 					printf("Overrun detected!\n");
 					break;
-				case ZT_EVENT_BADFCS:
+				case DAHDI_EVENT_BADFCS:
 					printf("Bad FCS!\n");
 					break;
-				case ZT_EVENT_ABORT:
+				case DAHDI_EVENT_ABORT:
 					printf("HDLC Abort!\n");
 					break;
 				default:
@@ -197,17 +197,17 @@ void myprintf(struct ss7 *ss7, char *fmt)
 int zap_open(int devnum)
 {
 	int fd;
-	ZT_BUFFERINFO bi;
-	fd = open("/dev/zap/channel", O_RDWR|O_NONBLOCK, 0600);
-	if ((fd < 0) || (ioctl(fd, ZT_SPECIFY, &devnum) == -1)) {
+	DAHDI_BUFFERINFO bi;
+	fd = open("/dev/dahdi/channel", O_RDWR|O_NONBLOCK, 0600);
+	if ((fd < 0) || (ioctl(fd, DAHDI_SPECIFY, &devnum) == -1)) {
 		printf("Could not open device %d: %s\n", devnum, strerror(errno));
 		return -1;
 	}
-	bi.txbufpolicy = ZT_POLICY_IMMEDIATE;
-	bi.rxbufpolicy = ZT_POLICY_IMMEDIATE;
+	bi.txbufpolicy = DAHDI_POLICY_IMMEDIATE;
+	bi.rxbufpolicy = DAHDI_POLICY_IMMEDIATE;
 	bi.numbufs = NUM_BUFS;
 	bi.bufsize = 512;
-	if (ioctl(fd, ZT_SET_BUFINFO, &bi)) {
+	if (ioctl(fd, DAHDI_SET_BUFINFO, &bi)) {
 		close(fd);
 		return -1;
 	}
