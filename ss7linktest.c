@@ -194,10 +194,11 @@ void myprintf(struct ss7 *ss7, char *fmt)
 	printf("%s", fmt);
 }
 
-int zap_open(int devnum)
+int zap_open(int devnum, int *ismtp2)
 {
 	int fd;
 	DAHDI_BUFFERINFO bi;
+	struct dahdi_params z;
 	fd = open("/dev/dahdi/channel", O_RDWR|O_NONBLOCK, 0600);
 	if ((fd < 0) || (ioctl(fd, DAHDI_SPECIFY, &devnum) == -1)) {
 		printf("Could not open device %d: %s\n", devnum, strerror(errno));
@@ -211,6 +212,16 @@ int zap_open(int devnum)
 		close(fd);
 		return -1;
 	}
+
+	if (ioctl(fd, DAHDI_GET_PARAMS, &z)) {
+		close(fd);
+		return -1;
+	}
+
+	if (z.sigtype == DAHDI_SIG_MTP2)
+		*ismtp2 = 1;
+	else
+		*ismtp2 = 0;
 	return fd;
 }
 
@@ -229,6 +240,7 @@ int main(int argc, char *argv[])
 	struct ss7 *ss7;
 	pthread_t tmp;
 	int channum;
+	int ismtp2;
 	unsigned int type;
 
 	if (argc < 5) {
@@ -249,7 +261,7 @@ int main(int argc, char *argv[])
 	opc = atoi(argv[3]);
 	dpc = atoi(argv[4]);
 
-	fd = zap_open(channum);
+	fd = zap_open(channum, &ismtp2);
 
 	if (fd == -1)
 		return -1;
@@ -267,7 +279,7 @@ int main(int argc, char *argv[])
 	ss7_set_network_ind(ss7, SS7_NI_NAT);
 
 	ss7_set_debug(ss7, 0xfffffff);
-	if ((ss7_add_link(ss7, SS7_TRANSPORT_ZAP, fd))) {
+	if ((ss7_add_link(ss7, ismtp2 ? SS7_TRANSPORT_DAHDIMTP2 : SS7_TRANSPORT_DAHDIDCHAN, fd))) {
 		perror("ss7_add_link");
 		exit(1);
 	}
