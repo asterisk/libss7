@@ -97,9 +97,9 @@ Software Foundation
 #define CPG_EVENT_CFU		0x06
 
 /* SS7 transport types */
-#define SS7_TRANSPORT_ZAP	0
-#define SS7_TRANSPORT_DAHDI	0
-#define SS7_TRANSPORT_TCP	1
+#define SS7_TRANSPORT_DAHDIDCHAN	0
+#define SS7_TRANSPORT_DAHDIMTP2		1
+#define SS7_TRANSPORT_TCP		2
 
 struct ss7;
 struct isup_call;

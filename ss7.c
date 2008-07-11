@@ -17,7 +17,6 @@ Contains user interface to ss7 library
 #include <unistd.h>
 #include <stdio.h>
 #include <stdarg.h>
-#include <dahdi/user.h>
 #include <sys/ioctl.h>
 #include <sys/poll.h>
 #include "libss7.h"
@@ -176,22 +175,12 @@ int ss7_add_link(struct ss7 *ss7, int transport, int fd)
 	if (transport == SS7_TRANSPORT_TCP) {
 	}
 
-	if (transport == SS7_TRANSPORT_DAHDI) {
+	if ((transport == SS7_TRANSPORT_DAHDIDCHAN) || (transport == SS7_TRANSPORT_DAHDIMTP2)) {
 		int zapmtp2 = 0;
-#ifdef DAHDI_SIG_MTP2
-		struct dahdi_params z;
-		int res;
 
-		res = ioctl(fd, DAHDI_GET_PARAMS, &z);
-		if (res)
-			return res;
-
-		if (z.sigtype == DAHDI_SIG_MTP2) {
-			printf("Found zapmtp2\n");
+		if (transport == SS7_TRANSPORT_DAHDIMTP2)
 			zapmtp2 = 1;
-		}
 
-#endif /* DAHDI_SIG_MTP2 */
 		m = mtp2_new(fd, ss7->switchtype);
 		
 		if (!m)
