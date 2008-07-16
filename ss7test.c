@@ -189,7 +189,7 @@ int main(int argc, char *argv[])
 	ss7_set_error(myprintf);
 
 	ss7_set_debug(ss7, 0xffffffff);
-	if ((ss7_add_link(ss7, SS7_TRANSPORT_ZAP, fds[0]))) {
+	if ((ss7_add_link(ss7, SS7_TRANSPORT_DAHDIDCHAN, fds[0]))) {
 		perror("ss7_add_link");
 		exit(1);
 	}
@@ -206,7 +206,7 @@ int main(int argc, char *argv[])
 	ss7_set_debug(ss7, 0xffffffff);
 	linkset[1].linkno = 1;
 
-	if ((ss7_add_link(ss7, SS7_TRANSPORT_ZAP, fds[1]))) {
+	if ((ss7_add_link(ss7, SS7_TRANSPORT_DAHDIDCHAN, fds[1]))) {
 		perror("ss7_add_link");
 		exit(1);
 	}
