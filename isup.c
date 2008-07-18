@@ -2971,7 +2971,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->e = ISUP_EVENT_CGB;
 			e->cgb.startcic = cic;
 			e->cgb.endcic = cic + c->range;
-			e->cgu.type = c->cicgroupsupervisiontype;
+			e->cgb.type = c->cicgroupsupervisiontype;
 
 			for (i = 0; i < (c->range + 1); i++)
 				e->cgb.status[i] = c->status[i];
@@ -3032,7 +3032,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->faa.cic = c->cic;
 			e->faa.call_ref_ident = c->call_ref_ident;
 			e->faa.call_ref_pc = c->call_ref_pc;
-			e->ucic.opc = opc; /* keep OPC information */
+			e->faa.opc = opc; /* keep OPC information */
 			e->faa.call = c;
 			return 0;
 		case ISUP_FAR:
