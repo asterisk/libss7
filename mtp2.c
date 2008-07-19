@@ -128,6 +128,14 @@ static void reset_mtp(struct mtp2 *link)
 	flush_bufs(link);
 }
 
+
+static void mtp2_request_retransmission(struct mtp2 *link)
+{
+	link->retransmissioncount++;
+	link->curbib = !link->curbib;
+	link->flags |= MTP2_FLAG_WRITE;
+}
+
 static int mtp2_queue_su(struct mtp2 *link, struct ss7_msg *m)
 {
 	struct ss7_msg *cur;
@@ -382,8 +390,6 @@ static void update_txbuf(struct mtp2 *link, unsigned char upto)
 
 static int fisu_rx(struct mtp2 *link, struct mtp_su_head *h, int len)
 {
-	int res = 0;
-
 	if (link->lastsurxd == FISU)
 		return 0;
 	else
@@ -394,15 +400,19 @@ static int fisu_rx(struct mtp2 *link, struct mtp_su_head *h, int len)
 			return mtp2_setstate(link, MTP_ALIGNEDREADY);
 			/* Just in case our timers are a little off */
 		case MTP_ALIGNEDREADY:
-			return mtp2_setstate(link, MTP_INSERVICE);
+			mtp2_setstate(link, MTP_INSERVICE);
 		case MTP_INSERVICE:
+			if (h->fsn != link->lastfsnacked) {
+				mtp_message(link->master, "Received out of sequence FISU w/ fsn of %d, lastfsnacked = %d, requesting retransmission\n", h->fsn, link->lastfsnacked);
+				mtp2_request_retransmission(link);
+			}
 			break;
 		default:
 			mtp_message(link->master, "Huh?! Got FISU in link state %d\n", link->state);
 			return -1;
 	}
 	
-	return res;
+	return 0;
 }
 
 static void t1_expiry(void *data)
@@ -679,9 +689,7 @@ static int msu_rx(struct mtp2 *link, struct mtp_su_head *h, int len)
 
 	if (h->fsn != ((link->lastfsnacked+1) % 128)) {
 		mtp_message(link->master, "Received out of sequence MSU w/ fsn of %d, lastfsnacked = %d, requesting retransmission\n", h->fsn, link->lastfsnacked);
-		link->retransmissioncount++;
-		link->curbib = !link->curbib;
-		link->flags |= MTP2_FLAG_WRITE;
+		mtp2_request_retransmission(link);
 		return 0;
 	}
 
