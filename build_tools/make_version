@@ -31,18 +31,18 @@ elif [ -d .svn ]; then
 
       if [ ${BRANCH} != 0 ] ; then
         if [ -z ${RESULT} ] ; then
-          RESULT="2${PART}"
+          RESULT="${PART}"
         else
-          RESULT="3${RESULT}-${PART}"
+          RESULT="${RESULT}-${PART}"
         fi
 	    break
       fi
 
       if [ ${TEAM} != 0 ] ; then
         if [ -z ${RESULT} ] ; then
-           RESULT="4${PART}"
+           RESULT="${PART}"
         else
-          RESULT="5${RESULT}-${PART}"
+          RESULT="${RESULT}-${PART}"
         fi
         continue
       fi
@@ -63,8 +63,6 @@ elif [ -d .svn ]; then
         continue
       fi
     done
-
- 	RESULT="libss7"
 
     if [ ${TAG} != 0 ] ; then
 	echo ${RESULT}
