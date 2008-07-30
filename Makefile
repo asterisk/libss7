@@ -26,27 +26,29 @@ export SS7VERSION
 
 SS7VERSION:=$(shell GREP=$(GREP) AWK=$(AWK) build_tools/make_version .)
 
-all: depend $(STATIC_LIBRARY) $(DYNAMIC_LIBRARY) $(UTILITIES)
+all: $(STATIC_LIBRARY) $(DYNAMIC_LIBRARY) $(UTILITIES)
 
-%.lo : %.c
-	$(CC) -g -fPIC $(CFLAGS) -o $@ -c $<
+MAKE_DEPS= -MD -MT $@ -MF .$(subst /,_,$@).d -MP
+
+%.o: %.c
+	$(CC) $(CFLAGS) $(MAKE_DEPS) -c -o $@ $<
+
+%.lo: %.c
+	$(CC) $(CFLAGS) $(MAKE_DEPS) -c -o $@ $<
 
 clean:
 	rm -f *.o *.so *.lo *.so.1 *.so.1.0
 	rm -f parser_debug ss7linktest ss7test $(STATIC_LIBRARY) $(DYNAMIC_LIBRARY)
-	rm -f .depend
+	rm -f .*.d
 
 install: $(STATIC_LIBRARY) $(DYNAMIC_LIBRARY)
 	mkdir -p $(INSTALL_PREFIX)$(libdir)
 	mkdir -p $(INSTALL_PREFIX)$(INSTALL_BASE)/include
-
 	install -m 644 libss7.h $(INSTALL_PREFIX)$(INSTALL_BASE)/include
 	install -m 755 $(DYNAMIC_LIBRARY) $(INSTALL_PREFIX)$(libdir)
 	( cd $(INSTALL_PREFIX)$(libdir) ; ln -sf libss7.so.1 libss7.so ; $(SOSLINK) )
 	install -m 644 $(STATIC_LIBRARY) $(INSTALL_PREFIX)$(libdir)
-
 	if test $$(id -u) = 0; then $(LDCONFIG); fi
-
 
 $(STATIC_LIBRARY): $(STATIC_OBJS)
 	ar rcs $(STATIC_LIBRARY) $(STATIC_OBJS)
@@ -58,7 +60,7 @@ $(DYNAMIC_LIBRARY): $(DYNAMIC_OBJS)
 	ln -sf libss7.so.1 libss7.so
 	$(SOSLINK)
 
-version.c:
+version.c: FORCE
 	@build_tools/make_version_c > $@.tmp
 	@cmp -s $@.tmp $@ || mv $@.tmp $@
 	@rm -f $@.tmp
@@ -74,9 +76,7 @@ parser_debug: parser_debug.c $(STATIC_LIBRARY)
 
 libss7: ss7_mtp.o mtp.o ss7.o ss7_sched.o
 
-depend: .depend
+.PHONY:
 
-.depend:
-	./mkdep ${CLAGS} `ls *.c`
+FORCE:
 
-.PHONY: version.c
