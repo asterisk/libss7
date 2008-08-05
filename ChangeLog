@@ -1,0 +1,685 @@
+2008-08-05 Kevin P. Fleming <kpfleming@digium.com>
+
+	* libss7 1.0.1 released
+
+2008-08-05 22:28 +0000 [r201-202]  Kevin P. Fleming <kpfleming@digium.com>
+
+	* /, LICENSE (added): add LICENSE file
+
+	* Makefile, ss7.c, ss7test.c, ss7_internal.h, isup.c, mtp2.c,
+	  parser_debug.c, ss7_sched.c, mtp3.c, isup.h, mtp2.h, libss7.h,
+	  mtp3.h, ss7linktest.c: clean up license headers explicitly grant
+	  additional license permissions when used with Asterisk build
+	  ss7test and ss7linktest when DAHDI is found, not Zaptel stop
+	  using DAHDI typedefs that no longer exist
+
+2008-07-30 15:42 +0000 [r200]  Kevin P. Fleming <kpfleming@digium.com>
+
+	* Makefile, mkdep (removed), /: use new version and dependency
+	  stuff here too
+
+2008-07-29 22:48 +0000 [r199]  Jason Parker <jparker@digium.com>
+
+	* build_tools/make_version: I believe this is what was meant. (it
+	  matches how Asterisk does it)
+
+2008-07-19 16:08 +0000 [r198]  Matthew Fredrickson <creslin@digium.com>
+
+	* mtp2.c: Fix potential bug in which we might have lost the last
+	  MSU received, but we never checked the new FSN in the following
+	  FISUs which would cause us not to request retransmission of the
+	  lost MSU and potentially cause the remote end's T7 (message
+	  acknowledgement timer) to expire and reset the link
+
+2008-07-18 14:58 +0000 [r197]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c: Make sure we're populating the correct event types in FAA
+	  and CGB
+
+2008-07-16 15:49 +0000 [r196]  Matthew Fredrickson <creslin@digium.com>
+
+	* ss7test.c: Fix ss7test.c to use new TRANSPORT definitions
+	  (#13075)
+
+2008-07-11 21:30 Matthew Fredrickson <creslin@digium.com>
+
+	* Libss7 1.0.0 released!
+
+2008-07-11 21:30 +0000 [r185-186]  Matthew Fredrickson <creslin@digium.com>
+
+	* parser_debug.c, ss7linktest.c: Make linktest program work with
+	  new transport definitions
+
+	* ss7.c, libss7.h: Remove DAHDI dependency from libss7
+
+2008-06-29 01:56 +0000 [r184]  Matthew Fredrickson <creslin@digium.com>
+
+	* ss7.c, ss7test.c, ss7linktest.c: Make libss7 compatible with
+	  DAHDI. No more Zaptel (get 0.9.1 branch if you need Zaptel
+	  support, although it is not going to be maintained)
+
+2008-06-28 14:37 +0000 [r183]  Kevin P. Fleming <kpfleming@digium.com>
+
+	* ss7.c: remove unnecessary include of zaptel.h
+
+2008-06-27 19:06 +0000 [r181]  Matthew Fredrickson <creslin@digium.com>
+
+	* libss7.h: Add work around for new DAHDI name
+
+2008-06-21 02:40 +0000 [r178-180]  Matthew Fredrickson <creslin@digium.com>
+
+	* ss7.c: Put zaptel header back in
+
+	* ss7.c, isup.c: Try to make the isup_find_call and __isup_new_call
+	  logic in isup_receive less prone to instability caused by people
+	  making mistakes when writing code for new events and messages.
+	  This will make the default behavior to generate a new, unlinked
+	  call for scratchpad purposes by default. There is much less
+	  potential of free'ing an active call if we make the switch's
+	  default to do this instead of having the default finding an
+	  existing call
+
+	* isup.c: Make sure we don't lose our old call if CFN comes in
+
+2008-06-14 21:11 +0000 [r177]  Matthew Fredrickson <creslin@digium.com>
+
+	* ss7.c, isup.c: Fix bug which occurred when messages are received
+	  but no events were output. We were allocating a new event by
+	  default, which sometimes would contain an old event. If we did
+	  not fill in the newly allocated event, a duplicate of the
+	  previous event was given to the user application, which sometimes
+	  could cause a crash from an already free'd call being handed
+	  back.
+
+2008-05-30 19:32 +0000 [r173-176]  Matthew Fredrickson <creslin@digium.com>
+
+	* NEWS-09-27-2006 (added), README, NEWS-09-11-2006 (added),
+	  NEWS-08-23-2006 (added): Add a few of the public service
+	  announcments I have made on the Asterisk-ss7 mailing list as well
+	  as update the README
+
+	* NEWS-05-30-2008 (added): Add latest news update for libss7
+
+	* isup.c: Don't need to output hex since we get it in the next line
+	  (for message type)
+
+	* isup.c, mtp2.c: Remove duplicate error message, also make sure we
+	  print message type and CIC before erroring out of ISUP dump
+
+2008-05-28 14:46 +0000 [r172]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c: jip_transmit is a FUNC_SEND, not FUNC_RECV. Also, since
+	  jip_number is a static field, we shouldn't have to check for it's
+	  existance before we check to see if something is there
+
+2008-05-16 19:52 +0000 [r169-171]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c, isup.h, libss7.h: Add called_party_status_ind field to
+	  event_acm
+
+	* isup.c: Fixed bug in functions :-)
+
+	* isup.c: Add dump for optional backward call indicator
+
+2008-05-14 18:17 +0000 [r162-168]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c: In order to receive CPC, we have to actually copy it into
+	  the event from which we read it :-)
+
+	* isup.c, isup.h, libss7.h: Add support for receiving of calling
+	  party's category
+
+	* isup.c: Don't throw an error when don't output an event for a
+	  message
+
+	* isup.c: Add support for CFN (confusion) message type
+
+	* isup.c: Report CIC number when debug message appears
+
+	* mtp2.c: Add the write flag in a couple of more places that might
+	  need it. Basically, it needs to be set any time any MTP2
+	  parameter changes (bib, fib, fsn, bsn)
+
+	* mtp2.c: Need to update write flag everytime we receive a valid
+	  MSU since FISU's BSN needs to be updated
+
+2008-05-10 00:59 +0000 [r160-161]  Matthew Fredrickson <creslin@digium.com>
+
+	* ss7.c, mtp2.c, mtp2.h, libss7.h, ss7linktest.c: Add support for
+	  kernel MTP2 support
+
+	* mtp2.c: Remove some useless code in mtp2
+
+2008-05-01 23:04 +0000 [r159]  Brett Bryant <bbryant@digium.com>
+
+	* Makefile, build_tools (added), build_tools/make_version (added),
+	  build_tools/make_version_c (added), libss7.h: Add new API call to
+	  libss7 ( ss7_get_version ) that will return a version string.
+
+2008-05-01 18:31 +0000 [r152-158]  Matthew Fredrickson <creslin@digium.com>
+
+	* mtp2.c: Use the correct variable name too
+
+	* mtp2.c, mtp3.c: Make sure that if a link goes down during
+	  operation for any reason, that we report it to MTP3
+
+	* isup.c: Make name for generic name transmit function match all
+	  the rest of the transmit functions
+
+	* isup.c: Make sure we don't send generic name unless it's actually
+	  set.
+
+	* Makefile: Remove sccp object from build
+
+	* Makefile: Initial 0.0.9 release
+
+2008-04-21 18:37 +0000 [r151]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c, libss7.h: Libss7 portion of #12484. Allow transmission of
+	  generic name.
+
+2008-04-12 23:52 +0000 [r150]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c, isup.h, libss7.h: Commit patch for #12325. Add support
+	  for redirecting number and generic name parameters (Rx only).
+	  Also add ANSI CVT and CVR message support
+
+2008-03-21 21:34 +0000 [r148-149]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c, mtp3.c, isup.h, mtp3.h: Fix ANSI sls so that is actually
+	  keeps the same sls for the duration of a call
+
+	* ss7_internal.h, isup.c, mtp3.c, isup.h, mtp3.h: Some
+	  rearrangement for getting the SLS right for ANSI
+
+2008-03-18 17:14 +0000 [r146-147]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c: Revert previous commit because of bug
+
+	* isup.c: Add new cause code and make sure we don't include
+	  variable parm length within the data dump
+
+2008-03-15 22:54 +0000 [r145]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c: Add more dump support for backward call indicator
+
+2008-03-07 23:34 +0000 [r143-144]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c, isup.h: Add support for dumping generic name
+
+	* isup.c: Update continuity message indication to be correct
+
+2008-02-21 18:22 +0000 [r142]  Joshua Colp <jcolp@digium.com>
+
+	* Makefile: Only build ss7test and ss7linktest if the zaptel
+	  headers are available.
+
+2008-02-18 21:50 +0000 [r140-141]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c, isup.h, libss7.h: Libss7 support for #11964: add the
+	  ability to get ORIG_CALLED_NUM
+
+	* isup.c, libss7.h: Fix for 11779. Allow different point codes in
+	  same linkset
+
+2008-01-18 22:27 +0000 [r138-139]  Matthew Fredrickson <creslin@digium.com>
+
+	* mtp3.c: Fix for sometimes stupid telco SLC settings
+
+	* mtp3.c: Make sure we don't send messages on links that are down
+	  on a linkset
+
+2007-12-20 23:12 +0000 [r137]  Matthew Fredrickson <creslin@digium.com>
+
+	* README, isup.c, isup.h, libss7.h: Add support for RLT on DMS
+	  switches, JIP parameter additions, generic digits parameter, call
+	  reference parameter, facility indicator, as well as facility
+	  accept and facility reject message types. #11506 Thanks Alan.
+
+2007-11-17 23:48 +0000 [r132-136]  Matthew Fredrickson <creslin@digium.com>
+
+	* mtp2.c: Hopefully the last update for making links automatically
+	  reconnect
+
+	* mtp2.c, mtp3.c: Fix some more MTP2 automatic restart code
+
+	* isup.c: Make sure CICs over 256 work. Oops.
+
+	* isup.c, isup.h, libss7.h: Add generic address support. #11156.
+	  Thanks Alan!
+
+	* mtp2.c: Make sure we retry realignment when we go down
+
+2007-11-06 21:45 +0000 [r130-131]  Matthew Fredrickson <creslin@digium.com>
+
+	* ss7test.c, parser_debug.c, ss7linktest.c: Make all the API
+	  updates
+
+	* ss7.c, libss7.h: Add a new transport option for eventual SS7 over
+	  IP support
+
+2007-10-27 00:36 +0000 [r129]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c, isup.h, libss7.h: Add circuit group query support
+
+2007-10-25 23:23 +0000 [r127-128]  Matthew Fredrickson <creslin@digium.com>
+
+	* mtp3.c: Make sure we don't output incorrect message types for
+	  net_mng
+
+	* isup.c, isup.h: Add debugging for a couple of previously unknown
+	  parameters
+
+2007-10-19 16:22 +0000 [r126]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c, isup.h: Add support for JIP (Juridiction Information
+	  Parameter) #11031
+
+2007-10-16 00:29 +0000 [r125]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c: Take some mostly unimportant data out
+
+2007-10-12 15:03 +0000 [r116-124]  Matthew Fredrickson <creslin@digium.com>
+
+	* mtp3.c: Don't print out every MTP3 message we get
+
+	* isup.c, isup.h: Add original called number dump support
+
+	* isup.c, isup.h: Add dump support for redirection info parameter
+
+	* isup.c: Clean up unknown paramter parsing a little more
+
+	* isup.c: Take out some duplicate code, add some additional info
+	  for unkown parameters
+
+	* README: Updates to README file
+
+	* isup.c, isup.h, libss7.h: Remove oli preset field in favor of
+	  implicitly being present or not (-1 for not there)
+
+	* isup.c: Minor coding style fix
+
+	* isup.c, isup.h, libss7.h: Add support for CCR test, specifiable
+	  charge number in ANSI, and a few other things
+
+2007-10-09 19:31 +0000 [r115]  Matthew Fredrickson <creslin@digium.com>
+
+	* mtp3.c: Make sure we display user part numerical equivalent. Also
+	  some dump formatting updates
+
+2007-10-05 21:24 +0000 [r110-114]  Matthew Fredrickson <creslin@digium.com>
+
+	* parser_debug.c: Make it easier to switch ss7 types
+
+	* mtp3.c: Make the ANSI point code format more familiar looking
+
+	* Makefile: Make sure we cleanup parser debug too
+
+	* isup.c: Add some more cause debug, also small update to avoid
+	  potential bugs due to return errors on parm routines
+
+	* Makefile, parser_debug.c: Do some compiler trickery for big
+	  endian machines
+
+2007-10-03 13:51 +0000 [r100-109]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c, parser_debug.c: Add support for charge number dumping
+
+	* isup.c, parser_debug.c: Add dump support for transmission medium
+	  requirements
+
+	* parser_debug.c: Make sure that we use exactly the right size
+
+	* isup.c: Add debugging for a couple more parameters
+
+	* isup.c: Add dump support for called party number
+
+	* isup.c: Continue to make dumping prettier
+
+	* isup.c: Continue to make dumping prettier
+
+	* isup.c: Cleanup our ISUP dumping a little bit
+
+	* isup.c, parser_debug.c: Add a fix in the dump code for
+	  incorrectly sized parameter, as well as an addition to the parser
+	  debug code
+
+	* Makefile, parser_debug.c (added): Add a parser debug utility
+
+2007-09-25 23:15 +0000 [r99]  Matthew Fredrickson <creslin@digium.com>
+
+	* README: Fix type in README
+
+2007-09-22 17:36 +0000 [r97-98]  Matthew Fredrickson <creslin@digium.com>
+
+	* README: Fix potential point of confusion
+
+	* README: Update the README file
+
+2007-09-06 16:32 +0000 [r96]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c, isup.h, libss7.h: Patch on #10575. Adds a few more ISUP
+	  params and messages
+
+2007-06-29 22:21 +0000 [r94-95]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c, ss7linktest.c: Current iteration of debug enhancements.
+	  Still have more to do.
+
+	* isup.c, mtp2.c, mtp3.c: Add some preliminary ISUP parameter
+	  dumping code
+
+2007-06-28 20:31 +0000 [r92-93]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c, ss7linktest.c: Make sure when we match we match on dpc as
+	  well as cic
+
+	* isup.c: Make sure we set the cic when we get supervision messages
+
+2007-06-25 23:07 +0000 [r90-91]  Matthew Fredrickson <creslin@digium.com>
+
+	* mtp2.c, ss7linktest.c: Forgot to update the dump size so that it
+	  looks correct
+
+	* isup.c: Fix ANSI RLC code so that we don't include optional
+	  parameters
+
+2007-06-21 17:17 +0000 [r89]  Matthew Fredrickson <creslin@digium.com>
+
+	* ss7.c, ss7_internal.h, isup.c, mtp2.c, mtp3.c, isup.h,
+	  ss7linktest.c: Fix for not setting dpc on call when we receive a
+	  new one. Also, don't parse zero length messages or messages less
+	  than MTP2's minimum message size. Remove unused default dpc code
+
+2007-06-19 14:49 +0000 [r87-88]  Matthew Fredrickson <creslin@digium.com>
+
+	* README, isup.c, isup.h, libss7.h, ss7linktest.c: Add support for
+	  nature of address indicator, number presentation, and screening
+	  indicator (#10000)
+
+	* ss7.c: Make debug output not quite as ugly (#9903)
+
+2007-06-17 00:08 +0000 [r86]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c, ss7linktest.c: Fix some scenarios where a call could
+	  potentially be written to while free'd already
+
+2007-06-08 15:40 +0000 [r85]  Matthew Fredrickson <creslin@digium.com>
+
+	* ss7.c, ss7_internal.h, isup.c, mtp2.c, mtp3.c, ss7linktest.c:
+	  Updates to add better debugging support
+
+2007-05-23 15:29 +0000 [r84]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c, mtp2.c, libss7.h: Pass cause back up the stack for REL.
+	  Also display SLC when debug message is printed
+
+2007-05-15 19:59 +0000 [r81-83]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c, mtp3.c: Let's try to make the SLS field more correct in
+	  ITU networks.
+
+	* mtp3.c: Make sure we update our internal state to be up when we
+	  give an up event.
+
+	* mtp3.c: SLC is supposed to be shifted up four bits
+
+2007-05-02 15:47 +0000 [r79-80]  Matthew Fredrickson <creslin@digium.com>
+
+	* ss7linktest.c: Let's make sure we get that logic right...
+
+	* ss7linktest.c: Make the link test program easier to use and
+	  configure
+
+2007-04-04 14:47 +0000 [r78]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c: Make sure we set the DPC on group messages
+
+2007-03-30 20:46 +0000 [r77]  Matthew Fredrickson <creslin@digium.com>
+
+	* README, isup.c, mtp3.c, isup.h, libss7.h, ss7linktest.c: Add
+	  support for mulitple DPCs and CIC groups. (#9423)
+
+2007-03-26 16:42 +0000 [r75-76]  Matthew Fredrickson <creslin@digium.com>
+
+	* ss7linktest.c: Make sure we update the test program for the new
+	  API. Also, small bug fix
+
+	* isup.c, isup.h, libss7.h: Add support for group maintenance type
+
+2006-12-26 17:29 +0000 [r74]  Matthew Fredrickson <creslin@digium.com>
+
+	* mtp2.c: Fix bug in buffer flushing code. Thanks Petr for pointing
+	  it out!
+
+2006-11-25 21:28 +0000 [r72-73]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c: Make sure we do some checks before sending group messages
+	  that are out of protocol spec
+
+	* isup.c: Make sure we check args if they're not used properly
+
+2006-11-08 22:48 +0000 [r67-71]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c, mtp2.c: Make libss7 a little less verbose when used
+	  against buggy implementations that don't know when the link has
+	  gone down.
+
+	* isup.c, mtp2.c, isup.h, mtp2.h: Update retranmission counts as
+	  well as ISUP support for additional optional parameter
+
+	* README: Update README files.
+
+	* mtp2.c: Now we do retransmission requests on MSUs that we don't
+	  receive correctly!
+
+	* mtp2.c: More MTP2 stress test/hardening. Fixed bug where we
+	  dropped MSUs after retransmission request.
+
+2006-11-03 21:26 +0000 [r63-66]  Matthew Fredrickson <creslin@digium.com>
+
+	* mtp2.c: Make notification that retransmission was requested
+
+	* mtp2.c: Forgot that our tx'd buf is in reverse order from which
+	  we need to retransmit
+
+	* mtp3.c: Make sure we spell indicator correctly
+
+	* ss7_internal.h, mtp2.c, mtp3.c, mtp2.h: Updates so that we can
+	  better support retransmission reqeusts.
+
+2006-11-02 16:19 +0000 [r61-62]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c: Make sure we reset with reason hardware failure
+
+	* ss7.c, ss7_internal.h, mtp2.c, mtp3.c, mtp2.h, mtp3.h: Let's do
+	  better linkstate up and down management!
+
+2006-10-30 17:15 +0000 [r60]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c, mtp3.c, mtp3.h: More MTP3 debug information
+
+2006-10-24 15:32 +0000 [r59]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c: Make sure we default to E.164 numbering plan
+
+2006-10-19 19:24 +0000 [r58]  Matthew Fredrickson <creslin@digium.com>
+
+	* mtp3.c: Output our point codes in decimal format for the debug
+
+2006-10-06 17:18 +0000 [r57]  Matthew Fredrickson <creslin@digium.com>
+
+	* README, ss7.c, ss7_internal.h, mtp2.c, mtp3.c, libss7.h: Make
+	  sure my email address is my company email address
+
+2006-09-23 21:38 +0000 [r51-56]  Matthew Fredrickson <creslin@digium.com>
+
+	* mtp3.c, mtp2.h: Sent tra at link startup
+
+	* mtp3.c: Stupid me
+
+	* mtp3.c: Update so that we respond to STD_TEST first. Before TRA.
+
+	* ss7linktest.c: Update test program
+
+	* ss7_internal.h, mtp3.c: Send TRA only once, after we get SLTM
+	  from other end
+
+	* mtp2.c: Little update
+
+2006-09-22 15:47 +0000 [r50]  Matthew Fredrickson <creslin@digium.com>
+
+	* ss7.c, ss7_internal.h, isup.c, mtp2.c, ss7_sched.c, mtp3.c,
+	  isup.h, mtp2.h, libss7.h, mtp3.h: Make sure all of our copyright
+	  notices are correct
+
+2006-09-21 15:44 +0000 [r49]  Matthew Fredrickson <creslin@digium.com>
+
+	* README: Updates to README, including info about first ANSI switch
+	  testing.
+
+2006-09-19 23:04 +0000 [r48]  Matthew Fredrickson <creslin@digium.com>
+
+	* README: Did an outbound ANSI call!!!!
+
+2006-09-18 19:15 +0000 [r47]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c, isup.h, libss7.h, ss7linktest.c: Updates for parameter
+	  debugging
+
+2006-09-11 17:48 +0000 [r46]  Matthew Fredrickson <creslin@digium.com>
+
+	* mtp3.c: Add a little more useful output if the network indiciator
+	  is set incorrectly.
+
+2006-09-09 19:47 +0000 [r42-45]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c: Lets make sure we use the right character for ST
+
+	* README: README updates
+
+	* isup.c: Little update
+
+	* isup.c: We have to use User Service Info in ANSI IAMs instead of
+	  transmission medium requirements.
+
+2006-09-08 02:35 +0000 [r38-41]  Matthew Fredrickson <creslin@digium.com>
+
+	* mtp3.c: Use special test instead of standard test for ANSI links.
+
+	* mtp3.c: Make sure we set the priority field in ansi
+
+	* mtp3.c: Fixes to make MTP3 come up in ANSI. We got an ANSI link
+	  to come up!!!! *jumps up and down*
+
+	* README, isup.c, isup.h, libss7.h: Add CPG message support
+
+2006-09-06 17:14 +0000 [r37]  Matthew Fredrickson <creslin@digium.com>
+
+	* ss7.c: Fix segfault due to but in alarm handling code
+
+2006-09-01 21:37 +0000 [r34-36]  Matthew Fredrickson <creslin@digium.com>
+
+	* ss7.c, libss7.h: Add support for alarms
+
+	* ss7.c: Fix a little oops with debugging
+
+	* README: Make sure we update that we support RSC
+
+2006-08-30 21:53 +0000 [r32-33]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c, libss7.h: Update to add call structure to RSC.
+
+	* README, isup.c, libss7.h: Add support for reset messages.
+
+2006-08-25 20:08 +0000 [r30-31]  Matthew Fredrickson <creslin@digium.com>
+
+	* README: Update to documentation
+
+	* isup.c, isup.h, libss7.h, ss7linktest.c: Do blocking and
+	  unblocking right
+
+2006-08-23 22:23 +0000 [r25-29]  Matthew Fredrickson <creslin@digium.com>
+
+	* mtp3.c, ss7linktest.c: Updates to make sure we send STD_TEST
+	  before we send TRA
+
+	* isup.c, libss7.h: Add circuit group blocking/unblocking support
+	  as well as acknowledgement
+
+	* ss7test.c, mtp2.c, libss7.h: More updates.... for circuit
+	  blocking/unblocking
+
+	* mtp2.c: Only output debug if debug is enabled.
+
+	* README, libss7.h: Add group block/unblock support.
+
+2006-08-18 22:40 +0000 [r13-24]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c: Forgot to add the translation of message type to string
+
+	* README, isup.c, libss7.h: Add a few more messages. Update the
+	  readme
+
+	* Makefile: Update to build on x86-64 correctly (#7750)
+
+	* isup.h: Oh yeah, need the definition :-)
+
+	* README, isup.c: Update to README file, as well as another
+	  parameter.
+
+	* README: Clarify a bit better on how it works.
+
+	* README: Added a tested switchtype section
+
+	* isup.c: Make sure we don't do a warning on optional parameters.
+
+	* isup.c: Make sure we terminate the number after we get the ST
+	  character.
+
+	* isup.c: Apparently I broke it in the midst of doing ANSI support
+	  :-(
+
+	* isup.c: Handle unrecognzied optional parameters more forgivingly
+
+	* isup.c: Make sure we don't return -1 on unknown optional
+	  parameter
+
+2006-08-12 22:47 +0000 [r10-12]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c, isup.h, libss7.h: More continuity check work.
+
+	* isup.c, libss7.h: Rest of continuity check and continuty check
+	  request events
+
+	* README, isup.c, isup.h: Add continuity and continuity check
+	  request messages
+
+2006-08-04 17:32 +0000 [r2-9]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c: Fix more signedness issues. (#7658)
+
+	* ss7.c, mtp2.c, mtp3.c: Make sure we consistently use signed vs
+	  unsigned types
+
+	* ss7test.c: Make sure we use the correct new location for zaptel.h
+	  (#7657)
+
+	* isup.c, mtp3.c: Add support for ANSI style CICs
+
+	* ss7.c, mtp2.c, mtp2.h: Implement ANSI MTP2 timers.
+
+	* ss7.c, isup.c, libss7.h: Add support for the connect message.
+
+	* README (added): Add a small readme file
+
+	* Makefile (added), ss7.c (added), ss7test.c (added),
+	  ss7_internal.h (added), mkdep (added), isup.c (added), mtp2.c
+	  (added), ss7_sched.c (added), mtp3.c (added), isup.h (added),
+	  mtp2.h (added), libss7.h (added), mtp3.h (added), ss7linktest.c
+	  (added): Inital check-in of libss7. Yay!!!!
+
+2006-08-01 23:48 +0000 [r1]  Kevin P. Fleming <kpfleming@digium.com>
+
+	* / (added): create basic directory structure
+
