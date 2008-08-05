@@ -1,3 +1,34 @@
+/*
+ * libss7: An implementation of Signalling System 7
+ *
+ * Written by Matthew Fredrickson <creslin@digium.com>
+ *
+ * scheduling routines taken from libpri by Mark Spencer <markster@digium.com>
+ *
+ * Copyright (C) 2006-2008, Digium, Inc
+ * All Rights Reserved.
+ */
+
+/*
+ * See http://www.asterisk.org for more information about
+ * the Asterisk project. Please do not directly contact
+ * any of the maintainers of this project for assistance;
+ * the project provides a web site, mailing lists and IRC
+ * channels for your use.
+ *
+ * This program is free software, distributed under the terms of
+ * the GNU General Public License Version 2 as published by the
+ * Free Software Foundation. See the LICENSE file included with
+ * this program for more details.
+ *
+ * In addition, when this program is distributed with Asterisk in
+ * any form that would qualify as a 'combined work' or as a
+ * 'derivative work' (but not mere aggregation), you can redistribute
+ * and/or modify the combination under the terms of the license
+ * provided with that copy of Asterisk, instead of the license
+ * terms granted here.
+ */
+
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -197,7 +228,7 @@ void myprintf(struct ss7 *ss7, char *fmt)
 int zap_open(int devnum, int *ismtp2)
 {
 	int fd;
-	DAHDI_BUFFERINFO bi;
+	struct dahdi_bufferinfo bi;
 	struct dahdi_params z;
 	fd = open("/dev/dahdi/channel", O_RDWR|O_NONBLOCK, 0600);
 	if ((fd < 0) || (ioctl(fd, DAHDI_SPECIFY, &devnum) == -1)) {

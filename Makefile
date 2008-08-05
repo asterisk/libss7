@@ -18,8 +18,8 @@ LDCONFIG=/sbin/ldconfig
 
 UTILITIES=parser_debug
 
-ifneq ($(wildcard /usr/include/zaptel/zaptel.h),)
-	UTILITIES+=ss7test ss7linktest
+ifneq ($(wildcard /usr/include/dahdi/user.h),)
+UTILITIES+=ss7test ss7linktest
 endif
 
 export SS7VERSION
@@ -80,3 +80,6 @@ libss7: ss7_mtp.o mtp.o ss7.o ss7_sched.o
 
 FORCE:
 
+ifneq ($(wildcard .*.d),)
+   include .*.d
+endif
