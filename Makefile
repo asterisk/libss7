@@ -46,7 +46,7 @@ install: $(STATIC_LIBRARY) $(DYNAMIC_LIBRARY)
 	mkdir -p $(INSTALL_PREFIX)$(INSTALL_BASE)/include
 	install -m 644 libss7.h $(INSTALL_PREFIX)$(INSTALL_BASE)/include
 	install -m 755 $(DYNAMIC_LIBRARY) $(INSTALL_PREFIX)$(libdir)
-	( cd $(INSTALL_PREFIX)$(libdir) ; ln -sf libss7.so.1 libss7.so ; $(SOSLINK) )
+	( cd $(INSTALL_PREFIX)$(libdir) ; ln -sf libss7.so.1 libss7.so ; ln -sf libss7.so.1.0 libss7.so.1 ; $(SOSLINK) )
 	install -m 644 $(STATIC_LIBRARY) $(INSTALL_PREFIX)$(libdir)
 	if test $$(id -u) = 0; then $(LDCONFIG); fi
 
@@ -58,6 +58,7 @@ $(DYNAMIC_LIBRARY): $(DYNAMIC_OBJS)
 	$(CC) -shared $(SOFLAGS) -o $@ $(DYNAMIC_OBJS)
 	$(LDCONFIG) $(LDCONFIG_FLAGS) .
 	ln -sf libss7.so.1 libss7.so
+	ln -sf libss7.so.1.0 libss7.so.1
 	$(SOSLINK)
 
 version.c: FORCE
