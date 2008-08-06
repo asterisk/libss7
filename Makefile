@@ -4,7 +4,7 @@ AWK=awk
 
 OSARCH=$(shell uname -s)
 
-INSTALL_PREFIX?=
+INSTALL_PREFIX=$(DESTDIR)
 INSTALL_BASE=/usr
 libdir?=$(INSTALL_BASE)/lib
 STATIC_OBJS=mtp2.o ss7_sched.o ss7.o mtp3.o isup.o version.o
