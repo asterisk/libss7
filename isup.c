@@ -1683,10 +1683,10 @@ static FUNC_DUMP(echo_control_info_dump)
 			hg_str = "incoming echo control device deactivation request";
 			break;
 		case 3:
-			fe_str = "spare";
+			hg_str = "spare";
 			break;
 		default:
-			fe_str = "unknown";
+			hg_str = "unknown";
 			break;
 	}
 
