@@ -262,7 +262,7 @@ void print_args(void)
 	printf("ss7linktest [sigchan number] [ss7 style - itu or ansi] [OPC - in decimal] [DPC - in decimal]\n");
 	printf("Example:\n");
 	printf("ss7linktest 16 itu 1 2\n");
-	printf("This would run the linktest program on zap/16 with ITU style signalling, with an OPC of 1 and a DPC of 2\n");
+	printf("This would run the linktest program on dahdi/16 with ITU style signalling, with an OPC of 1 and a DPC of 2\n");
 }
 
 int main(int argc, char *argv[])
