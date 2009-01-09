@@ -1,0 +1,60 @@
+Hey all,
+
+It's that time again, time for a news/status update for what's going on 
+with libss7.
+
+1.0.0 Release:
+==============
+First of all, to let everyone know, we had a 1.0.0 release of libss7 a 
+few weeks ago (and recently a 1.0.1 as well), so that's a good thing.  I 
+also would like to thank all of you that have had issues that have come 
+to me with them.  Because of one person on this list in particular, I 
+think we have eliminating all the remaining critical bugs in libss7 that 
+were causing crash related problems (under particular circumstances).
+
+Astricon 2008:
+==============
+For all of you that did not see my post about it earlier, I would love 
+to see as many of you as can show up at Astricon this year (end of 
+September).  Like I mentioned, I'm going to be giving a talk about 
+Asterisk and SS7.  I'm planning on discussing basic configuration setup, 
+common configuration problems that people run into and debugging 
+techniques which can be used, as well as advanced topics such as the 
+current "state of the art" with where libss7 is and some potential 
+directions for future development with Asterisk and SS7.
+
+Also, I would like to (if there is enough interest) try to get together 
+with some of you sometime that week to talk about the status of Asterisk 
+and SS7 and what kinds of things that we can improve upon and work on in 
+the future.
+
+Confidence Boosters:
+====================
+There are some very good and very interesting things that have been 
+happening.  If any of you know Joseph on this list, he works for a 
+mobile phone company in Kentucky.  He is using Asterisk with libss7 to 
+provide voicemail services to his mobile subscribers.
+
+He has quite a good setup for helping me find issues, and is also a good 
+indicator for how well libss7 is doing stability and scalability wise. 
+Well the news is that running a current version of libss7/Asterisk-1.6.0 
+branch he has been running a load over 100,000 calls per day for close 
+to a month, with no link related stability problems and no Asterisk issues.
+
+I have heard much positive feedback from many of you about the more 
+recent versions of libss7/Asterisk-1.6.0.  If there are any of you out 
+there with a setup that you would like to share about (especially if you 
+think your setup is unusual in any way, whether it be high number of 
+T1/E1s or high volume of call traffic) I personally would be very 
+interested in hearing about them, publicly or privately if you do not 
+feel you can disclose it to the list.
+
+New Features and Changes:
+=========================
+- Aside from the few outstanding bugs that were fixed, there is not much 
+to talk about.  We are getting quite a robust set of supported messages 
+and parameters, which is making this section less prone to change.  :-) 
+
+As always, any of you have any questions or concern, please let me know. 
+  You can get in contact with me with my contact information below.
+
