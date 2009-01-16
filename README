@@ -9,8 +9,8 @@ link test programs, as well as the Asterisk Open Source PBX.
 
 License:
 ========
-libss7 is covered under the GPL (Gnu Public License) version 2.  For more
-information, see http://www.gnu.org/
+libss7 is covered under the GNU GPL (General Public License) version 2.  For more
+information, see http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 
 A few tested switches:
 ======================
