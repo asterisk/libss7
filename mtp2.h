@@ -49,6 +49,7 @@
 #define ITU_TIMER_T3		1500
 #define ITU_TIMER_T4_NORMAL	8500
 #define ITU_TIMER_T4_EMERGENCY	500
+#define ITU_TIMER_T7		1250
 
 /* ANSI links */
 #define ANSI_TIMER_T1		16000
@@ -56,6 +57,7 @@
 #define ANSI_TIMER_T3		11500
 #define ANSI_TIMER_T4_NORMAL	2300
 #define ANSI_TIMER_T4_EMERGENCY	600
+#define ANSI_TIMER_T7		1250 /* FIX IT !!!! */
 
 /* Bottom 3 bits in LSSU status field */
 #define LSSU_SIO	0	/* Out of alignment */
@@ -80,6 +82,7 @@
 #define MTP_PROVING		3
 #define MTP_ALIGNEDREADY	4
 #define MTP_INSERVICE		5
+#define MTP_ALARM		6
 
 struct mtp_su_head {
 	/* Common header for all signaling units */
@@ -100,22 +103,43 @@ struct mtp2_timers {
 	int t3;
 	int t4;
 	int t4e;
+	int t7;
 };
 
+#define TCPSTATE_NEED_LEN 0
+#define TCPSTATE_NEED_MSG 1
+
+#define MTP2_MAX_NAME 128
+
 struct mtp2 {
+	char name[MTP2_MAX_NAME];
 	int state;
+	int std_test_passed;
+	int inhibit;
+	int changeover;
+	unsigned int got_sent_netmsg;	
+
+	struct ss7_msg *co_buf;
+	struct ss7_msg *cb_buf;
+
 	unsigned char curfsn:7;
 	unsigned char curfib:1;
 	unsigned char lastfsnacked:7;
+	unsigned char co_lastfsnacked:7; /* store here before reset_mtp clear */
+
 	unsigned char curbib:1;
 	int fd;
 	int flags;
+
+	int mtp3_timer[MTP3_MAX_TIMERS];
+	int q707_t1_failed;
 
 	/* Timers */
 	int t1;
 	int t2;
 	int t3;
 	int t4;
+	int t7;
 	struct mtp2_timers timers;
 
 	int slc;
@@ -127,7 +151,6 @@ struct mtp2 {
 	int autotxsutype;
 	int lastsurxd;
 	int lastsutxd;
-	int sent_tra;
 
 	/* Line related stats */
 	unsigned int retransmissioncount;
@@ -135,21 +158,36 @@ struct mtp2 {
 	struct ss7_msg *tx_buf;
 	struct ss7_msg *tx_q;
 	struct ss7_msg *retransmit_pos;
+	struct ss7_msg *co_tx_buf; /* store here before reset_mtp flush it */
+	struct ss7_msg *co_tx_q;
+	struct adjacent_sp *adj_sp;
+	unsigned char cb_seq;
 	struct ss7 *master;
+
+	/* Some TCP specific variables */
+	int tcplen;
+	int tcpreadstate;
 };
 
 /* Flags for the struct mtp2 flags parameter */
 #define MTP2_FLAG_ZAPMTP2 (1 << 0)
 #define MTP2_FLAG_WRITE (1 << 1)
+#define MTP2_FLAG_TCP (1 << 2)
 
 /* Initialize MTP link */
 int mtp2_start(struct mtp2 *link, int emergency);
 int mtp2_stop(struct mtp2 *link);
+int mtp2_alarm(struct mtp2 *link);
+int mtp2_noalarm(struct mtp2 *link);
 int mtp2_setstate(struct mtp2 *link, int state);
-struct mtp2 * mtp2_new(int fd, unsigned int switchtype);
+struct mtp2 * mtp2_new(char *name, unsigned int switchtype);
 int mtp2_transmit(struct mtp2 *link);
-int mtp2_receive(struct mtp2 *link, unsigned char *buf, int len);
+int mtp2_receive(struct mtp2 *link);
 int mtp2_msu(struct mtp2 *link, struct ss7_msg *m);
 void mtp2_dump(struct mtp2 *link, char prefix, unsigned char *buf, int len);
+char *linkstate2strext(int linkstate);
+void update_txbuf(struct mtp2 *link, struct ss7_msg **buf, unsigned char upto);
+int len_buf(struct ss7_msg *buf);
+void flush_bufs(struct mtp2 *link);
 
 #endif /* _SS7_MTP_H */

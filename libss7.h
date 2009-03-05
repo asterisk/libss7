@@ -35,6 +35,7 @@
 /* Internal -- MTP2 events */
 #define SS7_EVENT_UP		1
 #define SS7_EVENT_DOWN		2
+
 #define MTP2_LINK_UP		3
 #define MTP2_LINK_DOWN		4
 #define ISUP_EVENT_IAM		5
@@ -54,8 +55,6 @@
 #define ISUP_EVENT_UBA		18
 #define ISUP_EVENT_CGB		19
 #define ISUP_EVENT_CGU		20
-#define ISUP_EVENT_CGBA		19
-#define ISUP_EVENT_CGUA		20
 #define ISUP_EVENT_RSC		21
 #define ISUP_EVENT_CPG		22
 #define ISUP_EVENT_UCIC		23
@@ -65,6 +64,33 @@
 #define ISUP_EVENT_FAA		27
 #define ISUP_EVENT_CVT		28
 #define ISUP_EVENT_CVR		29
+#define ISUP_EVENT_CGBA		30
+#define ISUP_EVENT_CGUA		31
+#define ISUP_EVENT_SUS		32
+#define ISUP_EVENT_RES		33
+#define ISUP_EVENT_SAM		34
+
+/* ISUP MSG Flags */
+#define ISUP_SENT_GRS (1 << 0)
+#define ISUP_SENT_CGB (1 << 1)
+#define ISUP_SENT_CGU (1 << 2)
+#define ISUP_SENT_RSC (1 << 3)
+#define ISUP_SENT_REL (1 << 4)
+#define ISUP_SENT_BLO (1 << 5)
+#define ISUP_SENT_UBL (1 << 6)
+#define ISUP_SENT_IAM (1 << 7)
+#define ISUP_SENT_FAR (1 << 8)
+#define ISUP_GOT_CCR  (1 << 9)
+#define ISUP_GOT_IAM  (1 << 10)
+#define ISUP_GOT_ACM  (1 << 11)
+#define ISUP_GOT_CON  (1 << 12)
+#define ISUP_GOT_ANM  (1 << 13)
+#define ISUP_SENT_ACM (1 << 14)
+#define ISUP_SENT_CON (1 << 17)
+#define ISUP_SENT_ANM (1 << 18)
+#define ISUP_SENT_INR (1 << 19)
+
+#define ISUP_CALL_CONNECTED (ISUP_GOT_ACM | ISUP_GOT_ANM | ISUP_GOT_CON |  ISUP_SENT_CON | ISUP_SENT_ACM | ISUP_SENT_ANM)
 
 /* Different SS7 types */
 #define SS7_ITU		(1 << 0)
@@ -86,6 +112,7 @@
 #define SS7_NAI_UNKNOWN			0x02
 #define SS7_NAI_NATIONAL               	0x03
 #define SS7_NAI_INTERNATIONAL          	0x04
+#define SS7_NAI_NETWORKROUTED					0x08
 
 /* Charge Number Nature of Address Indicator ANSI */
 #define SS7_ANI_CALLING_PARTY_SUB_NUMBER			0x01	/* ANI of the calling party; subscriber number */
@@ -118,6 +145,30 @@
 #define SS7_TRANSPORT_DAHDIDCHAN	0
 #define SS7_TRANSPORT_DAHDIMTP2		1
 #define SS7_TRANSPORT_TCP		2
+
+/* What have to do after the hangup */
+#define SS7_HANGUP_DO_NOTHING 0
+#define SS7_HANGUP_SEND_REL 1
+#define SS7_HANGUP_SEND_RSC 2
+#define SS7_HANGUP_SEND_RLC 3
+#define SS7_HANGUP_FREE_CALL 4
+#define SS7_HANGUP_REEVENT_IAM 5
+
+/* Special SS7 Hangupcause */
+#define SS7_CAUSE_TRY_AGAIN 256
+
+/* return values from ss7_hangup */
+#define SS7_CIC_NOT_EXISTS 0
+#define SS7_CIC_USED 1
+#define SS7_CIC_IDLE 2
+
+/* Closed user group indicator */
+#define ISUP_CUG_NON 0
+#define ISUP_CUG_OUTGOING_ALLOWED 2
+#define ISUP_CUG_OUTGOING_NOT_ALLOWED 3
+
+/* FLAGS */
+#define SS7_INR_IF_NO_CALLING (1 << 0) /* request calling num, if the remote party didn't send */
 
 struct ss7;
 struct isup_call;
@@ -160,13 +211,23 @@ typedef struct {
 	unsigned char redirecting_num_nai;
 	unsigned char redirecting_num_presentation_ind;
 	unsigned char redirecting_num_screening_ind;
+	unsigned char redirect_counter;
+	unsigned char redirect_info;
+	unsigned char redirect_info_ind;
+	unsigned char redirect_info_orig_reas;
+	unsigned char redirect_info_reas;
+	unsigned char redirect_info_counter;
 	unsigned char generic_name_typeofname;
 	unsigned char generic_name_avail;
 	unsigned char generic_name_presentation;
+	unsigned char echocontrol_ind;
 	char generic_name[50];
 	int oli_ani2;
+	unsigned char cug_indicator;
+	char cug_interlock_ni[5];
+	unsigned short cug_interlock_code;
 	unsigned int opc;
-	
+	unsigned long got_sent_msg;
 	struct isup_call *call;
 } ss7_event_iam;
 
@@ -175,6 +236,7 @@ typedef struct {
 	int cic;
 	int cause;
 	unsigned int opc;
+	unsigned long got_sent_msg;
 	struct isup_call *call;
 } ss7_event_rel;
 
@@ -182,19 +244,37 @@ typedef struct {
 	int e;
 	int cic;
 	unsigned int opc;
-} ss7_event_ciconly;
+	unsigned long got_sent_msg;
+	unsigned char susres_ind;
+	struct isup_call *call;
+} ss7_event_susres;
 
 typedef struct {
 	int e;
 	int cic;
 	unsigned int opc;
+	unsigned long got_sent_msg;
 	struct isup_call *call;
+} ss7_event_cic;
+
+typedef struct {
+	int e;
+	int cic;
+	unsigned int opc;
+	unsigned long got_sent_msg;
+	struct isup_call *call;
+	char connected_num[50];
+	unsigned char connected_nai;
+	unsigned char connected_presentation_ind;
+	unsigned char connected_screening_ind;
+	unsigned char echocontrol_ind;
 } ss7_event_con;
 
 typedef struct {
 	int e;
 	int cic;
 	unsigned int opc;
+	unsigned long got_sent_msg;
 	struct isup_call *call;
 } ss7_event_rsc;
 
@@ -202,6 +282,12 @@ typedef struct {
 	int e;
 	int cic;
 	unsigned int opc;
+	char connected_num[50];
+	unsigned char connected_nai;
+	unsigned char connected_presentation_ind;
+	unsigned char connected_screening_ind;
+	unsigned long got_sent_msg;
+	unsigned char echocontrol_ind;
 	struct isup_call *call;
 } ss7_event_anm;
 
@@ -211,18 +297,25 @@ typedef struct {
 	unsigned int call_ref_ident;
 	unsigned int call_ref_pc;
 	unsigned int opc;
+	unsigned long got_sent_msg;
 	struct isup_call *call;
 	/* Backward call indicator */
 	unsigned char called_party_status_ind;
+	unsigned char echocontrol_ind;
 } ss7_event_acm;
 
 typedef struct {
 	int e;
 	int startcic;
 	int endcic;
+	int sent_endcic;
 	int type;
+	int sent_type;
 	unsigned int opc;
 	unsigned char status[255];
+	unsigned int sent_status[255];
+	unsigned long got_sent_msg;
+	struct isup_call *call;
 } ss7_event_cicrange;
 
 typedef struct {
@@ -230,12 +323,13 @@ typedef struct {
 	int cic;
 	int passed;
 	unsigned int opc;
+	unsigned long got_sent_msg;
 	struct isup_call *call;
 } ss7_event_cot;
 
 typedef struct {
 	int e;
-	unsigned int data;
+	int data;
 } ss7_event_generic;
 
 typedef struct {
@@ -243,6 +337,9 @@ typedef struct {
 	int cic;
 	unsigned int opc;
 	unsigned char event;
+	unsigned long got_sent_msg;
+	unsigned char echocontrol_ind;
+	struct isup_call *call;
 } ss7_event_cpg;
 
 typedef struct {
@@ -263,6 +360,17 @@ typedef struct {
 	struct isup_call *call;
 } ss7_event_far;
 
+typedef struct {
+	int e;
+	int cic;
+	unsigned int opc;
+	char called_party_num[50];
+	unsigned char called_nai;
+	int cot_check_required;
+	int cot_check_passed;
+	unsigned long got_sent_msg;
+	struct isup_call *call;
+} ss7_event_sam;
 
 typedef union {
 	int e;
@@ -276,23 +384,25 @@ typedef union {
 	ss7_event_cicrange cgba;
 	ss7_event_cicrange cgua;
 	ss7_event_rel rel;
-	ss7_event_ciconly rlc;
+	ss7_event_cic rlc;
 	ss7_event_anm anm;
 	ss7_event_acm acm;
 	ss7_event_faa faa;
 	ss7_event_far far;
 	ss7_event_con con;
 	ss7_event_cot cot;
-	ss7_event_ciconly ccr;
-	ss7_event_ciconly cvt;
-	ss7_event_ciconly blo;
-	ss7_event_ciconly ubl;
-	ss7_event_ciconly bla;
-	ss7_event_ciconly uba;
-	ss7_event_ciconly ucic;
+	ss7_event_cic ccr;
+	ss7_event_cic cvt;
+	ss7_event_cic blo;
+	ss7_event_cic ubl;
+	ss7_event_cic bla;
+	ss7_event_cic uba;
+	ss7_event_cic ucic;
 	ss7_event_rsc rsc;
 	ss7_event_cpg cpg;
-	ss7_event_ciconly lpa;
+	ss7_event_cic lpa;
+	ss7_event_susres susres;
+	ss7_event_sam sam;
 } ss7_event;
 
 void ss7_set_message(void (*func)(struct ss7 *ss7, char *message));
@@ -301,14 +411,20 @@ void ss7_set_error(void (*func)(struct ss7 *ss7, char *message));
 
 void ss7_set_debug(struct ss7 *ss7, unsigned int flags);
 
+void ss7_set_notinservice(void (*func)(struct ss7 *ss7, int cic, unsigned int dpc));
+
+void ss7_set_hangup(int (*func)(struct ss7 *ss7, int cic, unsigned int dpc, int cause, int do_hangup));
+
+void ss7_set_call_null(void (*func)(struct ss7 *ss7, struct isup_call *c, int lock));
+
 /* SS7 Link control related functions */
 int ss7_schedule_run(struct ss7 *ss7);
 
 struct timeval *ss7_schedule_next(struct ss7 *ss7);
 
-int ss7_add_link(struct ss7 *ss7, int transport, int fd);
+int ss7_add_link(struct ss7 *ss7, int transport, char *name, int slc, unsigned int adjpc);
 
-int ss7_set_adjpc(struct ss7 *ss7, int fd, unsigned int pc);
+int ss7_set_link_fd(struct ss7 *ss7, char *name, int fd);
 
 int ss7_set_network_ind(struct ss7 *ss7, int ni);
 
@@ -317,6 +433,14 @@ int ss7_set_pc(struct ss7 *ss7, unsigned int pc);
 int ss7_set_default_dpc(struct ss7 *ss7, unsigned int pc);
 
 struct ss7 *ss7_new(int switchtype);
+
+void ss7_destroy(struct ss7 *ss7);
+
+void ss7_set_flags(struct ss7 *ss7, unsigned int flags);
+
+void ss7_set_sls_shift(struct ss7 *ss7, unsigned char shift);
+
+void ss7_clear_flags(struct ss7 *ss7, unsigned int flags);
 
 ss7_event *ss7_check_event(struct ss7 *ss7);
 
@@ -336,10 +460,20 @@ const char *ss7_get_version(void);
 
 int ss7_pollflags(struct ss7 *ss7, int fd);
 
+int ss7_set_mtp3_timer(struct ss7 *ss7, char *name, int ms);
+
 /* ISUP call related message functions */
+
+int ss7_set_isup_timer(struct ss7 *ss7, char *name, int ms);
+
+struct isup_call * isup_free_call_if_clear(struct ss7 *ss7, struct isup_call *c);
 
 /* Send an IAM */
 int isup_iam(struct ss7 *ss7, struct isup_call *c);
+
+int isup_inr(struct ss7 *ss7, struct isup_call *c, unsigned char ind0, unsigned char ind1);
+
+int isup_inf(struct ss7 *ss7, struct isup_call *c, unsigned char ind0, unsigned char ind1);
 
 int isup_anm(struct ss7 *ss7, struct isup_call *c);
 
@@ -357,48 +491,69 @@ int isup_rel(struct ss7 *ss7, struct isup_call *c, int cause);
 
 int isup_rlc(struct ss7 *ss7, struct isup_call *c);
 
+int isup_sus(struct ss7 *ss7, struct isup_call *c, unsigned char indicator);
+
+int isup_res(struct ss7 *ss7, struct isup_call *c, unsigned char indicator);
+
 int isup_cpg(struct ss7 *ss7, struct isup_call *c, int event);
 
 int isup_lpa(struct ss7 *ss7, int cic, unsigned int dpc);
 
-int isup_gra(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc);
+int isup_gra(struct ss7 *ss7, struct isup_call *c, int endcic, unsigned char state[]);
 
-int isup_grs(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc);
+int isup_grs(struct ss7 *ss7, struct isup_call *c, int endcic);
 
-int isup_cgb(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsigned char state[], int type);
+int isup_cgb(struct ss7 *ss7, struct isup_call *c, int endcic, unsigned char state[], int type);
 
-int isup_cgu(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsigned char state[], int type);
+int isup_cgu(struct ss7 *ss7, struct isup_call *c, int endcic, unsigned char state[], int type);
 
-int isup_cgba(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsigned char state[], int type);
+int isup_cgba(struct ss7 *ss7, struct isup_call *c, int endcic, unsigned char state[]);
 
-int isup_cgua(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsigned char state[], int type);
+int isup_cgua(struct ss7 *ss7, struct isup_call *c, int endcic, unsigned char state[]);
 
-int isup_blo(struct ss7 *ss7, int cic, unsigned int dpc);
+int isup_blo(struct ss7 *ss7, struct isup_call *c);
 
-int isup_ubl(struct ss7 *ss7, int cic, unsigned int dpc);
+int isup_ubl(struct ss7 *ss7, struct isup_call *c);
 
-int isup_ccr(struct ss7 *ss7, int cic, unsigned int dpc);
+/*int isup_ccr(struct ss7 *ss7, int cic, unsigned int dpc); have not implemented ! */
 
-int isup_bla(struct ss7 *ss7, int cic, unsigned int dpc);
+int isup_bla(struct ss7 *ss7, struct isup_call *c);
 
 int isup_ucic(struct ss7 *ss7, int cic, unsigned int dpc);
 
-int isup_uba(struct ss7 *ss7, int cic, unsigned int dpc);
+int isup_uba(struct ss7 *ss7, struct isup_call *c);
 
-int isup_rsc(struct ss7 *ss7, int cic, unsigned int dpc);
+int isup_rsc(struct ss7 *ss7, struct isup_call *c);
 
 int isup_cvr(struct ss7 *ss7, int cic, unsigned int dpc);
 
 int isup_cqr(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsigned char status[]);
 
+int isup_event_iam(struct ss7 *ss7, struct isup_call *c, int opc);
+
+void isup_clear_callflags(struct ss7 *ss7, struct isup_call *c, unsigned long flags);
+
 /* Various call related sets */
 void isup_init_call(struct ss7 *ss7, struct isup_call *c, int cic, unsigned int dpc);
+
+void isup_free_call(struct ss7 *ss7, struct isup_call *c);
 
 void isup_set_call_dpc(struct isup_call *c, unsigned int dpc);
 
 void isup_set_called(struct isup_call *c, const char *called, unsigned char called_nai, const struct ss7 *ss7);
 
 void isup_set_calling(struct isup_call *c, const char *calling, unsigned char calling_nai, unsigned char presentation_ind, unsigned char screening_ind);
+
+void isup_set_connected(struct isup_call *c, const char *connected, unsigned char connected_nai, unsigned char connected_presentation_ind, unsigned char connected_screening_ind);
+
+void isup_set_redirecting_number(struct isup_call *c, const char *redirecting_number, unsigned char redirecting_num_nai, unsigned char redirecting_num_presentation_ind, unsigned char redirecting_num_screening_ind);
+
+void isup_set_redirectiong_info(struct isup_call *c, unsigned char redirect_info_ind, unsigned char redirect_info_orig_reas,
+		unsigned char redirect_info_counter, unsigned char redirect_info_reas);
+
+void isup_set_redirect_counter(struct isup_call *c, unsigned char redirect_counter);
+
+void isup_set_orig_called_num(struct isup_call *c, const char *orig_called_num, unsigned char orig_called_nai, unsigned char orig_called_pres_ind, unsigned char orig_called_screening_ind);
 
 void isup_set_charge(struct isup_call *c, const char *charge, unsigned char charge_nai, unsigned char charge_num_plan);
 
@@ -407,6 +562,12 @@ void isup_set_oli(struct isup_call *c, int oli_ani2);
 void isup_set_gen_address(struct isup_call *c, const char *gen_number, unsigned char gen_add_nai, unsigned char gen_pres_ind, unsigned char gen_num_plan, unsigned char gen_add_type);
 
 void isup_set_gen_digits(struct isup_call *c, const char *gen_number, unsigned char gen_dig_type, unsigned char gen_dig_scheme);
+
+void isup_set_col_req(struct isup_call *c);
+
+void isup_set_cug(struct isup_call *c, unsigned char cug_indicator, const char *cug_interlock_ni, unsigned short cug_interlock_code);
+
+void isup_set_echocontrol(struct isup_call *c, unsigned char ec);
 
 enum {
 	GEN_NAME_PRES_ALLOWED = 0,
@@ -437,6 +598,21 @@ void isup_set_callref(struct isup_call *c, unsigned int call_ref_ident, unsigned
 
 /* End of call related sets */
 
+int isup_show_calls(struct ss7 *ss7, void (* cust_printf)(int fd, const char *format, ...), int fd);
 
+void ss7_show_linkset(struct ss7 *ss7, void (* cust_printf)(int fd, const char *format, ...), int fd);
+
+/* net mng */
+char * mtp3_net_mng(struct ss7 *ss7, unsigned int slc, char *cmd, unsigned int param);
+
+void mtp3_init_restart(struct ss7 *ss7, int slc);
+
+int ss7_set_mtp3_timer(struct ss7 *ss7, char *name, int ms);
+
+void ss7_pc_to_str(int ss7type, unsigned int pc, char *str);
+
+int isup_masquerade_add_route(struct ss7 *ss7, int startcic, int endcic, unsigned int opc);
+
+int isup_masquerade_set_route_fd(struct ss7 *ss7, int fd, int startcic, int endcic, unsigned int opc);
 
 #endif /* _LIBSS7_H */

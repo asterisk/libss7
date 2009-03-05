@@ -133,6 +133,33 @@
 #define ISUP_PARM_FACILITY_IND 0x18
 #define ISUP_PARM_REDIRECTING_NUMBER 0x0b 
 #define ISUP_PARM_ACCESS_DELIVERY_INFO 0x2e
+#define ISUP_PARM_REDIRECT_COUNTER 0x77
+#define ISUP_PARM_SUSRES_IND 0x22
+#define ISUP_PARM_INF_IND 0x0f
+#define ISUP_PARM_INR_IND 0x0e
+#define ISUP_PARM_SUBSEQUENT_NUMBER 0x05
+#define ISUP_CONNECTED_NUMBER 0x21
+
+/* ISUP TIMERS  */
+#define ISUP_TIMER_T1 1
+#define ISUP_TIMER_T2 2
+#define ISUP_TIMER_T5 5
+#define ISUP_TIMER_T6 6
+#define ISUP_TIMER_T7 7
+#define ISUP_TIMER_T12 12
+#define ISUP_TIMER_T13 13
+#define ISUP_TIMER_T14 14
+#define ISUP_TIMER_T15 15
+#define ISUP_TIMER_T16 16
+#define ISUP_TIMER_T17 17
+#define ISUP_TIMER_T18 18
+#define ISUP_TIMER_T19 19
+#define ISUP_TIMER_T20 20
+#define ISUP_TIMER_T21 21
+#define ISUP_TIMER_T22 22
+#define ISUP_TIMER_T23 23
+#define ISUP_TIMER_T33 33
+#define ISUP_TIMER_T35 35
 
 /* ISUP Parameter Pseudo-type */
 struct isup_parm_opt {
@@ -190,11 +217,23 @@ struct isup_call {
 	unsigned char redirecting_num_nai;
 	unsigned char redirecting_num_presentation_ind;
 	unsigned char redirecting_num_screening_ind;
+	unsigned char redirect_counter;
+	unsigned char redirect_info;
+	unsigned char redirect_info_ind;
+	unsigned char redirect_info_orig_reas;
+	unsigned char redirect_info_counter;
+	unsigned char redirect_info_reas;
 	unsigned char generic_name_typeofname;
 	unsigned char generic_name_avail;
 	unsigned char generic_name_presentation;
+	char connected_num[ISUP_MAX_NUM];
+	unsigned char connected_nai;
+	unsigned char connected_presentation_ind;
+	unsigned char connected_screening_ind;
 	char generic_name[ISUP_MAX_NAME];
 	int range;
+	unsigned char sent_cgb_status[255];
+	unsigned char sent_cgu_status[255];
 	unsigned char status[255];
 	int transcap;
 	int l1prot;
@@ -207,14 +246,32 @@ struct isup_call {
 	unsigned char event_info;
 	unsigned short cic;
 	unsigned char sls;
+	unsigned long got_sent_msg; /* flags for sent msgs */
+	int sent_cgb_type;
+	int sent_cgu_type;
+	int sent_grs_endcic;
+	int sent_cgb_endcic;
+	int sent_cgu_endcic;
 	struct isup_call *next;
 	/* set DPC according to CIC's DPC, not linkset */
 	unsigned int dpc;
 	/* Backward Call Indicator variables */
 	unsigned char called_party_status_ind;
+	unsigned char local_echocontrol_ind;
+	unsigned char echocontrol_ind;
+	unsigned char susres_ind;
+	unsigned char inr_ind[2];
+	unsigned char inf_ind[2];
+	unsigned char cug_indicator;
+	unsigned col_req;
+	char cug_interlock_ni[5];
+	unsigned short cug_interlock_code;
+	int timer[ISUP_MAX_TIMERS];
 };
 
 int isup_receive(struct ss7 *ss7, struct mtp2 *sl, struct routing_label *rl, unsigned char *sif, int len);
 
 int isup_dump(struct ss7 *ss7, struct mtp2 *sl, unsigned char *sif, int len);
+
+void isup_free_all_calls(struct ss7 *ss7);
 #endif /* _SS7_ISUP_H */

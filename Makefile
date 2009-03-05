@@ -7,8 +7,8 @@ OSARCH=$(shell uname -s)
 INSTALL_PREFIX=$(DESTDIR)
 INSTALL_BASE=/usr
 libdir?=$(INSTALL_BASE)/lib
-STATIC_OBJS=mtp2.o ss7_sched.o ss7.o mtp3.o isup.o version.o
-DYNAMIC_OBJS=mtp2.o ss7_sched.o ss7.o mtp3.o isup.o version.o
+STATIC_OBJS=mtp2.o ss7_sched.o ss7.o mtp3.o isup.o version.o isup_masq.o
+DYNAMIC_OBJS=mtp2.o ss7_sched.o ss7.o mtp3.o isup.o version.o isup_masq.o
 STATIC_LIBRARY=libss7.a
 DYNAMIC_LIBRARY=libss7.so.1.0
 CFLAGS=-Wall -Werror -Wstrict-prototypes -Wmissing-prototypes -g -fPIC
@@ -16,7 +16,7 @@ LDCONFIG_FLAGS=-n
 SOFLAGS=-Wl,-hlibss7.so.1
 LDCONFIG=/sbin/ldconfig
 
-UTILITIES=parser_debug
+#UTILITIES=parser_debug
 
 ifneq ($(wildcard /usr/include/dahdi/user.h),)
 UTILITIES+=ss7test ss7linktest

@@ -46,6 +46,7 @@ int main(int argc, char **argv)
 	int ss7type;
 	int res = 0, i = 0, size;
 	ss7_event *e;
+	struct ss7_msg *m;
 
 	if (argc != 3)
 		return -1;
@@ -59,14 +60,16 @@ int main(int argc, char **argv)
 
 	ss7 = ss7_new(ss7type);
 
+	m = ss7_msg_new();
+
 	fp = fopen(argv[2], "r");
 
 	while (res != EOF) {
 		res = fscanf(fp, "%x ", &tmp);
-		mybuf[i++] = (unsigned char) tmp;
+		m->buf[i++] = (unsigned char) tmp;
 	}
 
-	size = i + 1;
+	m->size = i + 1;
 
 	for (i = 0; i < size; i++) {
 		printf("%.2x ", mybuf[i]);
@@ -74,12 +77,12 @@ int main(int argc, char **argv)
 
 	printf("\n");
 
-	ss7_add_link(ss7, SS7_TRANSPORT_DAHDIDCHAN, 10);
+	ss7_add_link(ss7, SS7_TRANSPORT_DAHDIDCHAN, 10, -1, 0);
 
 	ss7->debug = SS7_DEBUG_MTP2 | SS7_DEBUG_MTP3 | SS7_DEBUG_ISUP;
 	ss7->links[0]->state = MTP_INSERVICE;
 
-	mtp2_receive(ss7->links[0], mybuf, size);
+	mtp2_receive(ss7->links[0], m);
 
 	e = ss7_check_event(ss7);
 
