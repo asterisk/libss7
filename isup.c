@@ -498,7 +498,7 @@ static FUNC_RECV(calling_party_cat_receive)
 
 static FUNC_SEND(calling_party_cat_transmit)
 {
-	parm[0] = 0x0a; /* Default to Ordinary calling subscriber */
+       parm[0] = c->calling_party_cat;
 	return 1;
 }
 
@@ -2484,6 +2484,7 @@ static void init_isup_call(struct isup_call *c)
 	c->oli_ani2 = -1;
 	c->range = 0;
 	c->got_sent_msg = 0;
+	c->calling_party_cat = 0x0a; /* Default to Ordinary calling subscriber */
 }
 
 static struct isup_call * __isup_new_call(struct ss7 *ss7, int nolink)
@@ -2671,6 +2672,11 @@ void isup_set_callref(struct isup_call *c, unsigned int call_ref_ident, unsigned
 {
 	c->call_ref_ident = call_ref_ident;
 	c->call_ref_pc = call_ref_pc;
+}
+
+void isup_set_calling_party_category(struct isup_call *c, unsigned int category)
+{
+        c->calling_party_cat = category;
 }
 
 void isup_init_call(struct ss7 *ss7, struct isup_call *c, int cic, unsigned int dpc)

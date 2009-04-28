@@ -596,6 +596,8 @@ void isup_set_lspi(struct isup_call *c, const char *lspi_ident, unsigned char ls
 
 void isup_set_callref(struct isup_call *c, unsigned int call_ref_ident, unsigned int call_ref_pc);
 
+void isup_set_calling_party_category(struct isup_call *c, unsigned int category);
+
 /* End of call related sets */
 
 int isup_show_calls(struct ss7 *ss7, void (* cust_printf)(int fd, const char *format, ...), int fd);
