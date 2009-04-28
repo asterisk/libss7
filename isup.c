@@ -380,6 +380,11 @@ static FUNC_RECV(nature_of_connection_ind_receive)
 	else
 		c->cot_check_required = 0;
 
+	if (cci == 0x2)
+		c->cot_performed_on_previous_cic = 1;
+	else
+		c->cot_performed_on_previous_cic = 0;
+
 	if (parm[0] & 0x10)
 		c->echocontrol_ind = 1;
 	else
@@ -3306,6 +3311,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->sam.got_sent_msg = c->got_sent_msg;
 			e->sam.cot_check_passed = c->cot_check_passed;
 			e->sam.cot_check_required = c->cot_check_required;
+			e->sam.cot_performed_on_previous_cic = c->cot_performed_on_previous_cic;
 			isup_start_timer(ss7, c, ISUP_TIMER_T35);
 			return 0;
 		case ISUP_INF:
@@ -3541,7 +3547,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			return 0;
 		case ISUP_COT:
 			/* Got we CCR or CCR in IAM ?*/
-			if (!(c->got_sent_msg & ISUP_GOT_CCR)) {
+			if (!(c->got_sent_msg & ISUP_GOT_CCR) & !c->cot_performed_on_previous_cic) {
 				ss7_message(ss7, "Got COT but we didn't got CCR previously on CIC %d PC %d ", c->cic, opc);
 				return isup_handle_unexpected(ss7, c, opc);
 			}
@@ -3556,6 +3562,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->e = ISUP_EVENT_COT;
 			e->cot.cic = c->cic;
 			e->cot.passed = c->cot_check_passed;
+			e->cot.cot_performed_on_previous_cic = c->cot_performed_on_previous_cic;
 			if (!c->cot_check_passed)
 				c->got_sent_msg &= ~ISUP_GOT_IAM; /* we will get a new IAM but we are kepping the call */
 			e->cot.call = c;
@@ -3938,6 +3945,7 @@ int isup_event_iam(struct ss7 *ss7, struct isup_call *c, int opc)
 	e->iam.cic = c->cic;
 	e->iam.transcap = c->transcap;
 	e->iam.cot_check_required = c->cot_check_required;
+	e->iam.cot_performed_on_previous_cic = c->cot_performed_on_previous_cic;
 	c->cot_check_passed = 0;
 	strncpy(e->iam.called_party_num, c->called_party_num, sizeof(e->iam.called_party_num));
 	e->iam.called_nai = c->called_nai;

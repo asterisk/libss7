@@ -179,6 +179,7 @@ typedef struct {
 	int cic;
 	int transcap;
 	int cot_check_required;
+	int cot_performed_on_previous_cic;
 	char called_party_num[50];
 	unsigned char called_nai;
 	char calling_party_num[50];
@@ -323,6 +324,7 @@ typedef struct {
 	int e;
 	int cic;
 	int passed;
+	int cot_performed_on_previous_cic;
 	unsigned int opc;
 	unsigned long got_sent_msg;
 	struct isup_call *call;
@@ -369,6 +371,7 @@ typedef struct {
 	unsigned char called_nai;
 	int cot_check_required;
 	int cot_check_passed;
+	int cot_performed_on_previous_cic;
 	unsigned long got_sent_msg;
 	struct isup_call *call;
 } ss7_event_sam;

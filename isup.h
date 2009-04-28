@@ -146,6 +146,7 @@
 #define ISUP_TIMER_T5 5
 #define ISUP_TIMER_T6 6
 #define ISUP_TIMER_T7 7
+#define ISUP_TIMER_T8 8
 #define ISUP_TIMER_T12 12
 #define ISUP_TIMER_T13 13
 #define ISUP_TIMER_T14 14
@@ -242,6 +243,7 @@ struct isup_call {
 	int causeloc;
 	int cot_check_passed;
 	int cot_check_required;
+	int cot_performed_on_previous_cic;
 	int cicgroupsupervisiontype;
 	unsigned char event_info;
 	unsigned short cic;
