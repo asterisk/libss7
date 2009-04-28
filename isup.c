@@ -3296,6 +3296,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->sam.called_nai = c->called_nai;
 			e->sam.got_sent_msg = c->got_sent_msg;
 			e->sam.cot_check_passed = c->cot_check_passed;
+			e->sam.cot_check_required = c->cot_check_required;
 			isup_start_timer(ss7, c, ISUP_TIMER_T35);
 			return 0;
 		case ISUP_INF:
