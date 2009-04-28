@@ -422,7 +422,11 @@ static FUNC_DUMP(nature_of_connection_ind_dump)
 static FUNC_SEND(forward_call_ind_transmit)
 {
 	parm[0] = 0x60;
-	parm[1] = 0x01;
+	parm[1] = 0x0;
+
+	if (ss7->flags & SS7_ISDN_ACCESS_INDICATOR)
+		parm [1] |= 0x01;
+
 	return 2;
 }
 
@@ -679,9 +683,14 @@ static FUNC_RECV(backward_call_ind_receive)
 static FUNC_SEND(backward_call_ind_transmit)
 {
 	parm[0] = 0x40;
-	parm[1] = 0x14;
+	parm[1] = 0x04;
+
 	if (c->local_echocontrol_ind)
 		parm[1] |= 0x20;
+
+	if (ss7->flags | SS7_ISDN_ACCESS_INDICATOR)
+		parm[1] |= 0x10;
+
 	return 2;
 }
 

@@ -169,6 +169,7 @@
 
 /* FLAGS */
 #define SS7_INR_IF_NO_CALLING (1 << 0) /* request calling num, if the remote party didn't send */
+#define SS7_ISDN_ACCESS_INDICATOR (1 << 1) /* originating/access indicator */
 
 struct ss7;
 struct isup_call;
