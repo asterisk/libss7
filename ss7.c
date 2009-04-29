@@ -667,8 +667,8 @@ void ss7_show_linkset(struct ss7 *ss7, void (* cust_printf)(int fd, const char *
 		adj_sp = ss7->adj_sps[j];
 		ss7_pc_to_str(ss7->switchtype, adj_sp->adjpc, pc_str);
 		cust_printf(fd, "  ---------------------------------\n  Adjacent SP PC: %s STATE: %s\n", pc_str, mtp3_state(adj_sp->state));
-		cust_printf(fd, "  TRA:  %s%s    T19: %s\n", (adj_sp->tra & GOT) ? "GOT " : "", (adj_sp->tra & SENT) ? "SENT" : "",
-				(adj_sp->timer_t19 > -1) ? "running" : "not running");
+		cust_printf(fd, "  TRA:  %s%s    T19: %s T21: %s\n", (adj_sp->tra & GOT) ? "GOT " : "", (adj_sp->tra & SENT) ? "SENT" : "",
+				(adj_sp->timer_t19 > -1) ? "running" : "not running", (adj_sp->timer_t21 > -1) ? "running" : "not running");
 
 		cust_printf(fd, "  Routes:\n");
 		cust_printf(fd, "    DPC       State        T6       T10\n");

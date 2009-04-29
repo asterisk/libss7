@@ -124,6 +124,7 @@
 #define MTP3_TIMER_T13 10
 #define MTP3_TIMER_T14 11
 #define MTP3_TIMER_T19 12
+#define MTP3_TIMER_T21 13
 
 #define MTP3_TIMER_T22 14
 #define MTP3_TIMER_T23 15
@@ -177,6 +178,7 @@ struct adjacent_sp {
 	struct mtp2 *links[SS7_MAX_LINKS];
 	unsigned int numlinks;
 	int timer_t19;
+	int timer_t21;
 	unsigned int tra;
 	struct ss7 *master;
 	struct mtp3_route *routes;

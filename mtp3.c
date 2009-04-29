@@ -667,10 +667,17 @@ static void mtp3_check(struct adjacent_sp *adj_sp)
 	if (!count && adj_sp->state != MTP3_DOWN) {
 		adj_sp->state = MTP3_DOWN;
 		adj_sp->tra = 0;
+
 		if (adj_sp->timer_t19 > -1) {
 			ss7_schedule_del(ss7, &adj_sp->timer_t19);
 			ss7_message(ss7, "MTP3 T19 timer stopped PC: %i\n", adj_sp->adjpc);
 		}
+
+		if (adj_sp->timer_t21 > -1) {
+			ss7_schedule_del(ss7, &adj_sp->timer_t21);
+			ss7_message(ss7, "MTP3 T21 timer stopped PC: %i\n", adj_sp->adjpc);
+		}
+
 		for (i = 0; i < adj_sp->numlinks; i++) {
 			adj_sp->links[i]->got_sent_netmsg = 0;
 			mtp3_stop_all_timers_except_cocb(adj_sp->links[i]);
@@ -745,6 +752,9 @@ void mtp3_init_restart(struct ss7 *ss7, int slc)
 	
 	if (adj_sp->timer_t19 > -1)
 		ss7_schedule_del(ss7, &adj_sp->timer_t19);
+
+	if (adj_sp->timer_t21 > -1)
+		ss7_schedule_del(ss7, &adj_sp->timer_t21);
 	
 	//AUTORL(rl, link);
 	//net_mng_send(link, NET_MNG_TRA, rl, 0);
@@ -864,6 +874,15 @@ static void mtp3_t19_expiry(void * data)
 	struct adjacent_sp *adj_sp = data;
 	adj_sp->timer_t19 = -1;
 	ss7_message(adj_sp->master, "MTP3 T19 timer expired PC:%i\n", adj_sp->adjpc);
+}
+
+static void mtp3_t21_expiry(void * data)
+{
+	struct adjacent_sp *adj_sp = data;
+	adj_sp->timer_t21 = -1;
+	adj_sp->tra |= GOT;
+	ss7_message(adj_sp->master, "MTP3 T21 timer expired and accepting traffic from PC:%i\n", adj_sp->adjpc);
+	mtp3_check(adj_sp);
 }
 
 static void mtp3_t22_expired(void *data)
@@ -1086,6 +1105,12 @@ static int net_mng_receive(struct ss7 *ss7, struct mtp2 *mtp2, struct routing_la
 					mtp2->adj_sp->timer_t19 = ss7_schedule_event(ss7, ss7->mtp3_timers[MTP3_TIMER_T19], mtp3_t19_expiry, mtp2->adj_sp);
 					ss7_message(ss7, "MTP3 T19 timer started PC: %i\n", mtp2->adj_sp->adjpc);
 			}
+
+			if (mtp2->adj_sp->timer_t21 > -1) {
+				ss7_schedule_del(ss7, &mtp2->adj_sp->timer_t21);
+				ss7_message(ss7, "MTP3 T21 timer stopped PC: %i\n", mtp2->adj_sp->adjpc);
+			}
+
 			mtp2->adj_sp->tra |= GOT;
 			mtp3_check(mtp2->adj_sp);
 			return 0;
@@ -1437,6 +1462,12 @@ int net_mng_send(struct mtp2 *link, unsigned char h0h1, struct routing_label rl,
 			}
 			break;
 		case NET_MNG_TRA:
+			/* we are not an stp, so we can start the T21 now */
+			if (ss7->mtp3_timers[MTP3_TIMER_T21] > 0 && link->adj_sp->timer_t21 == -1) {
+				link->adj_sp->timer_t21 = ss7_schedule_event(ss7, ss7->mtp3_timers[MTP3_TIMER_T21],
+					&mtp3_t21_expiry, link->adj_sp);
+			}
+
 			link->adj_sp->tra |= SENT;
 			ss7_msg_userpart_len(m, rllen + 1); /* no more params */
 			break;
@@ -2037,6 +2068,8 @@ int ss7_set_mtp3_timer(struct ss7 *ss7, char *name, int ms)
 		ss7->mtp3_timers[MTP3_TIMER_T14] = ms;
 	else if (!strcasecmp(name, "t19"))
 		ss7->mtp3_timers[MTP3_TIMER_T19] = ms;
+	else if (!strcasecmp(name, "t21"))
+		ss7->mtp3_timers[MTP3_TIMER_T21] = ms;
 	else if (!strcasecmp(name, "t22"))
 		ss7->mtp3_timers[MTP3_TIMER_T22] = ms;
 	else if (!strcasecmp(name, "t23"))
@@ -2078,6 +2111,8 @@ char * mtp3_timer2str(int mtp3_timer)
 			return "T14";
 		case MTP3_TIMER_T19:
 			return "T19";
+		case MTP3_TIMER_T21:
+			return "T21";
 		case MTP3_TIMER_T22:
 			return "T22";
 		case MTP3_TIMER_T23:
@@ -2125,6 +2160,7 @@ static inline void mtp3_new_adjsp(struct ss7 *ss7, struct mtp2 *link)
 	ss7->adj_sps[ss7->numsps] = new;
 	
 	new->timer_t19 = -1;
+	new->timer_t21 = -1;
 	new->master = ss7;
 	new->links[0] = link;
 	new->numlinks = 1;
