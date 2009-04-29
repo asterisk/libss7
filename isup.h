@@ -159,6 +159,7 @@
 #define ISUP_TIMER_T21 21
 #define ISUP_TIMER_T22 22
 #define ISUP_TIMER_T23 23
+#define ISUP_TIMER_T27 27
 #define ISUP_TIMER_T33 33
 #define ISUP_TIMER_T35 35
 

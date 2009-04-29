@@ -3569,6 +3569,9 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->cot.opc = opc; /* keep OPC information */
 			e->cot.got_sent_msg = c->got_sent_msg;
 			c->got_sent_msg &= ~ISUP_GOT_CCR;
+			isup_stop_timer(ss7, c, ISUP_TIMER_T8);
+			if (!c->cot_check_passed)
+				isup_start_timer(ss7, c, ISUP_TIMER_T27);
 			return 0;
 		case ISUP_CCR:
 			e = ss7_next_empty_event(ss7);
@@ -3583,6 +3586,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->ccr.opc = opc; /* keep OPC information */
 			e->ccr.call = c;
 			e->ccr.got_sent_msg = c->got_sent_msg;
+			isup_stop_timer(ss7, c, ISUP_TIMER_T27);
 			return 0;
 		case ISUP_CVT:
 			e = ss7_next_empty_event(ss7);
@@ -3997,6 +4001,10 @@ int isup_event_iam(struct ss7 *ss7, struct isup_call *c, int opc)
 	e->iam.echocontrol_ind = c->echocontrol_ind;
 	if (!strchr(c->called_party_num, '#'))
 		isup_start_timer(ss7, c, ISUP_TIMER_T35);
+
+	if (c->cot_check_required || c->cot_performed_on_previous_cic)
+		isup_start_timer(ss7, c, ISUP_TIMER_T8);
+	
 	return 0;
 }
 
@@ -4348,6 +4356,8 @@ int isup_rel(struct ss7 *ss7, struct isup_call *c, int cause)
 
 	if (res > -1) {
 		isup_stop_timer(ss7, c, ISUP_TIMER_T7);
+		isup_stop_timer(ss7, c, ISUP_TIMER_T8);
+		isup_stop_timer(ss7, c, ISUP_TIMER_T27);
 		isup_stop_timer(ss7, c, ISUP_TIMER_T2);
 		isup_stop_timer(ss7, c, ISUP_TIMER_T6);
 		isup_stop_timer(ss7, c, ISUP_TIMER_T35);
@@ -4727,6 +4737,9 @@ static int isup_timer2str(int timer, char *res)
 		case ISUP_TIMER_T7:
 			strcpy (res, "t7");
 			return 3;
+		case ISUP_TIMER_T8:
+			strcpy (res, "t8");
+			return 3;
 		case ISUP_TIMER_T12:
 			strcpy (res, "t12");
 			return 4;
@@ -4763,6 +4776,9 @@ static int isup_timer2str(int timer, char *res)
 		case ISUP_TIMER_T23:
 			strcpy (res, "t23");
 			return 4;
+		case ISUP_TIMER_T27:
+			strcpy (res, "t27");
+			return 4;
 		case ISUP_TIMER_T33:
 			strcpy (res, "t33");
 			return 4;
@@ -4787,6 +4803,8 @@ int ss7_set_isup_timer(struct ss7 *ss7, char *name, int ms)
 		ss7->isup_timers[ISUP_TIMER_T6] = ms;
 	else if (!strcasecmp(name, "t7"))
 		ss7->isup_timers[ISUP_TIMER_T7] = ms;
+	else if (!strcasecmp(name, "t8"))
+		ss7->isup_timers[ISUP_TIMER_T8] = ms;
 	else if (!strcasecmp(name, "t12"))
 		ss7->isup_timers[ISUP_TIMER_T12] = ms;
 	else if (!strcasecmp(name, "t13"))
@@ -4811,6 +4829,8 @@ int ss7_set_isup_timer(struct ss7 *ss7, char *name, int ms)
 		ss7->isup_timers[ISUP_TIMER_T22] = ms;
 	else if (!strcasecmp(name, "t23"))
 		ss7->isup_timers[ISUP_TIMER_T23] = ms;
+	else if (!strcasecmp(name, "t27"))
+		ss7->isup_timers[ISUP_TIMER_T27] = ms;
 	else if (!strcasecmp(name, "t33"))
 		ss7->isup_timers[ISUP_TIMER_T33] = ms;
 	else if (!strcasecmp(name, "t35"))
@@ -4856,6 +4876,9 @@ static void isup_timer_expiry(void *data)
 			break;
 		case ISUP_TIMER_T7:
 			ss7_hangup(param->ss7, param->c->cic, param->c->dpc, 31, SS7_HANGUP_SEND_REL);
+			break;
+		case ISUP_TIMER_T8:
+			isup_rel(param->ss7, param->c, 16); /* I'm not sure it's the right cause code */
 			break;
 		case ISUP_TIMER_T5:
 			ss7_notinservice(param->ss7, param->c->cic, param->c->dpc);
@@ -4918,6 +4941,9 @@ static void isup_timer_expiry(void *data)
 				isup_start_timer(param->ss7, param->c, ISUP_TIMER_T22);
 			param->c->range = param->c->sent_grs_endcic - param->c->cic;
 			isup_send_message(param->ss7, param->c, ISUP_GRS, greset_params);
+			break;
+		case ISUP_TIMER_T27:
+			isup_rsc(param->ss7, param->c);
 			break;
 		case ISUP_TIMER_T33:
 			param->c->got_sent_msg &= ~ISUP_SENT_INR;
