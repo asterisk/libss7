@@ -786,8 +786,7 @@ struct mtp2 * mtp2_new(char *name, unsigned int switchtype)
 
 	reset_mtp(new);
 
-	strncpy(new->name, name, sizeof(new->name));
-	new->name[sizeof(new->name)] = 0;
+	strncpy(new->name, name, sizeof(new->name) - 1);
 
 	new->fd = -1;
 	new->autotxsutype = LSSU_SIOS;
