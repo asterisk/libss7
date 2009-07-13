@@ -42,7 +42,7 @@ To Use:
 =======
 In order to use libss7, you must get at least the following versions of DAHDI and Asterisk:
 DAHDI: 2.0.x
-libss7: 1.0.x or trunk
+libss7: 1.0.x
 Asterisk: 1.6.x
 
 You must then do a `make; make install` in each of the directories that you installed
