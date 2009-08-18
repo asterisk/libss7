@@ -45,10 +45,9 @@ install: $(STATIC_LIBRARY) $(DYNAMIC_LIBRARY)
 	mkdir -p $(INSTALL_PREFIX)$(libdir)
 	mkdir -p $(INSTALL_PREFIX)$(INSTALL_BASE)/include
 	install -m 644 libss7.h $(INSTALL_PREFIX)$(INSTALL_BASE)/include
-	install -m 755 $(DYNAMIC_LIBRARY) $(INSTALL_PREFIX)$(libdir)
-	( cd $(INSTALL_PREFIX)$(libdir) ; ln -sf libss7.so.1 libss7.so ; ln -sf libss7.so.1.0 libss7.so.1 )
+	cp -dp *.so* $(INSTALL_PREFIX)$(libdir)
 	install -m 644 $(STATIC_LIBRARY) $(INSTALL_PREFIX)$(libdir)
-	if test $$(id -u) = 0; then $(LDCONFIG); fi
+	$(LDCONFIG) 2> /dev/null || :
 
 $(STATIC_LIBRARY): $(STATIC_OBJS)
 	ar rcs $(STATIC_LIBRARY) $(STATIC_OBJS)
