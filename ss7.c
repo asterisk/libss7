@@ -270,7 +270,7 @@ int ss7_add_link(struct ss7 *ss7, int transport, char *name, int slc, unsigned i
 	if (ss7->numlinks >= SS7_MAX_LINKS)
 		return -1;
 
-	if (!name && (name[0] == 0))
+	if (!name || (name[0] == 0))
 		return -1;
 
 	m = mtp2_new(name, ss7->switchtype);
