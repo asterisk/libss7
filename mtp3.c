@@ -173,6 +173,21 @@ static inline unsigned char  get_h1(unsigned char *byte)
 	return (((*byte) & 0xf0) >> 4);
 }
 
+static inline struct mtp2 * slc_to_link(struct ss7 *ss7, unsigned char sls)
+{
+	struct mtp2 *winner = ss7->links[0];
+	int i;
+
+	for (i = 0; i < ss7->numlinks; i++) {
+		if (ss7->links[i]->slc == sls) {
+			winner = ss7->links[i];
+			break;
+		}
+	}
+
+	return winner;
+}
+
 static inline struct mtp2 * sls_to_link(struct ss7 *ss7, unsigned char sls)
 {
 	if (ss7->mtp2_linkstate[sls % ss7->numlinks] == MTP2_LINKSTATE_UP)
@@ -293,7 +308,7 @@ static void std_test_send(struct mtp2 *link)
 
 	set_h0(layer4, 1);
 	set_h1(layer4, 1);
-	layer4[1] = (testlen << 4);
+	layer4[1] = (testlen << 4) | (link->slc & 0xf);
 	memcpy(&layer4[2], testmessage, testlen);
 
 	ss7_msg_userpart_len(m, rllen + testlen + 2);
@@ -422,7 +437,7 @@ static int std_test_receive(struct ss7 *ss7, struct mtp2 *mtp2, unsigned char *b
 		/* Success! */
 		set_h0(layer4, 1);
 		set_h1(layer4, 2);
-		layer4[1] = (testpatsize << 4);
+		layer4[1] = (testpatsize << 4) | (mtp2->slc & 0xf);
 		memcpy(&layer4[2], &headerptr[2], testpatsize);
 		
 		ss7_msg_userpart_len(m, rllen + testpatsize + 2);
@@ -462,7 +477,10 @@ int mtp3_transmit(struct ss7 *ss7, unsigned char userpart, unsigned char sls, st
 	sio = m->buf + MTP2_SIZE;
 	sif = sio + 1;
 
-	winner = sls_to_link(ss7, sls);
+	if (userpart != SIG_ISUP)
+		winner = slc_to_link(ss7, sls);
+	else
+		winner = sls_to_link(ss7, sls);
 
 	if (ss7->switchtype == SS7_ITU)
 		(*sio) = (ss7->ni << 6) | userpart;

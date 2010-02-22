@@ -89,6 +89,8 @@ static int cicgroup_params[] = { ISUP_PARM_CIRCUIT_GROUP_SUPERVISION_IND, ISUP_P
 
 static int cqr_params[] = { ISUP_PARM_RANGE_AND_STATUS, ISUP_PARM_CIRCUIT_STATE_IND, -1};
 
+static int sus_res_params[] = { ISUP_PARM_SUSPEND_RESUME_IND, -1};
+
 static int empty_params[] = { -1};
 
 static struct message_data {
@@ -126,7 +128,9 @@ static struct message_data {
 	{ISUP_CQR, 0, 2, 0, cqr_params},
 	{ISUP_FAA, 1, 0, 1, faa_params},
 	{ISUP_FAR, 1, 0, 1, far_params},
-	{ISUP_CFN, 0, 1, 0, rel_params}
+	{ISUP_CFN, 0, 1, 0, rel_params},
+	{ISUP_SUS, 1, 0, 1, sus_res_params},
+	{ISUP_RES, 1, 0, 1, sus_res_params}
 };
 
 static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagetype, int parms[]);
@@ -188,6 +192,10 @@ static char * message2str(unsigned char message)
 			return "CVR";
 		case ISUP_CFN:
 			return "CFN";
+		case ISUP_SUS:
+			return "SUS";
+		case ISUP_RES:
+			return "RES";
 		default:
 			return "Unknown";
 	}
@@ -1972,6 +1980,18 @@ static FUNC_SEND(access_transport_transmit)
 	return len;	
 }	
 
+static FUNC_DUMP(suspend_resume_ind_dump)
+{
+	int indicator = parm[0] & 1;
+	ss7_message(ss7, "\t\t\t%s (%d)", indicator ? "Network initiated" : "ISDN Subscriber initiated", indicator);
+	return 1;	
+}	
+
+static FUNC_RECV(suspend_resume_ind_receive)
+{
+	c->network_isdn_indicator = parm[0] & 1;
+	return 1;	
+}	
 
 static struct parm_func parms[] = {
 	{ISUP_PARM_NATURE_OF_CONNECTION_IND, "Nature of Connection Indicator", nature_of_connection_ind_dump, nature_of_connection_ind_receive, nature_of_connection_ind_transmit },
@@ -2018,6 +2038,7 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_FACILITY_IND, "Facility Indicator", facility_ind_dump, facility_ind_receive, facility_ind_transmit},
 	{ISUP_PARM_REDIRECTING_NUMBER, "Redirecting Number", redirecting_number_dump, redirecting_number_receive, redirecting_number_transmit},
 	{ISUP_PARM_ACCESS_DELIVERY_INFO, "Access Delivery Information", },
+	{ISUP_PARM_SUSPEND_RESUME_IND, "Suspend/Resume Indicators", suspend_resume_ind_dump, suspend_resume_ind_receive},
 };
 
 static char * param2str(int parm)
@@ -3064,6 +3085,32 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->far.call_ref_pc = c->call_ref_pc;
 			e->ucic.opc = opc; /* keep OPC information */
 			e->far.call = c;
+			return 0;
+		case ISUP_RES:
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
+			e->e = ISUP_EVENT_RES;
+			e->res.cic = c->cic;
+			e->res.opc = opc; /* keep OPC information */
+			e->res.call = c;
+			e->res.network_isdn_indicator = c->network_isdn_indicator;
+			return 0;
+		case ISUP_SUS:
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
+			e->e = ISUP_EVENT_SUS;
+			e->sus.cic = c->cic;
+			e->sus.opc = opc; /* keep OPC information */
+			e->sus.call = c;
+			e->sus.network_isdn_indicator = c->network_isdn_indicator;
 			return 0;
 		default:
 			isup_free_call(ss7, c);

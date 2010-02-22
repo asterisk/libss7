@@ -89,6 +89,7 @@
 #define ISUP_EXM	0xed
 
 /* ISUP Parameters */
+#define ISUP_PARM_SUSPEND_RESUME_IND 0x22
 #define ISUP_PARM_NATURE_OF_CONNECTION_IND 0x06
 #define ISUP_PARM_FORWARD_CALL_IND 0x07
 #define ISUP_PARM_CALLING_PARTY_CAT 0x09
@@ -212,6 +213,8 @@ struct isup_call {
 	unsigned int dpc;
 	/* Backward Call Indicator variables */
 	unsigned char called_party_status_ind;
+	/* Suspend/Resume Indicator */
+	int network_isdn_indicator;
 };
 
 int isup_receive(struct ss7 *ss7, struct mtp2 *sl, struct routing_label *rl, unsigned char *sif, int len);

@@ -240,6 +240,24 @@ int ss7_pollflags(struct ss7 *ss7, int fd)
 }
 
 /* TODO: Add entry to routing table instead */
+int ss7_set_slc(struct ss7 *ss7, int fd, unsigned int slc)
+{
+	int i;
+	int winner = -1;
+
+	for (i = 0; i < ss7->numlinks; i++) {
+		if (ss7->links[i]->fd == fd)
+			winner = i;
+	}
+	if (winner > -1)
+		ss7->links[winner]->slc = slc;
+	else
+		return -1;
+
+	return 0;
+}
+
+/* TODO: Add entry to routing table instead */
 int ss7_set_adjpc(struct ss7 *ss7, int fd, unsigned int pc)
 {
 	int i;

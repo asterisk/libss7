@@ -65,6 +65,8 @@
 #define ISUP_EVENT_FAA		27
 #define ISUP_EVENT_CVT		28
 #define ISUP_EVENT_CVR		29
+#define ISUP_EVENT_SUS		30
+#define ISUP_EVENT_RES		31
 
 /* Different SS7 types */
 #define SS7_ITU		(1 << 0)
@@ -263,6 +265,14 @@ typedef struct {
 	struct isup_call *call;
 } ss7_event_far;
 
+typedef struct {
+	int e;
+	int cic;
+	int network_isdn_indicator;
+	unsigned int opc;
+	struct isup_call *call;
+} ss7_event_sus_res;
+
 
 typedef union {
 	int e;
@@ -292,6 +302,8 @@ typedef union {
 	ss7_event_ciconly ucic;
 	ss7_event_rsc rsc;
 	ss7_event_cpg cpg;
+	ss7_event_sus_res sus;
+	ss7_event_sus_res res;
 	ss7_event_ciconly lpa;
 } ss7_event;
 
@@ -309,6 +321,8 @@ struct timeval *ss7_schedule_next(struct ss7 *ss7);
 int ss7_add_link(struct ss7 *ss7, int transport, int fd);
 
 int ss7_set_adjpc(struct ss7 *ss7, int fd, unsigned int pc);
+
+int ss7_set_slc(struct ss7 *ss7, int fd, unsigned int slc);
 
 int ss7_set_network_ind(struct ss7 *ss7, int ni);
 
