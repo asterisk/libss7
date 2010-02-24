@@ -441,7 +441,10 @@ static int std_test_receive(struct ss7 *ss7, struct mtp2 *mtp2, unsigned char *b
 		/* Success! */
 		set_h0(layer4, 1);
 		set_h1(layer4, 2);
-		layer4[1] = (testpatsize << 4) | (mtp2->slc & 0xf);
+		if (ss7->switchtype == SS7_ANSI)
+			layer4[1] = (testpatsize << 4) | (mtp2->slc & 0xf);
+		else
+			layer4[1] = (testpatsize << 4);
 		memcpy(&layer4[2], &headerptr[2], testpatsize);
 		
 		ss7_msg_userpart_len(m, rllen + testpatsize + 2);
