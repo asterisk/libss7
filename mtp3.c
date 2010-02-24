@@ -308,7 +308,11 @@ static void std_test_send(struct mtp2 *link)
 
 	set_h0(layer4, 1);
 	set_h1(layer4, 1);
-	layer4[1] = (testlen << 4) | (link->slc & 0xf);
+	if (ss7->switchtype == SS7_ANSI)
+		layer4[1] = (testlen << 4) | (link->slc & 0xf);
+	else
+		layer4[1] = (testlen << 4);
+
 	memcpy(&layer4[2], testmessage, testlen);
 
 	ss7_msg_userpart_len(m, rllen + testlen + 2);
