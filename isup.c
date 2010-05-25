@@ -338,8 +338,8 @@ static FUNC_RECV(nature_of_connection_ind_receive)
 {
 	unsigned char cci = (parm[0] >> 2) & 0x3;
 
-	if (cci == 0x1)
-		c->cot_check_required = 1;
+	if (cci != 0x3)
+		c->cot_check_required = cci;
 	else
 		c->cot_check_required = 0;
 
