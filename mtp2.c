@@ -434,6 +434,11 @@ void update_txbuf(struct mtp2 *link, struct ss7_msg **buf, unsigned char upto)
 
 static int fisu_rx(struct mtp2 *link, struct mtp_su_head *h, int len)
 {
+	if (link->state == MTP_INSERVICE && h->fsn != link->lastfsnacked && h->fib == link->curbib) {
+		mtp_message(link->master, "Received out of sequence FISU w/ fsn of %d, lastfsnacked = %d, requesting retransmission\n", h->fsn, link->lastfsnacked);
+		mtp2_request_retransmission(link);
+	}
+
 	if (link->lastsurxd == FISU)
 		return 0;
 	else
@@ -446,10 +451,6 @@ static int fisu_rx(struct mtp2 *link, struct mtp_su_head *h, int len)
 		case MTP_ALIGNEDREADY:
 			mtp2_setstate(link, MTP_INSERVICE);
 		case MTP_INSERVICE:
-			if (h->fsn != link->lastfsnacked) {
-				mtp_message(link->master, "Received out of sequence FISU w/ fsn of %d, lastfsnacked = %d, requesting retransmission\n", h->fsn, link->lastfsnacked);
-				mtp2_request_retransmission(link);
-			}
 			break;
 		default:
 			mtp_message(link->master, "Huh?! Got FISU in link state %d\n", link->state);
