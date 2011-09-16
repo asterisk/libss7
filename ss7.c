@@ -46,6 +46,9 @@
 
 static void (*__ss7_message)(struct ss7 *ss7, char *message);
 static void (*__ss7_error)(struct ss7 *ss7, char *message);
+void (*ss7_notinservice)(struct ss7 *ss7, int cic, unsigned int dpc);
+int (*ss7_hangup)(struct ss7 *ss7, int cic, unsigned int dpc, int cause, int do_hangup);
+void (*ss7_call_null)(struct ss7 *ss7, struct isup_call *c, int lock);
 
 void ss7_set_message(void (*func)(struct ss7 *ss7, char *message))
 {

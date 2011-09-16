@@ -168,11 +168,9 @@ void ss7_dump_buf(struct ss7 *ss7, int tabs,  unsigned char *buf, int len);
 
 void ss7_dump_msg(struct ss7 *ss7, unsigned char *buf, int len);
 
-void (*ss7_notinservice)(struct ss7 *ss7, int cic, unsigned int dpc);
-
-int (*ss7_hangup)(struct ss7 *ss7, int cic, unsigned int dpc, int cause, int do_hangup);
-
-void (*ss7_call_null)(struct ss7 *ss7, struct isup_call *c, int lock);
+extern void (*ss7_notinservice)(struct ss7 *ss7, int cic, unsigned int dpc);
+extern int (*ss7_hangup)(struct ss7 *ss7, int cic, unsigned int dpc, int cause, int do_hangup);
+extern void (*ss7_call_null)(struct ss7 *ss7, struct isup_call *c, int lock);
 
 int isup_needs_masquerade(struct ss7 *ss7, struct routing_label *rl, unsigned int cic, unsigned char *buf, int len);
 
