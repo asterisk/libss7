@@ -3120,7 +3120,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 
 static int isup_send_cicgroupmessage(struct ss7 *ss7, int messagetype, int begincic, int endcic, unsigned int dpc, unsigned char status[], int type)
 {
-	struct isup_call call;
+	struct isup_call call = {{0},};
 	int i;
 
 	for (i = 0; (i + begincic) <= endcic; i++)
@@ -3139,7 +3139,7 @@ static int isup_send_cicgroupmessage(struct ss7 *ss7, int messagetype, int begin
 
 int isup_cqr(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsigned char status[])
 {
-	struct isup_call call;
+	struct isup_call call = {{0},};
 	int i;
 
 	for (i = 0; (i + begincic) <= endcic; i++)
@@ -3157,7 +3157,7 @@ int isup_cqr(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsign
 
 int isup_grs(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc)
 {
-	struct isup_call call;
+	struct isup_call call = {{0},};
 
 	if (!ss7)
 		return -1;
@@ -3174,7 +3174,7 @@ int isup_grs(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc)
 
 int isup_gra(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc)
 {
-	struct isup_call call;
+	struct isup_call call = {{0},};
 
 	if (!ss7)
 		return -1;
@@ -3304,7 +3304,8 @@ int isup_rlc(struct ss7 *ss7, struct isup_call *c)
 static int isup_send_message_ciconly(struct ss7 *ss7, int messagetype, int cic, unsigned int dpc)
 {
 	int res;
-	struct isup_call c;
+	struct isup_call c = {{0},};
+
 	c.cic = cic;
 	c.dpc = dpc;
 	res = isup_send_message(ss7, &c, messagetype, empty_params);
