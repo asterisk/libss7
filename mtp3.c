@@ -339,7 +339,6 @@ static int net_mng_receive(struct ss7 *ss7, struct mtp2 *mtp2, unsigned char *bu
 		if (ss7->state != SS7_STATE_UP) {
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
-				mtp_error(ss7, "Event queue full\n");
 				return -1;
 			}
 			e->e = SS7_EVENT_UP;
@@ -458,7 +457,6 @@ static int std_test_receive(struct ss7 *ss7, struct mtp2 *mtp2, unsigned char *b
 		if (ss7->state != SS7_STATE_UP) {
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
-				mtp_error(ss7, "Event queue full\n");
 				return -1;
 			}
 			e->e = SS7_EVENT_UP;
@@ -672,10 +670,10 @@ void mtp3_alarm(struct ss7 *ss7, int fd)
 	}
 	if (!linksup) {
 		ss7->state = SS7_STATE_DOWN;
-		ss7_event *e = ss7_next_empty_event(ss7);
+		ss7_event *e;
 
+		e = ss7_next_empty_event(ss7);
 		if (!e) {
-			ss7_error(ss7, "Event queue full!");
 			return;
 		}
 		e->e = SS7_EVENT_DOWN;

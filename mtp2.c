@@ -586,7 +586,6 @@ int mtp2_setstate(struct mtp2 *link, int newstate)
 					ss7_schedule_del(link->master, &link->t1);
 					e = ss7_next_empty_event(link->master);
 					if (!e) {
-						mtp_error(link->master, "Could not queue event\n");
 						return -1;
 					}
 					e->gen.e = MTP2_LINK_UP;
@@ -602,7 +601,6 @@ int mtp2_setstate(struct mtp2 *link, int newstate)
 			if (newstate != MTP_INSERVICE) {
 				e = ss7_next_empty_event(link->master);
 				if (!e) {
-					mtp_error(link->master, "Could not queue event\n");
 					return -1;
 				}
 				e->gen.e = MTP2_LINK_DOWN;
