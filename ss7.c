@@ -140,7 +140,8 @@ ss7_event * ss7_next_empty_event(struct ss7 *ss7)
 	ss7_event *e;
 
 	if (ss7->ev_len == MAX_EVENTS) {
-		ss7_error(ss7, "Event queue full!\n");
+		/* Should never happen.  If it does, very bad things can happen to the call. */
+		ss7_error(ss7, "Event queue full!  Very bad!\n");
 		return NULL;
 	}
 

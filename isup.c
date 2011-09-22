@@ -2609,6 +2609,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 	int *parms = NULL;
 	int offset = 0;
 	int ourmessage = -1;
+	int not_linked = 0;
 	int fixedparams = 0, varparams = 0, optparams = 0;
 	int res, x;
 	unsigned char *opt_ptr = NULL;
@@ -2667,10 +2668,16 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 		case ISUP_RSC:
 		case ISUP_FAA:
 		case ISUP_FAR:
+		case ISUP_RES:
+		case ISUP_SUS:
 			c = isup_find_call(ss7, rl, cic);
 			break;
 		default:
-			c = __isup_new_call(ss7, 1);
+			not_linked = 1;
+			c = __isup_new_call(ss7, not_linked);
+			if (!c) {
+				break;
+			}
 			c->dpc = rl->opc;
 			c->cic = cic;
 			break;
@@ -2735,8 +2742,10 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 
 	switch (mh->type) {
 		case ISUP_IAM:
+			/* This is a new incoming call. */
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
+				/* Act like we never saw it */
 				isup_free_call(ss7, c);
 				return -1;
 			}
@@ -2785,6 +2794,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->iam.opc = opc; /* keep OPC information */
 			return 0;
 		case ISUP_CQM:
+			/* The call is not linked. */
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
 				isup_free_call(ss7, c);
@@ -2798,6 +2808,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			isup_free_call(ss7, c); /* Won't need this again */
 			return 0;
 		case ISUP_GRS:
+			/* The call is not linked. */
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
 				isup_free_call(ss7, c);
@@ -2807,10 +2818,11 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->e = ISUP_EVENT_GRS;
 			e->grs.startcic = cic;
 			e->grs.endcic = cic + c->range;
-			isup_free_call(ss7, c); /* Won't need this again */
 			e->grs.opc = opc; /* keep OPC information */
+			isup_free_call(ss7, c); /* Won't need this again */
 			return 0;
 		case ISUP_GRA:
+			/* The call is not linked. */
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
 				isup_free_call(ss7, c);
@@ -2829,7 +2841,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 		case ISUP_RSC:
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
-				isup_free_call(ss7, c);
+				/* Act like we never saw it */
 				return -1;
 			}
 
@@ -2841,7 +2853,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 		case ISUP_REL:
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
-				isup_free_call(ss7, c);
+				/* Act like we never saw it */
 				return -1;
 			}
 
@@ -2854,7 +2866,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 		case ISUP_ACM:
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
-				isup_free_call(ss7, c);
+				/* Act like we never saw it */
 				return -1;
 			}
 
@@ -2869,7 +2881,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 		case ISUP_CON:
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
-				isup_free_call(ss7, c);
+				/* Act like we never saw it */
 				return -1;
 			}
 
@@ -2881,7 +2893,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 		case ISUP_ANM:
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
-				isup_free_call(ss7, c);
+				/* Act like we never saw it */
 				return -1;
 			}
 
@@ -2893,19 +2905,20 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 		case ISUP_RLC:
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
-				isup_free_call(ss7, c);
+				/* Act like we never saw it */
 				return -1;
 			}
 
 			e->e = ISUP_EVENT_RLC;
 			e->rlc.cic = c->cic;
 			e->rlc.opc = opc; /* keep OPC information */
+			/* XXX Call ptr really should be passed up! */
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_COT:
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
-				isup_free_call(ss7, c);
+				/* Act like we never saw it */
 				return -1;
 			}
 
@@ -2916,6 +2929,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->cot.opc = opc; /* keep OPC information */
 			return 0;
 		case ISUP_CCR:
+			/* The call is not linked. */
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
 				isup_free_call(ss7, c);
@@ -2928,6 +2942,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_CVT:
+			/* The call is not linked. */
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
 				isup_free_call(ss7, c);
@@ -2939,6 +2954,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_BLO:
+			/* The call is not linked. */
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
 				isup_free_call(ss7, c);
@@ -2951,6 +2967,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_UBL:
+			/* The call is not linked. */
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
 				isup_free_call(ss7, c);
@@ -2963,6 +2980,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_BLA:
+			/* The call is not linked. */
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
 				isup_free_call(ss7, c);
@@ -2975,6 +2993,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_LPA:
+			/* The call is not linked. */
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
 				isup_free_call(ss7, c);
@@ -2987,6 +3006,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_UBA:
+			/* The call is not linked. */
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
 				isup_free_call(ss7, c);
@@ -2999,6 +3019,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_CGB:
+			/* The call is not linked. */
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
 				isup_free_call(ss7, c);
@@ -3017,6 +3038,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			isup_free_call(ss7, c);
 			return 0;
 		case ISUP_CGU:
+			/* The call is not linked. */
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
 				isup_free_call(ss7, c);
@@ -3037,7 +3059,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 		case ISUP_CPG:
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
-				isup_free_call(ss7, c);
+				/* Act like we never saw it */
 				return -1;
 			}
 
@@ -3045,8 +3067,10 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->cpg.cic = c->cic;
 			e->cpg.opc = opc; /* keep OPC information */
 			e->cpg.event = c->event_info;
+			/* XXX Call ptr really should be passed up! */
 			return 0;
 		case ISUP_UCIC:
+			/* The call is not linked. */
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
 				isup_free_call(ss7, c);
@@ -3061,7 +3085,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 		case ISUP_FAA:
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
-				isup_free_call(ss7, c);
+				/* Act like we never saw it */
 				return -1;
 			}
 
@@ -3075,7 +3099,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 		case ISUP_FAR:
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
-				isup_free_call(ss7, c);
+				/* Act like we never saw it */
 				return -1;
 			}
 
@@ -3089,7 +3113,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 		case ISUP_RES:
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
-				isup_free_call(ss7, c);
+				/* Act like we never saw it */
 				return -1;
 			}
 
@@ -3102,7 +3126,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 		case ISUP_SUS:
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
-				isup_free_call(ss7, c);
+				/* Act like we never saw it */
 				return -1;
 			}
 
@@ -3113,7 +3137,9 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->sus.network_isdn_indicator = c->network_isdn_indicator;
 			return 0;
 		default:
-			isup_free_call(ss7, c);
+			if (not_linked) {
+				isup_free_call(ss7, c);
+			}
 			return 0;
 	}
 }
