@@ -35,58 +35,58 @@
 #include "ss7_internal.h"
 
 /* ISUP messages */
-#define ISUP_IAM	0x01
-#define ISUP_SAM	0x02
-#define ISUP_INR	0x03
-#define ISUP_INF	0x04
-#define ISUP_COT	0x05
-#define ISUP_ACM	0x06
-#define ISUP_CON	0x07
-#define ISUP_FOT	0x08
-#define ISUP_ANM	0x09
-#define ISUP_REL	0x0c
-#define ISUP_SUS	0x0d
-#define ISUP_RES	0x0e
-#define ISUP_RLC	0x10
-#define ISUP_CCR	0x11
-#define ISUP_RSC	0x12
-#define ISUP_BLO	0x13
-#define ISUP_UBL	0x14
-#define ISUP_BLA	0x15
-#define ISUP_UBA	0x16
-#define ISUP_GRS	0x17
-#define ISUP_CGB	0x18
-#define ISUP_CGU	0x19
-#define ISUP_CGBA	0x1a
-#define ISUP_CGUA	0x1b
-#define ISUP_CMR	0x1c
-#define ISUP_CMC	0x1d
-#define ISUP_CMRJ	0x1e
-#define ISUP_FAR	0x1f
-#define ISUP_FAA	0x20
-#define ISUP_FRJ	0x21
-#define ISUP_FAD	0x22
-#define ISUP_FAI	0x23
-#define ISUP_LPA	0x24
-#define ISUP_CSVR	0x25
-#define ISUP_CSVS	0x26
-#define ISUP_DRS	0x27
-#define ISUP_PAM	0x28
-#define ISUP_GRA	0x29
-#define ISUP_CQM	0x2a
-#define ISUP_CQR	0x2b
-#define ISUP_CPG	0x2c
-#define ISUP_USR	0x2d
-#define ISUP_UCIC	0x2e
-#define ISUP_CFN	0x2f
-#define ISUP_OLM	0x30
-#define ISUP_CRG	0x31
-#define ISUP_FAC	0x33
-#define ISUP_CRA	0xe9
-#define ISUP_CRM	0xea
-#define ISUP_CVR	0xeb
-#define ISUP_CVT	0xec
-#define ISUP_EXM	0xed
+#define ISUP_IAM	0x01	/*!< Initial address */
+#define ISUP_SAM	0x02	/*!< Subsequent address */
+#define ISUP_INR	0x03	/*!< Information request (national use) */
+#define ISUP_INF	0x04	/*!< Information (national use) */
+#define ISUP_COT	0x05	/*!< Continuity */
+#define ISUP_ACM	0x06	/*!< Address complete */
+#define ISUP_CON	0x07	/*!< Connect */
+#define ISUP_FOT	0x08	/*!< Forward transfer */
+#define ISUP_ANM	0x09	/*!< Answer */
+#define ISUP_REL	0x0c	/*!< Release */
+#define ISUP_SUS	0x0d	/*!< Suspend */
+#define ISUP_RES	0x0e	/*!< Resume */
+#define ISUP_RLC	0x10	/*!< Release complete */
+#define ISUP_CCR	0x11	/*!< Continuity check request */
+#define ISUP_RSC	0x12	/*!< Reset circuit */
+#define ISUP_BLO	0x13	/*!< Blocking */
+#define ISUP_UBL	0x14	/*!< Unblocking */
+#define ISUP_BLA	0x15	/*!< Blocking acknowledgement */
+#define ISUP_UBA	0x16	/*!< Unblocking acknowledgement */
+#define ISUP_GRS	0x17	/*!< Circuit group reset */
+#define ISUP_CGB	0x18	/*!< Circuit group blocking */
+#define ISUP_CGU	0x19	/*!< Circuit group unblocking */
+#define ISUP_CGBA	0x1a	/*!< Circuit group blocking acknowledgement */
+#define ISUP_CGUA	0x1b	/*!< Circuit group unblocking acknowledgement */
+#define ISUP_CMR	0x1c	/*!< Reserved (used in 1988 version) */
+#define ISUP_CMC	0x1d	/*!< Reserved (used in 1988 version) */
+#define ISUP_CMRJ	0x1e	/*!< Reserved (used in 1988 version) */
+#define ISUP_FAR	0x1f	/*!< Facility request */
+#define ISUP_FAA	0x20	/*!< Facility accepted */
+#define ISUP_FRJ	0x21	/*!< Facility reject */
+#define ISUP_FAD	0x22	/*!< Reserved (used in 1984 version) */
+#define ISUP_FAI	0x23	/*!< Reserved (used in 1984 version) */
+#define ISUP_LPA	0x24	/*!< Loop back acknowledgement (national use) */
+#define ISUP_CSVR	0x25	/*!< Reserved (used in 1984 version) */
+#define ISUP_CSVS	0x26	/*!< Reserved (used in 1984 version) */
+#define ISUP_DRS	0x27	/*!< Reserved (used in 1988 version) */
+#define ISUP_PAM	0x28	/*!< Pass-along (national use) */
+#define ISUP_GRA	0x29	/*!< Circuit group reset acknowledgement */
+#define ISUP_CQM	0x2a	/*!< Circuit group query (national use) */
+#define ISUP_CQR	0x2b	/*!< Circuit group query response (national use) */
+#define ISUP_CPG	0x2c	/*!< Call progress */
+#define ISUP_USR	0x2d	/*!< User-to-user information */
+#define ISUP_UCIC	0x2e	/*!< Unequipped CIC (national use) */
+#define ISUP_CFN	0x2f	/*!< Confusion */
+#define ISUP_OLM	0x30	/*!< Overload (national use) */
+#define ISUP_CRG	0x31	/*!< Charge information (national use) */
+#define ISUP_FAC	0x33	/*!< Facility */
+#define ISUP_CRA	0xe9	/*!< ??? */
+#define ISUP_CRM	0xea	/*!< ??? */
+#define ISUP_CVR	0xeb	/*!< ???Used??? */
+#define ISUP_CVT	0xec	/*!< ???Used??? */
+#define ISUP_EXM	0xed	/*!< ??? */
 
 /* ISUP Parameters */
 #define ISUP_PARM_SUSPEND_RESUME_IND 0x22

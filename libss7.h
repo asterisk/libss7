@@ -33,40 +33,39 @@
 #define _LIBSS7_H
 
 /* Internal -- MTP2 events */
-#define SS7_EVENT_UP		1
-#define SS7_EVENT_DOWN		2
-#define MTP2_LINK_UP		3
-#define MTP2_LINK_DOWN		4
-#define ISUP_EVENT_IAM		5
-#define ISUP_EVENT_ACM		6
-#define ISUP_EVENT_ANM		7
-#define ISUP_EVENT_REL		8
-#define ISUP_EVENT_RLC		9
-/* Circuit group reset */
-#define ISUP_EVENT_GRS		10
-#define ISUP_EVENT_GRA		11
-#define ISUP_EVENT_CON		12
-#define ISUP_EVENT_COT		13
-#define ISUP_EVENT_CCR		14
-#define ISUP_EVENT_BLO		15
-#define ISUP_EVENT_UBL		16
-#define ISUP_EVENT_BLA		17
-#define ISUP_EVENT_UBA		18
-#define ISUP_EVENT_CGB		19
-#define ISUP_EVENT_CGU		20
-#define ISUP_EVENT_CGBA		19
-#define ISUP_EVENT_CGUA		20
-#define ISUP_EVENT_RSC		21
-#define ISUP_EVENT_CPG		22
-#define ISUP_EVENT_UCIC		23
-#define ISUP_EVENT_LPA 		24
-#define ISUP_EVENT_CQM 		25
-#define ISUP_EVENT_FAR		26
-#define ISUP_EVENT_FAA		27
-#define ISUP_EVENT_CVT		28
-#define ISUP_EVENT_CVR		29
-#define ISUP_EVENT_SUS		30
-#define ISUP_EVENT_RES		31
+#define SS7_EVENT_UP		1	/*!< SS7 link up */
+#define SS7_EVENT_DOWN		2	/*!< SS7 link down */
+#define MTP2_LINK_UP		3	/*!< MTP layer 2 up */
+#define MTP2_LINK_DOWN		4	/*!< MTP layer 2 down */
+#define ISUP_EVENT_IAM		5	/*!< Initial address */
+#define ISUP_EVENT_ACM		6	/*!< Address complete */
+#define ISUP_EVENT_ANM		7	/*!< Answer */
+#define ISUP_EVENT_REL		8	/*!< Release */
+#define ISUP_EVENT_RLC		9	/*!< Release complete */
+#define ISUP_EVENT_GRS		10	/*!< Circuit group reset */
+#define ISUP_EVENT_GRA		11	/*!< Circuit group reset acknowledgement */
+#define ISUP_EVENT_CON		12	/*!< Connect */
+#define ISUP_EVENT_COT		13	/*!< Continuity */
+#define ISUP_EVENT_CCR		14	/*!< Continuity check request */
+#define ISUP_EVENT_BLO		15	/*!< Blocking */
+#define ISUP_EVENT_UBL		16	/*!< Unblocking */
+#define ISUP_EVENT_BLA		17	/*!< Blocking acknowledgement */
+#define ISUP_EVENT_UBA		18	/*!< Unblocking acknowledgement */
+#define ISUP_EVENT_CGB		19	/*!< Circuit group blocking */
+#define ISUP_EVENT_CGU		20	/*!< Circuit group unblocking */
+#define ISUP_EVENT_CGBA		19	/*!< Circuit group blocking acknowledgement (Not used) */
+#define ISUP_EVENT_CGUA		20	/*!< Circuit group unblocking acknowledgement (Not used) */
+#define ISUP_EVENT_RSC		21	/*!< Reset circuit */
+#define ISUP_EVENT_CPG		22	/*!< Call progress */
+#define ISUP_EVENT_UCIC		23	/*!< Unequipped CIC (national use) */
+#define ISUP_EVENT_LPA 		24	/*!< Loop back acknowledgement (national use) */
+#define ISUP_EVENT_CQM 		25	/*!< Circuit group query (national use) */
+#define ISUP_EVENT_FAR		26	/*!< Facility request */
+#define ISUP_EVENT_FAA		27	/*!< Facility accepted */
+#define ISUP_EVENT_CVT		28	/*!< ???Used??? */
+#define ISUP_EVENT_CVR		29	/*!< Not used */
+#define ISUP_EVENT_SUS		30	/*!< Suspend */
+#define ISUP_EVENT_RES		31	/*!< Resume */
 
 /* Different SS7 types */
 #define SS7_ITU		(1 << 0)
