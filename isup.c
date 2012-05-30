@@ -2295,13 +2295,9 @@ static int dump_parm(struct ss7 *ss7, int message, int parm, unsigned char *parm
 	int x;
 	int len = 0;
 	int totalparms = sizeof(parms)/sizeof(struct parm_func);
-	char *parmname = "Unknown Parm";
 
 	for (x = 0; x < totalparms; x++) {
 		if (parms[x].parm == parm) {
-			if (parms[x].name)
-				parmname = parms[x].name;
-
 			ss7_message(ss7, "\t\t%s:\n", parms[x].name ? parms[x].name : "Unknown");
 
 			if (parms[x].dump) {

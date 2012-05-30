@@ -475,12 +475,10 @@ fail:
 int mtp3_transmit(struct ss7 *ss7, unsigned char userpart, unsigned char sls, struct ss7_msg *m)
 {
 	unsigned char *sio;
-	unsigned char *sif;
 	struct mtp2 *winner;
 	int priority = 3;
 
 	sio = m->buf + MTP2_SIZE;
-	sif = sio + 1;
 
 	if (userpart != SIG_ISUP)
 		winner = slc_to_link(ss7, sls);

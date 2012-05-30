@@ -295,6 +295,10 @@ char * ss7_event2str(int event)
 			return "SS7_EVENT_UP";
 		case SS7_EVENT_DOWN:
 			return "SS7_EVENT_DOWN";
+		case MTP2_LINK_UP:
+			return "MTP2_LINK_UP";
+		case MTP2_LINK_DOWN:
+			return "MTP2_LINK_DOWN";
 		case ISUP_EVENT_IAM:
 			return "ISUP_EVENT_IAM";
 		case ISUP_EVENT_ACM:
@@ -311,6 +315,44 @@ char * ss7_event2str(int event)
 			return "ISUP_EVENT_GRA";
 		case ISUP_EVENT_CON:
 			return "ISUP_EVENT_CON";
+		case ISUP_EVENT_COT:
+			return "ISUP_EVENT_COT";
+		case ISUP_EVENT_CCR:
+			return "ISUP_EVENT_CCR";
+		case ISUP_EVENT_BLO:
+			return "ISUP_EVENT_BLO";
+		case ISUP_EVENT_UBL:
+			return "ISUP_EVENT_UBL";
+		case ISUP_EVENT_BLA:
+			return "ISUP_EVENT_BLA";
+		case ISUP_EVENT_UBA:
+			return "ISUP_EVENT_UBA";
+		case ISUP_EVENT_CGB:
+			return "ISUP_EVENT_CGB";
+		case ISUP_EVENT_CGU:
+			return "ISUP_EVENT_CGU";
+		case ISUP_EVENT_RSC:
+			return "ISUP_EVENT_RSC";
+		case ISUP_EVENT_CPG:
+			return "ISUP_EVENT_CPG";
+		case ISUP_EVENT_UCIC:
+			return "ISUP_EVENT_UCIC";
+		case ISUP_EVENT_LPA:
+			return "ISUP_EVENT_LPA";
+		case ISUP_EVENT_CQM:
+			return "ISUP_EVENT_CQM";
+		case ISUP_EVENT_FAR:
+			return "ISUP_EVENT_FAR";
+		case ISUP_EVENT_FAA:
+			return "ISUP_EVENT_FAA";
+		case ISUP_EVENT_CVT:
+			return "ISUP_EVENT_CVT";
+		case ISUP_EVENT_CVR:
+			return "ISUP_EVENT_CVR";
+		case ISUP_EVENT_SUS:
+			return "ISUP_EVENT_SUS";
+		case ISUP_EVENT_RES:
+			return "ISUP_EVENT_RES";
 		default:
 			return "Unknown Event";
 	}
