@@ -119,9 +119,8 @@ unsigned char *ss7_msg_userpart(struct ss7_msg *m);
 
 void ss7_msg_userpart_len(struct ss7_msg *m, int len);
 
-void ss7_message(struct ss7 *ss7, char *fmt, ...);
-
-void ss7_error(struct ss7 *ss7, char *fmt, ...);
+void ss7_message(struct ss7 *ss7, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
+void ss7_error(struct ss7 *ss7, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 
 void ss7_dump_buf(struct ss7 *ss7, int tabs,  unsigned char *buf, int len);
 

@@ -55,7 +55,7 @@ void ss7_set_error(void (*func)(struct ss7 *ss7, char *message))
 	__ss7_error = func;
 }
 
-void ss7_message(struct ss7 *ss7, char *fmt, ...)
+void ss7_message(struct ss7 *ss7, const char *fmt, ...)
 {
 	char tmp[1024];
 	va_list ap;
@@ -69,7 +69,7 @@ void ss7_message(struct ss7 *ss7, char *fmt, ...)
 		fputs(tmp, stdout);
 }
 
-void ss7_error(struct ss7 *ss7, char *fmt, ...)
+void ss7_error(struct ss7 *ss7, const char *fmt, ...)
 {
 	char tmp[1024];
 	va_list ap;
