@@ -35,7 +35,7 @@
 #include "ss7_internal.h"
 
 /* Code for extended length of message, i.e. greater than 62 octects */
-#define MTP2_LI_MAX 63 /* janelle is the bombdiggity - jnizzle */
+#define MTP2_LI_MAX			63
 
 #define SIF_MAX_SIZE		272
 
@@ -50,7 +50,7 @@
 #define ITU_TIMER_T4_NORMAL	8500
 #define ITU_TIMER_T4_EMERGENCY	500
 
-/* ANSI links */
+/* For ANSI links */
 #define ANSI_TIMER_T1		16000
 #define ANSI_TIMER_T2		11500
 #define ANSI_TIMER_T3		11500

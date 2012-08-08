@@ -415,7 +415,7 @@ static FUNC_DUMP(forward_call_ind_dump)
 			hg_str = "ISDN user part not preferred all the way";
 			break;
 		case 2:
-			hg_str = "ISDN user part requried all the way";
+			hg_str = "ISDN user part required all the way";
 			break;
 		case 3:
 			hg_str = "spare";
@@ -705,7 +705,7 @@ static FUNC_SEND(cause_transmit)
 	return 2;
 }
 
-static FUNC_DUMP(cause_dump)
+static FUNC_DUMP(cause_dump)	/* ITU-T Q.850 */
 {
 	char *cause;
 	switch (parm[1] & 0x7f) {
@@ -799,7 +799,123 @@ static FUNC_DUMP(cause_dump)
 		case 42:
 			cause = "Switching equipment congestion";
 			break;
-/* TODO: Finish the rest of these */
+		case 43:
+			cause = "Access information discarded";
+			break;
+		case 44:
+			cause = "Requested circuit/channel not available";
+			break;
+		case 46:
+			cause = "Precedence call blocked";
+			break;
+		case 47:
+			cause = "Resource unavailable, unspecified";
+			break;
+		case 49:
+			cause = "Quality of service not available";
+			break;
+		case 50:
+			cause = "Requested facility not subscribed";
+			break;
+		case 53:
+			cause = "Outgoing calls barred within CUG";
+			break;
+		case 55:
+			cause = "Incoming calls barred within CUG";
+			break;
+		case 57:
+			cause = "Bearer capability not authorized";
+			break;
+		case 58:
+			cause = "Bearer capability not presently available";
+			break;
+		case 62:
+			cause = "Inconsistency in designated outgoing access information and subscriber class";
+			break;
+		case 63:
+			cause = "Service or option not available, unspecified";
+			break;
+		case 65:
+			cause = "Bearer capability not implemented";
+			break;
+		case 66:
+			cause = "Channel type not implemented";
+			break;
+		case 69:
+			cause = "Requested facility not implemented";
+			break;
+		case 70:
+			cause = "Only restricted digital information bearer capability is available";
+			break;
+		case 79:
+			cause = "Service or option not implemented, unspecified";
+			break;
+		case 81:
+			cause = "Invalid call reference value";
+			break;
+		case 82:
+			cause = "Identified channel does not exist";
+			break;
+		case 83:
+			cause = "A suspended call exists, but this call identity does not";
+			break;
+		case 84:
+			cause = "Call identity in use";
+			break;
+		case 85:
+			cause = "No call suspended";
+			break;
+		case 86:
+			cause = "Call having the requested call identity has been cleared";
+			break;
+		case 87:
+			cause = "User not member of CUG";
+			break;
+		case 88:
+			cause = "Incompatible destination";
+			break;
+		case 90:
+			cause = "Non-existent CUG";
+			break;
+		case 91:
+			cause = "Invalid transit network selection";
+			break;
+		case 95:
+			cause = "Invalid message, unspecified";
+			break;
+		case 96:
+			cause = "Mandatory information element is missing";
+			break;
+		case 97:
+			cause = "Message type non-existent or not implemented";
+			break;
+		case 98:
+			cause = "Message not compatible with call state or message type non-existent or not implemented";
+			break;
+		case 99:
+			cause = "Information element /parameter non-existent or not implemented";
+			break;
+		case 100:
+			cause = "Invalid information element contents";
+			break;
+		case 101:
+			cause = "Message not compatible with call state";
+			break;
+		case 102:
+			cause = "Recovery on timer expiry";
+			break;
+		case 103:
+			cause = "Parameter non-existent or not implemented, passed on";
+			break;
+		case 110:
+			cause = "Message with unrecognized parameter, discarded";
+			break;
+		case 111:
+			cause = "Protocol error, unspecified";
+			break;
+		case 127:
+			cause = "Interworking, unspecified";
+			break;
 		default:
 			cause = "Unknown";
 	}
@@ -1402,7 +1518,7 @@ static FUNC_DUMP(redirection_info_dump)
 
 	switch ((parm[1] >> 4) & 0xf) {
 		case 0:
-			orig_redir_reas = "Unknown/not available";
+			redir_reas = "Unknown/not available";
 			break;
 		case 1:
 			redir_reas = "User busy";
@@ -1983,7 +2099,8 @@ static FUNC_SEND(access_transport_transmit)
 static FUNC_DUMP(suspend_resume_ind_dump)
 {
 	int indicator = parm[0] & 1;
-	ss7_message(ss7, "\t\t\t%s (%d)", indicator ? "Network initiated" : "ISDN Subscriber initiated", indicator);
+
+	ss7_message(ss7, "\t\t\tSUS/RES indicator: %s (%d)", indicator ? "Network initiated" : "ISDN Subscriber initiated", indicator);
 	return 1;	
 }	
 
