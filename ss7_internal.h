@@ -40,22 +40,34 @@
 
 /* ISUP parameters */
 
+/* ISUP Timers */
+#define ISUP_MAX_TIMERS		64
+
 /* Information Transfer Capability */
-#define ISUP_TRANSCAP_SPEECH 0x00
-#define ISUP_TRANSCAP_UNRESTRICTED_DIGITAL 0x08
-#define ISUP_TRANSCAP_RESTRICTED_DIGITAL 0x09
-#define ISUP_TRANSCAP_31KHZ_AUDIO 0x10
-#define ISUP_TRANSCAP_7KHZ_AUDIO 0x11
+#define ISUP_TRANSCAP_SPEECH				0x00
+#define ISUP_TRANSCAP_UNRESTRICTED_DIGITAL	0x08
+#define ISUP_TRANSCAP_RESTRICTED_DIGITAL	0x09
+#define ISUP_TRANSCAP_31KHZ_AUDIO			0x10
+#define ISUP_TRANSCAP_7KHZ_AUDIO			0x11
 
 /* User Information layer 1 protocol types */
-#define ISUP_L1PROT_G711ULAW 0x02
+#define ISUP_L1PROT_G711ULAW	0x02
 
-#define MAX_EVENTS		16
-#define MAX_SCHED		64
+#define MAX_EVENTS			16
+#define MAX_SCHED			512	/* need a lot cause of isup timers... */
 #define SS7_MAX_LINKS		4
+#define SS7_MAX_ADJSPS		4
 
-#define SS7_STATE_DOWN	0
-#define SS7_STATE_UP 1
+#define SS7_STATE_DOWN		0
+#define SS7_STATE_UP		1
+
+/* delay to starting sending GRS when linkset came up */
+#define LINKSET_UP_DELAY	500
+
+/* MTP3 timers */
+#define MTP3_MAX_TIMERS		32
+
+#define LOC_PRIV_NET_LOCAL_USER	0x1
 
 typedef unsigned int point_code;
 
@@ -80,6 +92,7 @@ struct ss7_sched {
 
 struct ss7 {
 	unsigned int switchtype;
+	unsigned int numsps;
 	unsigned int numlinks;
 
 	/* Our point code */
@@ -101,6 +114,14 @@ struct ss7 {
 
 	unsigned int mtp2_linkstate[SS7_MAX_LINKS];
 	struct mtp2 *links[SS7_MAX_LINKS];
+	struct adjacent_sp *adj_sps[SS7_MAX_ADJSPS];
+	int isup_timers[ISUP_MAX_TIMERS];
+	int mtp3_timers[MTP3_MAX_TIMERS];
+	unsigned char sls_shift;
+	unsigned int flags;
+	unsigned char cb_seq;
+	int linkset_up_timer;
+	unsigned char cause_location;
 };
 
 /* Getto hacks for developmental purposes */
@@ -115,6 +136,10 @@ ss7_event * ss7_next_empty_event(struct ss7 * ss7);
 
 void ss7_schedule_del(struct ss7 *ss7,int *id);
 
+int ss7_find_link_index(struct ss7 *ss7, int fd);
+
+struct mtp2 * ss7_find_link(struct ss7 *ss7, int fd);
+
 unsigned char *ss7_msg_userpart(struct ss7_msg *m);
 
 void ss7_msg_userpart_len(struct ss7_msg *m, int len);
@@ -125,5 +150,11 @@ void ss7_error(struct ss7 *ss7, const char *fmt, ...) __attribute__((format(prin
 void ss7_dump_buf(struct ss7 *ss7, int tabs,  unsigned char *buf, int len);
 
 void ss7_dump_msg(struct ss7 *ss7, unsigned char *buf, int len);
+
+extern void (*ss7_notinservice)(struct ss7 *ss7, int cic, unsigned int dpc);
+
+extern int (*ss7_hangup)(struct ss7 *ss7, int cic, unsigned int dpc, int cause, int do_hangup);
+
+extern void (*ss7_call_null)(struct ss7 *ss7, struct isup_call *c, int lock);
 
 #endif /* _SS7_H */

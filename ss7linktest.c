@@ -82,11 +82,18 @@ static void *ss7_run(void *data)
 	struct pollfd poller;
 	int nextms;
 	int x;
+	struct isup_call *c;
+	unsigned char state[255];
+	int i;
+
+	for (i = 0; i < 255; i++) {
+		state[i] = 0;
+	}
 
 	printf("Starting link %d\n", linknum++);
 	ss7_start(ss7);
 
-	while(1) {
+	while (1) {
 		if ((next = ss7_schedule_next(ss7))) {
 			gettimeofday(&tv, NULL);
 			tv.tv_sec = next->tv_sec - tv.tv_sec;
@@ -110,13 +117,14 @@ static void *ss7_run(void *data)
 
 		res = poll(&poller, 1, nextms);
 		if (res < 0) {
+#if 0
 			printf("next->tv_sec = %d\n", (int) next->tv_sec);
 			printf("next->tv_usec = %d\n", (int) next->tv_usec);
 			printf("tv->tv_sec = %d\n", (int) tv.tv_sec);
 			printf("tv->tv_usec = %d\n", (int) tv.tv_usec);
+#endif
 			perror("select");
-		}
-		else if (!res) {
+		} else if (!res) {
 			ss7_schedule_run(ss7);
 			continue;
 		}
@@ -160,14 +168,16 @@ static void *ss7_run(void *data)
 				switch (e->e) {
 					case SS7_EVENT_UP:
 						printf("[%d] --- SS7 Up ---\n", linkset->linkno);
-						isup_grs(ss7, 1, 24, dpc);
+						c = isup_new_call(ss7);
+						isup_init_call(ss7, c, 1, dpc);
+						isup_grs(ss7, c, 24);
 						break;
 					case MTP2_LINK_UP:
 						printf("[%d] MTP2 link up\n", linkset->linkno);
 						break;
 					case ISUP_EVENT_GRS:
 						printf("Got GRS from cic %d to %d: Acknowledging\n", e->grs.startcic, e->grs.endcic);
-						isup_gra(ss7, e->grs.startcic, e->grs.endcic, dpc);
+						isup_gra(ss7, e->grs.call, e->grs.endcic, state);
 						break;
 					case ISUP_EVENT_RSC:
 						isup_rlc(ss7, e->rsc.call);
@@ -177,13 +187,13 @@ static void *ss7_run(void *data)
 						ss7_call(ss7);
 						break;
 					case ISUP_EVENT_BLO:
-						isup_bla(ss7, e->blo.cic, dpc);
+						isup_bla(ss7, e->blo.call);
 						break;
 					case ISUP_EVENT_CGB:
-						isup_cgba(ss7, e->cgb.startcic, e->cgb.endcic, dpc, e->cgb.status, e->cgb.type);
+						isup_cgba(ss7, e->cgb.call, e->cgb.endcic, e->cgb.status);
 						break;
 					case ISUP_EVENT_CGU:
-						isup_cgua(ss7, e->cgu.startcic, e->cgu.endcic, dpc, e->cgu.status, e->cgu.type);
+						isup_cgua(ss7, e->cgu.call, e->cgu.endcic, e->cgu.status);
 						break;
 					case ISUP_EVENT_IAM:
 						printf("Got IAM for cic %d and number %s\n", e->iam.cic, e->iam.called_party_num);
@@ -225,7 +235,7 @@ static void myprintf(struct ss7 *ss7, char *fmt)
 	printf("%s", fmt);
 }
 
-static int zap_open(int devnum, int *ismtp2)
+static int dahdi_open(int devnum, int *ismtp2)
 {
 	int fd;
 	struct dahdi_bufferinfo bi;
@@ -292,10 +302,11 @@ int main(int argc, char *argv[])
 	opc = atoi(argv[3]);
 	dpc = atoi(argv[4]);
 
-	fd = zap_open(channum, &ismtp2);
+	fd = dahdi_open(channum, &ismtp2);
 
-	if (fd == -1)
+	if (fd == -1) {
 		return -1;
+	}
 
 	if (!(ss7 = ss7_new(type))) {
 		perror("ss7_new");
@@ -310,13 +321,12 @@ int main(int argc, char *argv[])
 	ss7_set_network_ind(ss7, SS7_NI_NAT);
 
 	ss7_set_debug(ss7, 0xfffffff);
-	if ((ss7_add_link(ss7, ismtp2 ? SS7_TRANSPORT_DAHDIMTP2 : SS7_TRANSPORT_DAHDIDCHAN, fd))) {
+	if ((ss7_add_link(ss7, ismtp2 ? SS7_TRANSPORT_DAHDIMTP2 : SS7_TRANSPORT_DAHDIDCHAN, fd, -1, dpc))) {
 		perror("ss7_add_link");
 		exit(1);
 	}
 
 	ss7_set_pc(ss7, opc);
-	ss7_set_adjpc(ss7, fd, dpc);
 
 	if (pthread_create(&tmp, NULL, ss7_run, &linkset[0])) {
 		perror("thread(0)");

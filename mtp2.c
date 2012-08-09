@@ -41,10 +41,10 @@
 #define mtp_error ss7_error
 #define mtp_message ss7_message
 
-static inline int len_txbuf(struct mtp2 *link)
+int len_buf(struct ss7_msg *buf)
 {
 	int res = 0;
-	struct ss7_msg *cur = link->tx_buf;
+	struct ss7_msg *cur = buf;
 
 	while (cur) {
 		res++;
@@ -52,33 +52,43 @@ static inline int len_txbuf(struct mtp2 *link)
 	}
 	return res;
 }
-		
+
 static inline char * linkstate2str(int linkstate)
 {
 	char *statestr = NULL;
 
 	switch (linkstate) {
-		case 0:
+		case MTP_IDLE:
 			statestr = "IDLE";
 			break;
-		case 1:
+		case MTP_NOTALIGNED:
 			statestr = "NOTALIGNED";
 			break;
-		case 2:
+		case MTP_ALIGNED:
 			statestr = "ALIGNED";
 			break;
-		case 3:
+		case MTP_PROVING:
 			statestr = "PROVING";
 			break;
-		case 4:
+		case MTP_ALIGNEDREADY:
 			statestr = "ALIGNEDREADY";
 			break;
-		case 5:
+		case MTP_INSERVICE:
 			statestr = "INSERVICE";
 			break;
+		case MTP_ALARM:
+			statestr = "ALARM";
+			break;
+		default:
+			statestr = "UNKNOWN";
 	}
 
 	return statestr;
+}
+
+char *linkstate2strext(int linkstate)
+{
+	return linkstate2str(linkstate);
 }
 
 static inline void init_mtp2_header(struct mtp2 *link, struct mtp_su_head *h, int new, int nack)
@@ -105,7 +115,7 @@ static inline int lssu_type(struct mtp_su_head *h)
 	return h->data[0];
 }
 
-static void flush_bufs(struct mtp2 *link)
+void flush_bufs(struct mtp2 *link)
 {
 	struct ss7_msg *list, *cur;
 
@@ -137,6 +147,9 @@ static void reset_mtp(struct mtp2 *link)
 	link->curfsn = 127;
 	link->curfib = 1;
 	link->curbib = 1;
+#if 0
+	ss7_message(link->master, "Lastfsn: %i txbuflen: %i SLC: %i ADJPC: %i\n", link->lastfsnacked, len_buf(link->tx_buf), link->slc, link->dpc);
+#endif
 	link->lastfsnacked = 127;
 	link->retransmissioncount = 0;
 	link->flags |= MTP2_FLAG_WRITE;
@@ -161,8 +174,6 @@ static int mtp2_queue_su(struct mtp2 *link, struct ss7_msg *m)
 		m->next = NULL;
 		return 0;
 	}
-
-	cur = link->tx_q;
 
 	for (cur = link->tx_q; cur->next; cur = cur->next);
 
@@ -220,7 +231,7 @@ static void add_txbuf(struct mtp2 *link, struct ss7_msg *m)
 	m->next = link->tx_buf;
 	link->tx_buf = m;
 #if 0
-	mtp_message(link->master, "Txbuf contains %d items\n", len_txbuf(link));
+	mtp_message(link->master, "Txbuf contains %d items\n", len_buf(link->tx_buf));
 #endif
 }
 
@@ -262,6 +273,15 @@ static void mtp2_retransmit(struct mtp2 *link)
 	link->retransmit_pos = m;
 }
 
+static void t7_expiry(void *data)
+{
+	struct mtp2 *link = data;
+
+	ss7_error(link->master, "T7 expired on link SLC: %i ADJPC: %i\n", link->slc, link->dpc);
+	link->t7 = -1;
+	mtp2_setstate(link, MTP_IDLE);
+}
+
 int mtp2_transmit(struct mtp2 *link)
 {
 	int res = 0;
@@ -290,40 +310,49 @@ int mtp2_transmit(struct mtp2 *link)
 		h1->bsn = link->lastfsnacked;
 
 	} else {
-		if (link->tx_q)
+		if (link->tx_q) {
 			m = link->tx_q;
-	
+		}
+
 		if (m) {
 			h = m->buf;
+			init_mtp2_header(link, (struct mtp_su_head *) h, 1, 0);	/* in changeover we may manipulate the buffers!!! */
 			size = m->size;
+
+			/* Advance to next MSU to be transmitted */
+			link->tx_q = m->next;
+			/* Add it to the tx'd message queue (MSUs that haven't been acknowledged) */
+			add_txbuf(link, m);
+			if (link->t7 == -1) {
+				link->t7 = ss7_schedule_event(link->master, link->timers.t7, t7_expiry, link);
+			}
 		} else {
 			size = sizeof(buf);
-			if (link->autotxsutype == FISU)
+			if (link->autotxsutype == FISU) {
 				make_fisu(link, buf, &size, 0);
-			else
+			} else {
 				make_lssu(link, buf, &size, link->autotxsutype);
+			}
 			h = buf;
 		}
 	}
 
-	res = write(link->fd, h, size);  /* Add 2 for FCS */
+	res = write(link->fd, h, size);	/* Add 2 for FCS */
 
 	if (res > 0) {
 		mtp2_dump(link, '>', h, size - 2);
 		if (retransmit) {
 			/* Update our retransmit positon since it transmitted */
 			update_retransmit_pos(link);
-		} else {
-			if (m) {
-				/* Advance to next MSU to be transmitted */
-				link->tx_q = m->next;
-				/* Add it to the tx'd message queue (MSUs that haven't been acknowledged) */
-				add_txbuf(link, m);
-			}
 		}
 
-		if (h == buf) { /* We just sent a non MSU */
+		if (h == buf) {	/* We just sent a non MSU */
 			link->flags &= ~MTP2_FLAG_WRITE;
+		}
+	} else {
+		ss7_error(link->master, "mtp2_transmit: write returned %d, errno=%d\n", res, errno);
+		if (!retransmit && m) {	/* We need to retransmit, but on retransmit, we'll just try again later */
+			link->retransmit_pos = link->tx_buf;
 		}
 	}
 
@@ -337,12 +366,13 @@ int mtp2_msu(struct mtp2 *link, struct ss7_msg *m)
 
 	link->flags |= MTP2_FLAG_WRITE;
 
-	init_mtp2_header(link, h, 1, 0);
+	/* init_mtp2_header(link, h, 1, 0); */
 
-	if (len > MTP2_LI_MAX)
+	if (len > MTP2_LI_MAX) {
 		h->li = MTP2_LI_MAX;
-	else
+	} else {
 		h->li = len;
+	}
 
 	m->size += 2; /* For CRC */
 	mtp2_queue_su(link, m);
@@ -366,7 +396,7 @@ static int mtp2_fisu(struct mtp2 *link, int nack)
 	return 0;
 }
 
-static void update_txbuf(struct mtp2 *link, unsigned char upto)
+void update_txbuf(struct mtp2 *link, struct ss7_msg **buf, unsigned char upto)
 {
 	struct mtp_su_head *h;
 	struct ss7_msg *prev = NULL, *cur;
@@ -374,25 +404,33 @@ static void update_txbuf(struct mtp2 *link, unsigned char upto)
 	/* Make a list, frlist that will be the SUs to free */
 
 	/* Empty list */
-	if (!link->tx_buf) {
+	if (!*buf) {
 		return;
 	}
 
-	cur = link->tx_buf;
+	cur = *buf;
 
 	while (cur) {
 		h = (struct mtp_su_head *)cur->buf;
 		if (h->fsn == upto) {
 			frlist = cur;
-			if (!prev) /* Head of list */
-				link->tx_buf = NULL;
-			else
+			if (!prev) {	/* Head of list */
+				*buf = NULL;
+			} else {
 				prev->next = NULL;
+			}
 			frlist = cur;
 			break;
 		}
 		prev = cur;
 		cur = cur->next;
+	}
+
+	if (link && frlist && link->t7 > -1) {
+		ss7_schedule_del(link->master, &link->t7);
+		if (link->tx_buf) {
+			link->t7 = ss7_schedule_event(link->master, link->timers.t7, &t7_expiry, link);
+		}
 	}
 
 	while (frlist) {
@@ -492,6 +530,8 @@ int mtp2_setstate(struct mtp2 *link, int newstate)
 		mtp_message(link->master, "Link state change: %s -> %s\n", linkstate2str(link->state), linkstate2str(newstate));
 
 	switch (link->state) {
+		case MTP_ALARM:
+			return 0;
 		case MTP_IDLE:
 			link->t2 = ss7_schedule_event(link->master, link->timers.t2, t2_expiry, link);
 			if (mtp2_lssu(link, LSSU_SIO)) {
@@ -588,8 +628,8 @@ int mtp2_setstate(struct mtp2 *link, int newstate)
 					if (!e) {
 						return -1;
 					}
-					e->gen.e = MTP2_LINK_UP;
-					e->gen.data = link->slc;
+					e->link.e = MTP2_LINK_UP;
+					e->link.link = link;
 					break;
 				default:
 					mtp_error(link->master, "Don't know how to handle state change from %d to %d\n", link->state, newstate);
@@ -603,8 +643,8 @@ int mtp2_setstate(struct mtp2 *link, int newstate)
 				if (!e) {
 					return -1;
 				}
-				e->gen.e = MTP2_LINK_DOWN;
-				e->gen.data = link->slc;
+				e->link.e = MTP2_LINK_DOWN;
+				e->link.link = link;
 				return to_idle(link);
 			}
 			break;
@@ -616,60 +656,72 @@ static int lssu_rx(struct mtp2 *link, struct mtp_su_head *h, int len)
 {
 	unsigned char lssutype = lssu_type(h);
 
-	if (len > (LSSU_SIZE + 2))  /* FCS is two bytes */
+	/* Q.703 11.1.2 LSSU can be one or two bytes. Only one is used for now and the second should be ignored for compatibility reasons */
+	if (len > (LSSU_SIZE + 1)) {
 		mtp_error(link->master, "Received LSSU with length %d longer than expected\n", len);
+	}
 
-	if (link->lastsurxd == lssutype)
+	if (link->lastsurxd == lssutype) {
 		return 0;
-	else
+	} else {
 		link->lastsurxd = lssutype;
+	}
 
-	if (lssutype == LSSU_SIE)
+	if (lssutype == LSSU_SIE) {
 		link->emergency = 1;
+	}
 
 	switch (link->state) {
 		case MTP_IDLE:
 		case MTP_NOTALIGNED:
-			if ((lssutype != LSSU_SIE) && (lssutype != LSSU_SIN) && (lssutype != LSSU_SIO))
+			if ((lssutype != LSSU_SIE) && (lssutype != LSSU_SIN) && (lssutype != LSSU_SIO)) {
 				return mtp2_setstate(link, MTP_NOTALIGNED);
+			}
 
-			if ((link->emergency) || (lssutype == LSSU_SIE))
+			if ((link->emergency) || (lssutype == LSSU_SIE)) {
 				link->provingperiod = link->timers.t4e;
-			else
+			} else {
 				link->provingperiod = link->timers.t4;
+			}
 
-			if ((lssutype == LSSU_SIE) || (lssutype == LSSU_SIN))
+			if ((lssutype == LSSU_SIE) || (lssutype == LSSU_SIN)) {
 				return mtp2_setstate(link, MTP_PROVING);
-			else
+			} else {
 				return mtp2_setstate(link, MTP_ALIGNED);
+			}
 		case MTP_ALIGNED:
-			if (lssutype == LSSU_SIOS)
+			if (lssutype == LSSU_SIOS) {
 				return mtp2_setstate(link, MTP_IDLE);
+			}
 
-			if ((link->emergency) || (lssutype == LSSU_SIE))
+			if ((link->emergency) || (lssutype == LSSU_SIE)) {
 				link->provingperiod = link->timers.t4e;
-			else
+			} else {
 				link->provingperiod = link->timers.t4;
+			}
 
-			if ((link->provingperiod == link->timers.t4) && ((link->emergency) || (lssutype == LSSU_SIE)))
+			if ((link->provingperiod == link->timers.t4) && ((link->emergency) || (lssutype == LSSU_SIE))) {
 				link->provingperiod = link->timers.t4e;
+			}
 
 			return mtp2_setstate(link, MTP_PROVING);
 		case MTP_PROVING:
-			if (lssutype == LSSU_SIOS)
+			if (lssutype == LSSU_SIOS) {
 				return mtp2_setstate(link, MTP_IDLE);
+			}
 
-			if (lssutype == LSSU_SIO)
+			if (lssutype == LSSU_SIO) {
 				return mtp2_setstate(link, MTP_ALIGNED);
-			
+			}
+
 			mtp_message(link->master, "Don't handle any other conditions in state %d\n", link->state);
 			break;
 		case MTP_ALIGNEDREADY:
 		case MTP_INSERVICE:
-			if ((lssutype != LSSU_SIOS) && (lssutype != LSSU_SIO))
+			if ((lssutype != LSSU_SIOS) && (lssutype != LSSU_SIO)) {
 				mtp_message(link->master, "Got LSSU of type %d while link is in state %d.  Re-Aligning\n", lssutype, link->state);
+			}
 			return mtp2_setstate(link, MTP_IDLE);
-
 	}
 
 	return 0;
@@ -720,11 +772,13 @@ static int msu_rx(struct mtp2 *link, struct mtp_su_head *h, int len)
 
 int mtp2_start(struct mtp2 *link, int emergency)
 {
+	reset_mtp(link);
 	link->emergency = emergency;
-	if (link->state == MTP_IDLE)
+	if (link->state == MTP_IDLE) {
 		return mtp2_setstate(link, MTP_NOTALIGNED);
-	else
-		return 0;
+	}
+
+	return 0;
 }
 
 int mtp2_stop(struct mtp2 *link)
@@ -732,12 +786,26 @@ int mtp2_stop(struct mtp2 *link)
 	return mtp2_setstate(link, MTP_IDLE);
 }
 
+int mtp2_alarm(struct mtp2 *link)
+{
+	link->state = MTP_ALARM;
+	return 0;
+}
+
+int mtp2_noalarm(struct mtp2 *link)
+{
+	link->state = MTP_IDLE;
+	return 0;
+}
+
 struct mtp2 * mtp2_new(int fd, unsigned int switchtype)
 {
 	struct mtp2 * new = calloc(1, sizeof(struct mtp2));
+	int x;
 
-	if (!new)
+	if (!new) {
 		return NULL;
+	}
 
 	reset_mtp(new);
 
@@ -752,12 +820,18 @@ struct mtp2 * mtp2_new(int fd, unsigned int switchtype)
 		new->timers.t3 = ITU_TIMER_T3;
 		new->timers.t4 = ITU_TIMER_T4_NORMAL;
 		new->timers.t4e = ITU_TIMER_T4_EMERGENCY;
+		new->timers.t7 = ITU_TIMER_T7;
 	} else if (switchtype == SS7_ANSI) {
 		new->timers.t1 = ANSI_TIMER_T1;
 		new->timers.t2 = ANSI_TIMER_T2;
 		new->timers.t3 = ANSI_TIMER_T3;
 		new->timers.t4 = ANSI_TIMER_T4_NORMAL;
 		new->timers.t4e = ANSI_TIMER_T4_EMERGENCY;
+		new->timers.t7 = ANSI_TIMER_T7;
+	}
+
+	for (x = 0; x < MTP3_MAX_TIMERS; x++) {
+		new->mtp3_timer[x] = -1;
 	}
 
 	return new;
@@ -769,9 +843,13 @@ void mtp2_dump(struct mtp2 *link, char prefix, unsigned char *buf, int len)
 	struct mtp_su_head *h = (struct mtp_su_head *)buf;
 	unsigned char mtype;
 	char *mtypech = NULL;
+	char pc_str[64];
 
-	if (!(link->master->debug & SS7_DEBUG_MTP2))
+	if (!(link->master->debug & SS7_DEBUG_MTP2)) {
 		return;
+	}
+
+	ss7_pc_to_str(link->master->switchtype, link->adj_sp->adjpc, pc_str);
 
 	switch (h->li) {
 		case 0:
@@ -799,8 +877,8 @@ void mtp2_dump(struct mtp2 *link, char prefix, unsigned char *buf, int len)
 			ss7_message(link->master, "FSN: %d FIB %d\n", h->fsn, h->fib);
 			ss7_message(link->master, "BSN: %d BIB %d\n", h->bsn, h->bib);
 
-			ss7_message(link->master, "%c[%d] FISU\n", prefix, link->slc);
-			break; 
+			ss7_message(link->master, "%c[%s:%d] FISU\n", prefix, pc_str, link->slc);
+			break;
 		case 1:
 			if (prefix == '<' && link->lastsurxd == h->data[0])
 				return;
@@ -831,13 +909,13 @@ void mtp2_dump(struct mtp2 *link, char prefix, unsigned char *buf, int len)
 			ss7_dump_msg(link->master, buf, len);
 			ss7_message(link->master, "FSN: %d FIB %d\n", h->fsn, h->fib);
 			ss7_message(link->master, "BSN: %d BIB %d\n", h->bsn, h->bib);
-			ss7_message(link->master, "%c[%d] LSSU %s\n", prefix, link->slc, mtypech);
+			ss7_message(link->master, "%c[%s:%d] LSSU %s\n", prefix, pc_str, link->slc, mtypech);
 			break;
 		case 2:
 			ss7_dump_msg(link->master, buf, len);
 			ss7_message(link->master, "FSN: %d FIB %d\n", h->fsn, h->fib);
 			ss7_message(link->master, "BSN: %d BIB %d\n", h->bsn, h->bib);
-			ss7_message(link->master, "%c[%d] MSU\n", prefix, link->slc);
+			ss7_message(link->master, "%c[%s:%d] MSU\n", prefix, pc_str, link->slc);
 			ss7_dump_buf(link->master, 0, buf, 3);
 			mtp3_dump(link->master, link, h->data, len - MTP2_SU_HEAD_SIZE);
 			break;
@@ -850,22 +928,21 @@ void mtp2_dump(struct mtp2 *link, char prefix, unsigned char *buf, int len)
 int mtp2_receive(struct mtp2 *link, unsigned char *buf, int len)
 {
 	struct mtp_su_head *h = (struct mtp_su_head *)buf;
-	len -= 2; /* Strip the CRC off */
 
+	len -= 2;	/* Strip the CRC off */
 	if (len < MTP2_SIZE) {
 		ss7_message(link->master, "Got message smaller than the minimum SS7 SU length.  Dropping\n");
 		return 0;
 	}
-		
 
 	mtp2_dump(link, '<', buf, len);
 
-	update_txbuf(link, h->bsn);
+	update_txbuf(link, &link->tx_buf, h->bsn);
 
 	/* Check for retransmission request */
 	if ((link->state == MTP_INSERVICE) &&  (h->bib != link->curfib)) {
 		/* Negative ack */
-		ss7_message(link->master, "Got retransmission request sequence numbers greater than %d. Retransmitting %d message(s).\n", h->bsn, len_txbuf(link));
+		ss7_message(link->master, "Got retransmission request sequence numbers greater than %d. Retransmitting %d message(s).\n", h->bsn, len_buf(link->tx_buf));
 		mtp2_retransmit(link);
 	}
 

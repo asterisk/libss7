@@ -47,15 +47,17 @@ int main(int argc, char **argv)
 	int res = 0, i = 0, size;
 	ss7_event *e;
 
-	if (argc != 3)
+	if (argc != 3) {
 		return -1;
+	}
 
-	if (!strcasecmp(argv[1], "ansi"))
+	if (!strcasecmp(argv[1], "ansi")) {
 		ss7type = SS7_ANSI;
-	else if (!strcasecmp(argv[1], "itu"))
+	} else if (!strcasecmp(argv[1], "itu")) {
 		ss7type = SS7_ITU;
-	else
+	} else {
 		return -1;
+	}
 
 	ss7 = ss7_new(ss7type);
 
@@ -74,14 +76,16 @@ int main(int argc, char **argv)
 
 	printf("\n");
 
-	ss7_add_link(ss7, SS7_TRANSPORT_DAHDIDCHAN, 10);
+	ss7_add_link(ss7, SS7_TRANSPORT_DAHDIDCHAN, 10, -1, 0);
 
 	ss7->debug = SS7_DEBUG_MTP2 | SS7_DEBUG_MTP3 | SS7_DEBUG_ISUP;
 	ss7->links[0]->state = MTP_INSERVICE;
 
 	mtp2_receive(ss7->links[0], mybuf, size);
 
-	e = ss7_check_event(ss7);
+	if ((e = ss7_check_event(ss7))) {
+		printf("Got event: %s\n", ss7_event2str(e->e));
+	}
 
 	return 0;
 }

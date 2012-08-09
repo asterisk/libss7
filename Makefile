@@ -30,7 +30,7 @@ PROC?=$(shell uname -m)
 # SONAME version; should be changed on every ABI change
 # please don't change it needlessly; it's perfectly fine to have a SONAME
 # of 1.0 and a version of 1.4.x
-SONAME:=1.0
+SONAME:=2.0
 
 STATIC_LIBRARY=libss7.a
 DYNAMIC_LIBRARY:=libss7.so.$(SONAME)

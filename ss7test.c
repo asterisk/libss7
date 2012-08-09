@@ -157,7 +157,7 @@ static void myprintf(struct ss7 *ss7, char *fmt)
 }
 
 #ifdef LINUX
-int zap_open(int devnum)
+static int dahdi_open(int devnum)
 {
 	int fd;
 	struct dahdi_bufferinfo bi;
@@ -192,18 +192,22 @@ int main(int argc, char *argv[])
 			}
 #ifdef LINUX
 		} else if (!strcasecmp(argv[1], "live")) {
-			fds[0] = zap_open(24);
-			if (fds[0] < 0)
+			fds[0] = dahdi_open(24);
+			if (fds[0] < 0) {
 				return -1;
+			}
 
-			fds[1] = zap_open(48);
-			if (fds[1] < 0)
+			fds[1] = dahdi_open(48);
+			if (fds[1] < 0) {
 				return -1;
+			}
 #endif
-		} else
+		} else {
 			return -1;
-	} else
+		}
+	} else {
 		return -1;
+	}
 
 	if (!(ss7 = ss7_new(SS7_ITU))) {
 		perror("ss7_new");
@@ -217,7 +221,7 @@ int main(int argc, char *argv[])
 	ss7_set_error(myprintf);
 
 	ss7_set_debug(ss7, 0xffffffff);
-	if ((ss7_add_link(ss7, SS7_TRANSPORT_DAHDIDCHAN, fds[0]))) {
+	if ((ss7_add_link(ss7, SS7_TRANSPORT_DAHDIDCHAN, fds[0], -1, 0))) {
 		perror("ss7_add_link");
 		exit(1);
 	}
@@ -234,7 +238,7 @@ int main(int argc, char *argv[])
 	ss7_set_debug(ss7, 0xffffffff);
 	linkset[1].linkno = 1;
 
-	if ((ss7_add_link(ss7, SS7_TRANSPORT_DAHDIDCHAN, fds[1]))) {
+	if ((ss7_add_link(ss7, SS7_TRANSPORT_DAHDIDCHAN, fds[1], -1, 1))) {
 		perror("ss7_add_link");
 		exit(1);
 	}

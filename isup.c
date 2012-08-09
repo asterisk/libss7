@@ -31,6 +31,8 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
+#include <time.h>
 #include "libss7.h"
 #include "isup.h"
 #include "ss7_internal.h"
@@ -48,8 +50,6 @@
 
 #define CODE_CCITT 0x0
 
-#define LOC_PRIV_NET_LOCAL_USER 0x1
-
 struct parm_func {
 	int parm;
 	char *name;
@@ -58,13 +58,22 @@ struct parm_func {
 	FUNC_SEND(*transmit);
 };
 
+struct isup_timer_param {
+	struct ss7 *ss7;
+	struct isup_call *c;
+	int timer;
+};
+
 static int iam_params[] = {ISUP_PARM_NATURE_OF_CONNECTION_IND, ISUP_PARM_FORWARD_CALL_IND, ISUP_PARM_CALLING_PARTY_CAT,
-	ISUP_PARM_TRANSMISSION_MEDIUM_REQS, ISUP_PARM_CALLED_PARTY_NUM, ISUP_PARM_CALLING_PARTY_NUM, -1};
+	ISUP_PARM_TRANSMISSION_MEDIUM_REQS, ISUP_PARM_CALLED_PARTY_NUM, ISUP_PARM_CALLING_PARTY_NUM, ISUP_PARM_REDIRECTING_NUMBER,
+	ISUP_PARM_REDIRECTION_INFO, ISUP_PARM_REDIRECT_COUNTER, ISUP_PARM_ORIGINAL_CALLED_NUM, ISUP_PARM_OPT_FORWARD_CALL_INDICATOR,
+	ISUP_PARM_CUG_INTERLOCK_CODE, -1};
 
 static int ansi_iam_params[] = {ISUP_PARM_NATURE_OF_CONNECTION_IND, ISUP_PARM_FORWARD_CALL_IND, ISUP_PARM_CALLING_PARTY_CAT,
-	ISUP_PARM_USER_SERVICE_INFO, ISUP_PARM_CALLED_PARTY_NUM, ISUP_PARM_CALLING_PARTY_NUM, ISUP_PARM_CHARGE_NUMBER, 
-	ISUP_PARM_ORIG_LINE_INFO, ISUP_PARM_GENERIC_ADDR, ISUP_PARM_GENERIC_DIGITS, ISUP_PARM_GENERIC_NAME, ISUP_PARM_JIP, 
-	ISUP_PARM_LOCAL_SERVICE_PROVIDER_IDENTIFICATION, -1};
+	ISUP_PARM_USER_SERVICE_INFO, ISUP_PARM_CALLED_PARTY_NUM, ISUP_PARM_CALLING_PARTY_NUM, ISUP_PARM_CHARGE_NUMBER,
+	ISUP_PARM_ORIG_LINE_INFO, ISUP_PARM_GENERIC_ADDR, ISUP_PARM_GENERIC_DIGITS, ISUP_PARM_GENERIC_NAME, ISUP_PARM_JIP,
+	ISUP_PARM_LOCAL_SERVICE_PROVIDER_IDENTIFICATION, ISUP_PARM_REDIRECTION_INFO, ISUP_PARM_REDIRECTING_NUMBER, ISUP_PARM_REDIRECT_COUNTER,
+	ISUP_PARM_ORIGINAL_CALLED_NUM, ISUP_PARM_OPT_FORWARD_CALL_INDICATOR, ISUP_PARM_CUG_INTERLOCK_CODE, -1};
 
 
 static int acm_params[] = {ISUP_PARM_BACKWARD_CALL_IND, -1};
@@ -73,9 +82,9 @@ static int faa_params[] = {ISUP_PARM_FACILITY_IND, ISUP_PARM_CALL_REF, -1};
 
 static int far_params[] = {ISUP_PARM_FACILITY_IND, ISUP_PARM_CALL_REF, -1};
 
-static int anm_params[] = { -1};
+static int anm_params[] = { ISUP_CONNECTED_NUMBER, -1};
 
-static int con_params[] = { ISUP_PARM_BACKWARD_CALL_IND, -1};
+static int con_params[] = { ISUP_PARM_BACKWARD_CALL_IND, ISUP_CONNECTED_NUMBER, -1};
 
 static int rel_params[] = { ISUP_PARM_CAUSE, -1};
 
@@ -83,13 +92,19 @@ static int greset_params[] = { ISUP_PARM_RANGE_AND_STATUS, -1};
 
 static int cot_params[] = { ISUP_PARM_CONTINUITY_IND, -1};
 
-static int cpg_params[] = { ISUP_PARM_EVENT_INFO, -1};
+static int cpg_params[] = { ISUP_PARM_EVENT_INFO, ISUP_CONNECTED_NUMBER, -1};
 
 static int cicgroup_params[] = { ISUP_PARM_CIRCUIT_GROUP_SUPERVISION_IND, ISUP_PARM_RANGE_AND_STATUS, -1};
 
 static int cqr_params[] = { ISUP_PARM_RANGE_AND_STATUS, ISUP_PARM_CIRCUIT_STATE_IND, -1};
 
-static int sus_res_params[] = { ISUP_PARM_SUSPEND_RESUME_IND, -1};
+static int sus_res_params[] = { ISUP_PARM_SUSPEND_RESUME_IND, ISUP_PARM_CALL_REF, -1};
+
+static int inr_params[] = { ISUP_PARM_INR_IND, -1};
+
+static int inf_params[] = { ISUP_PARM_INF_IND, ISUP_PARM_CALLING_PARTY_NUM, ISUP_PARM_CALLING_PARTY_CAT, -1};
+
+static int sam_params[] = { ISUP_PARM_SUBSEQUENT_NUMBER, -1};
 
 static int empty_params[] = { -1};
 
@@ -98,42 +113,50 @@ static struct message_data {
 	int mand_fixed_params;
 	int mand_var_params;
 	int opt_params;
+	int ansi_priority;
 	int *param_list;
 } messages[] = {
-	{ISUP_IAM, 4, 1, 1, iam_params},
-	{ISUP_ACM, 1, 0, 1, acm_params},
-	{ISUP_ANM, 0, 0, 1, anm_params},
-	{ISUP_CON, 1, 0, 1, con_params},
-	{ISUP_REL, 0, 1, 1, rel_params},
-	{ISUP_RLC, 0, 0, 1, empty_params},
-	{ISUP_GRS, 0, 1, 0, greset_params},
-	{ISUP_GRA, 0, 1, 0, greset_params},
-	{ISUP_CGB, 1, 1, 0, cicgroup_params},
-	{ISUP_CGU, 1, 1, 0, cicgroup_params},
-	{ISUP_CGBA, 1, 1, 0, cicgroup_params},
-	{ISUP_CGUA, 1, 1, 0, cicgroup_params},
-	{ISUP_COT, 1, 0, 0, cot_params},
-	{ISUP_CCR, 0, 0, 0, empty_params},
-	{ISUP_BLO, 0, 0, 0, empty_params},
-	{ISUP_LPA, 0, 0, 0, empty_params},
-	{ISUP_UBL, 0, 0, 0, empty_params},
-	{ISUP_BLA, 0, 0, 0, empty_params},
-	{ISUP_UBA, 0, 0, 0, empty_params},
-	{ISUP_RSC, 0, 0, 0, empty_params},
-	{ISUP_CVR, 0, 0, 0, empty_params},
-	{ISUP_CVT, 0, 0, 0, empty_params},
-	{ISUP_CPG, 1, 0, 1, cpg_params},
-	{ISUP_UCIC, 0, 0, 0, empty_params},
-	{ISUP_CQM, 0, 1, 0, greset_params},
-	{ISUP_CQR, 0, 2, 0, cqr_params},
-	{ISUP_FAA, 1, 0, 1, faa_params},
-	{ISUP_FAR, 1, 0, 1, far_params},
-	{ISUP_CFN, 0, 1, 0, rel_params},
-	{ISUP_SUS, 1, 0, 1, sus_res_params},
-	{ISUP_RES, 1, 0, 1, sus_res_params}
+	{ISUP_IAM, 4, 1, 1, 0, iam_params},
+	{ISUP_ACM, 1, 0, 1, 1, acm_params},
+	{ISUP_ANM, 0, 0, 1, 2, anm_params},
+	{ISUP_CON, 1, 0, 1, -1, con_params},
+	{ISUP_REL, 0, 1, 1, 1, rel_params},
+	{ISUP_RLC, 0, 0, 1, 2, empty_params},
+	{ISUP_GRS, 0, 1, 0, 0, greset_params},
+	{ISUP_GRA, 0, 1, 0, 0, greset_params},
+	{ISUP_CGB, 1, 1, 0, 0, cicgroup_params},
+	{ISUP_CGU, 1, 1, 0, 0, cicgroup_params},
+	{ISUP_CGBA, 1, 1, 0, 0, cicgroup_params},
+	{ISUP_CGUA, 1, 1, 0, 0, cicgroup_params},
+	{ISUP_COT, 1, 0, 0, 1, cot_params},
+	{ISUP_CCR, 0, 0, 0, 1, empty_params},
+	{ISUP_BLO, 0, 0, 0, 0, empty_params},
+	{ISUP_LPA, 0, 0, 0, 1, empty_params},
+	{ISUP_UBL, 0, 0, 0, 0, empty_params},
+	{ISUP_BLA, 0, 0, 0, 0, empty_params},
+	{ISUP_UBA, 0, 0, 0, 0, empty_params},
+	{ISUP_RSC, 0, 0, 0, 0, empty_params},
+	{ISUP_CVR, 0, 0, 0, 0, empty_params},
+	{ISUP_CVT, 0, 0, 0, 0, empty_params},
+	{ISUP_CPG, 1, 0, 1, 1, cpg_params},
+	{ISUP_UCIC, 0, 0, 0, 1, empty_params},
+	{ISUP_CQM, 0, 1, 0, 0, greset_params},
+	{ISUP_CQR, 0, 2, 0, 0, cqr_params},
+	{ISUP_FAA, 1, 0, 1, -1, faa_params},
+	{ISUP_FAR, 1, 0, 1, -1, far_params},
+	{ISUP_CFN, 0, 1, 1, 0, rel_params},
+	{ISUP_SUS, 1, 0, 1, 1, sus_res_params},
+	{ISUP_RES, 1, 0, 1, 1, sus_res_params},
+	{ISUP_INR, 1, 0, 0, 1, inr_params},
+	{ISUP_INF, 1, 0, 2, 1, inf_params},
+	{ISUP_SAM, 0, 1, 1, -1, sam_params}
 };
 
 static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagetype, int parms[]);
+
+static int isup_start_timer(struct ss7 *ss7, struct isup_call *c, int timer);
+static void isup_stop_all_timers(struct ss7 *ss7, struct isup_call *c);
+static void isup_stop_timer(struct ss7 *ss7, struct isup_call *c, int timer);
 
 static char * message2str(unsigned char message)
 {
@@ -144,6 +167,8 @@ static char * message2str(unsigned char message)
 			return "ACM";
 		case ISUP_ANM:
 			return "ANM";
+		case ISUP_CON:
+			return "CON";
 		case ISUP_REL:
 			return "REL";
 		case ISUP_RLC:
@@ -196,8 +221,66 @@ static char * message2str(unsigned char message)
 			return "SUS";
 		case ISUP_RES:
 			return "RES";
+		case ISUP_INR:
+			return "INR";
+		case ISUP_INF:
+			return "INF";
+		case ISUP_SAM:
+			return "SAM";
 		default:
 			return "Unknown";
+	}
+}
+
+static char * isup_timer2str(int timer)
+{
+	switch (timer) {
+		case ISUP_TIMER_T1:
+			return "t1";
+		case ISUP_TIMER_T2:
+			return "t2";
+		case ISUP_TIMER_T5:
+			return "t5";
+		case ISUP_TIMER_T6:
+			return "t6";
+		case ISUP_TIMER_T7:
+			return "t7";
+		case ISUP_TIMER_T8:
+			return "t8";
+		case ISUP_TIMER_T10:
+			return "t10";
+		case ISUP_TIMER_T12:
+			return "t12";
+		case ISUP_TIMER_T13:
+			return "t13";
+		case ISUP_TIMER_T14:
+			return "t14";
+		case ISUP_TIMER_T15:
+			return "t15";
+		case ISUP_TIMER_T16:
+			return "t16";
+		case ISUP_TIMER_T17:
+			return "t17";
+		case ISUP_TIMER_T18:
+			return "t18";
+		case ISUP_TIMER_T19:
+			return "t19";
+		case ISUP_TIMER_T20:
+			return "t20";
+		case ISUP_TIMER_T21:
+			return "t21";
+		case ISUP_TIMER_T22:
+			return "t22";
+		case ISUP_TIMER_T23:
+			return "t23";
+		case ISUP_TIMER_T27:
+			return "t27";
+		case ISUP_TIMER_T33:
+			return "t33";
+		case ISUP_TIMER_T35:
+			return "t35";
+		default:
+			return "unknown";
 	}
 }
 
@@ -205,56 +288,84 @@ static char char2digit(char localchar)
 {
 	switch (localchar) {
 		case '0':
-			return 0;
+			return 0x0;
 		case '1':
-			return 1;
+			return 0x1;
 		case '2':
-			return 2;
+			return 0x2;
 		case '3':
-			return 3;
+			return 0x3;
 		case '4':
-			return 4;
+			return 0x4;
 		case '5':
-			return 5;
+			return 0x5;
 		case '6':
-			return 6;
+			return 0x6;
 		case '7':
-			return 7;
+			return 0x7;
 		case '8':
-			return 8;
+			return 0x8;
 		case '9':
-			return 9;
+			return 0x9;
+		case 'a':
+		case 'A':
+			return 0xa;
+		case 'b':
+		case 'B':
+			return 0xb;
+		case 'c':
+		case 'C':
+			return 0xc;
+		case 'd':
+		case 'D':
+			return 0xd;
+		case 'e':
+		case 'E':
+		case '*':
+			return 0xe;
+		case 'f':
+		case 'F':
 		case '#':
 			return 0xf;
 		default:
-			return 0;
+			return 0x0;
 	}
 }
 
 static char digit2char(unsigned char digit)
 {
 	switch (digit & 0xf) {
-		case 0:
+		case 0x0:
 			return '0';
-		case 1:
+		case 0x1:
 			return '1';
-		case 2:
+		case 0x2:
 			return '2';
-		case 3:
+		case 0x3:
 			return '3';
-		case 4:
+		case 0x4:
 			return '4';
-		case 5:
+		case 0x5:
 			return '5';
-		case 6:
+		case 0x6:
 			return '6';
-		case 7:
+		case 0x7:
 			return '7';
-		case 8:
+		case 0x8:
 			return '8';
-		case 9:
+		case 0x9:
 			return '9';
-		case 15:
+		case 0xa:
+			return 'A';
+		case 0xb:
+			return 'B';
+		case 0xc:
+			return 'C';
+		case 0xd:
+			return 'D';
+		case 0xe:
+			return '*';
+		case 0xf:
 			return '#';
 		default:
 			return 0;
@@ -316,10 +427,11 @@ static void isup_put_number(unsigned char *dest, char *src, int *len, int *oddev
 	}
 
 	while (i < numlen) {
-		if (!(i % 2))
+		if (!(i % 2)) {
 			dest[i/2] |= char2digit(src[i]) & 0xf;
-		else
+		} else {
 			dest[i/2] |= (char2digit(src[i]) << 4) & 0xf0;
+		}
 		i++;
 	}
 }
@@ -328,20 +440,42 @@ static FUNC_SEND(nature_of_connection_ind_transmit)
 {
 	parm[0] = 0x00;
 
-	if (c->cot_check_required)
+	if (c->cot_check_required) {
 		parm[0] |= 0x04;
+	}
 
-	return 1; /* Length plus size of type header */
+	if (c->cot_performed_on_previous_cic) {
+		parm[0] |= 0x08;
+	}
+
+	if (c->local_echocontrol_ind) {
+		parm[0] |= 0x10;
+	}
+
+	return 1;	/* Length plus size of type header */
 }
 
 static FUNC_RECV(nature_of_connection_ind_receive)
 {
 	unsigned char cci = (parm[0] >> 2) & 0x3;
 
-	if (cci != 0x3)
-		c->cot_check_required = cci;
-	else
+	if (cci & 0x1) {
+		c->cot_check_required = 1;
+	} else {
 		c->cot_check_required = 0;
+	}
+
+	if (cci & 0x2) {
+		c->cot_performed_on_previous_cic = 1;
+	} else {
+		c->cot_performed_on_previous_cic = 0;
+	}
+
+	if (parm[0] & 0x10) {
+		c->echocontrol_ind = 1;
+	} else {
+		c->echocontrol_ind = 0;
+	}
 
 	return 1;
 }
@@ -380,7 +514,20 @@ static FUNC_DUMP(nature_of_connection_ind_dump)
 static FUNC_SEND(forward_call_ind_transmit)
 {
 	parm[0] = 0x60;
-	parm[1] = 0x01;
+	parm[1] = 0x0;
+
+	if (ss7->flags & SS7_ISDN_ACCESS_INDICATOR) {
+		parm [1] |= 0x01;
+	}
+
+	if (c->interworking_indicator) {
+		parm[0] |= (1 << 3);
+	}
+
+	if (c->forward_indicator_pmbits) {
+		parm[1] |= (c->forward_indicator_pmbits & 0xf0);
+	}
+
 	return 2;
 }
 
@@ -447,6 +594,8 @@ static FUNC_DUMP(forward_call_ind_dump)
 	ss7_message(ss7, "\t\t\tISDN User Part Pref Ind: %s (%d)\n", hg_str, (parm[0] >> 6) & 3);
 	ss7_message(ss7, "\t\t\tISDN Access Ind: originating access %s (%d)\n", (parm[1] & 1) ? "ISDN" : "non-ISDN", parm[1] & 1);
 	ss7_message(ss7, "\t\t\tSCCP Method Ind: %s (%d)\n", kj_str, (parm[1] >> 1) & 3);
+	ss7_message(ss7, "\t\t\tP-M bits(%d) P: %d O: %d N: %d M: %d\n",  (parm[1] & 0xf0),
+		((parm[1] >> 7) & 0x1), ((parm[1] >> 6) & 0x1), ((parm[1] >> 5) & 0x1), ((parm[1] >> 4) & 0x1));
 	return 2;
 }
 
@@ -458,7 +607,7 @@ static FUNC_RECV(calling_party_cat_receive)
 
 static FUNC_SEND(calling_party_cat_transmit)
 {
-	parm[0] = 0x0a; /* Default to Ordinary calling subscriber */
+	parm[0] = c->calling_party_cat;
 	return 1;
 }
 
@@ -529,10 +678,11 @@ static FUNC_SEND(user_service_info_transmit)
 
 static FUNC_SEND(transmission_medium_reqs_transmit)
 {
-	if (ss7->switchtype != SS7_ITU)
+	if (ss7->switchtype != SS7_ITU) {
 		return 0;
-	/* Speech */
-	parm[0] = 0;
+	}
+
+	parm[0] = c->transcap;
 	return 1;
 }
 
@@ -551,28 +701,14 @@ static FUNC_DUMP(transmission_medium_reqs_dump)
 			type = "Speech";
 			break;
 		case 1:
+		case 6:
 			type = "Spare";
 			break;
 		case 2:
 			type = "64 kbit/s unrestricted";
 			break;
-		case 4:
+		case 3:
 			type = "3.1 khz audio";
-			break;
-		case 6:
-			type = "64 kbit/s preferred";
-			break;
-		case 7:
-			type = "2 x 64 kbit/s unrestricted";
-			break;
-		case 8:
-			type = "384 kbit/s unrestricted";
-			break;
-		case 9:
-			type = "1536 kbit/s unrestricted";
-			break;
-		case 10:
-			type = "1920 kbit/s unrestricted";
 			break;
 		default:
 			type = "N x 64kbit/s unrestricted or possibly spare";
@@ -603,12 +739,13 @@ static FUNC_RECV(called_party_num_receive)
 {
 	int odd = 0;
 
-	if (parm[0] & 0x80)
+	if (parm[0] & 0x80) {
 		odd = 1;
+	}
 
 	isup_get_number(c->called_party_num, &parm[2], len - 2, odd);
 
-	c->called_nai = parm[0] & 0x7f; /* Nature of Address Indicator */
+	c->called_nai = parm[0] & 0x7f;	/* Nature of Address Indicator */
 
 	return len;
 }
@@ -619,12 +756,13 @@ static FUNC_SEND(called_party_num_transmit)
 
 	isup_put_number(&parm[2], c->called_party_num, &numlen, &oddeven);
 
-	parm[0] = c->called_nai & 0x7f; /* Nature of Address Indicator */
+	parm[0] = c->called_nai & 0x7f;	/* Nature of Address Indicator */
 
-	if (oddeven)
-		parm[0] |= 0x80; /* Odd number of digits */
+	if (oddeven) {
+		parm[0] |= 0x80;	/* Odd number of digits */
+	}
 
-	parm[1] = 0x1 << 4; /* Assume E.164 ISDN numbering plan, called number complete  */
+	parm[1] = 0x1 << 4;		/* Assume E.164 ISDN numbering plan, called number complete  */
 
 	return numlen + 2;
 }
@@ -632,13 +770,23 @@ static FUNC_SEND(called_party_num_transmit)
 static FUNC_RECV(backward_call_ind_receive)
 {
 	c->called_party_status_ind = (parm[0] >> 2) & 0x3;
+	c->echocontrol_ind = (parm[1] >> 5) & 0x1;
 	return 2;
 }
 
 static FUNC_SEND(backward_call_ind_transmit)
 {
 	parm[0] = 0x40;
-	parm[1] = 0x14;
+	parm[1] = 0x04;
+
+	if (c->local_echocontrol_ind) {
+		parm[1] |= 0x20;
+	}
+
+	if (ss7->flags | SS7_ISDN_ACCESS_INDICATOR) {
+		parm[1] |= 0x10;
+	}
+
 	return 2;
 }
 
@@ -688,6 +836,51 @@ static FUNC_DUMP(opt_backward_call_ind_dump)
 	ss7_message(ss7, "\t\t\tCall diversion may occur indicator: %d\n", b);
 	ss7_message(ss7, "\t\t\tSimple segmentation indicator: %d\n", c);
 	ss7_message(ss7, "\t\t\tMLPP user indicator: %d\n", d);
+	return 1;
+}
+
+static FUNC_DUMP(opt_forward_call_ind_dump)
+{
+	char *desc;
+
+	switch (parm[0] & 0x03) {
+	case ISUP_CUG_NON:
+		desc = "non-CUG call";
+		break;
+	case ISUP_CUG_OUTGOING_ALLOWED:
+		desc = "closed user group call, outgoing access allowed";
+		break;
+	case ISUP_CUG_OUTGOING_NOT_ALLOWED:
+		desc = "closed user group call, outgoing access not allowed";
+		break;
+	default:
+		desc = "spare";
+	}
+
+	ss7_message(ss7, "\t\t\tClosed user group call indicator: %s\n", desc);
+	ss7_message(ss7, "\t\t\tSimple segmentation indicator: %s\n", (parm[0] & (1 << 2)) ?
+			"additional information will be sent in segmentation message" :
+			"no additional message will be sent");
+	ss7_message(ss7, "\t\t\tConnected line identify request indicator %s\n", (parm[0] & (1 << 7)) ?
+			"requested": "not requested");
+
+	return 1;
+}
+
+static FUNC_SEND(opt_forward_call_ind_transmit)
+{
+	if (c->col_req || c->cug_indicator) {
+		parm[0] = (c->cug_indicator & 0x03) | (c->col_req << 7);
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
+static FUNC_RECV(opt_forward_call_ind_receive)
+{
+	c->cug_indicator = parm[0] & 0x03;
+	c->col_req = parm[0] >> 7;
 	return 1;
 }
 
@@ -946,14 +1139,16 @@ static FUNC_RECV(range_and_status_receive)
 	numcics = c->range + 1;
 
 	/* No status for these messages */
-	if ((messagetype == ISUP_CQR) || (messagetype == ISUP_CQM) || (messagetype == ISUP_GRS))
+	if ((messagetype == ISUP_CQR) || (messagetype == ISUP_CQM) || (messagetype == ISUP_GRS)) {
 		return len;
+	}
 
 	for (i = 0; i < numcics; i++) {
-		if (parm[1 + (i/8)] & (1 << (i%8)))
+		if (parm[1 + (i/8)] & (1 << (i%8))) {
 			c->status[i] = 1;
-		else
+		} else {
 			c->status[i] = 0;
+		}
 	}
 
 	return len;
@@ -967,19 +1162,18 @@ static FUNC_SEND(range_and_status_transmit)
 	parm[0] = c->range & 0xff;
 
 	/* No status for these messages */
-	if ((messagetype == ISUP_CQR) || (messagetype == ISUP_CQM) || (messagetype == ISUP_GRS))
+	if ((messagetype == ISUP_CQR) || (messagetype == ISUP_CQM) || (messagetype == ISUP_GRS)) {
 		return 1;
+	}
 
 	statuslen = (numcics / 8) + !!(numcics % 8);
 
-	if (messagetype == ISUP_GRA) {
-		for (i = 0; i < statuslen; i++) {
-			parm[1 + i] = 0;
+	for (i = 0; i < numcics; i++) {
+		if (!(i % 8)) {
+			parm[1 + (i/8)] = '\0';
 		}
-	} else {
-		for (i = 0; i < numcics; i++) {
-			if (c->status[i])
-				parm[1 + (i/8)] |= (1 << (i % 8));
+		if (c->status[i]) {
+			parm[1 + (i/8)] |= (1 << (i % 8));
 		}
 	}
 
@@ -1010,28 +1204,85 @@ static FUNC_RECV(calling_party_num_receive)
 
 	isup_get_number(c->calling_party_num, &parm[2], len - 2, oddeven);
 
-	c->calling_nai = parm[0] & 0x7f;                /* Nature of Address Indicator */
+	c->calling_nai = parm[0] & 0x7f;		/* Nature of Address Indicator */
 	c->presentation_ind = (parm[1] >> 2) & 0x3;
 	c->screening_ind = parm[1] & 0x3;
 
 	return len;
-
 }
 
 static FUNC_SEND(calling_party_num_transmit)
 {
 	int oddeven, datalen;
 
-	if (!c->calling_party_num[0])
+	if (!c->calling_party_num[0] && c->presentation_ind != SS7_PRESENTATION_ADDR_NOT_AVAILABLE) {
 		return 0;
+	}
 
-	isup_put_number(&parm[2], c->calling_party_num, &datalen, &oddeven);
+	if (c->calling_party_num[0] && c->presentation_ind != SS7_PRESENTATION_ADDR_NOT_AVAILABLE) {
+		isup_put_number(&parm[2], c->calling_party_num, &datalen, &oddeven);
+	} else {
+		datalen = 0;
+		oddeven = 0;
+		c->calling_nai = 0;
+	}
 
-	parm[0] = (oddeven << 7) | c->calling_nai;      /* Nature of Address Indicator */
-	parm[1] = (1 << 4) |                            /* Assume E.164 ISDN numbering plan, calling number complete */
+	parm[0] = (oddeven << 7) | c->calling_nai;	/* Nature of Address Indicator */
+	 /* Assume E.164 ISDN numbering plan, calling number complete */
+	parm[1] = ((c->presentation_ind == SS7_PRESENTATION_ADDR_NOT_AVAILABLE) ? 0 : (1 << 4)) |
 		((c->presentation_ind & 0x3) << 2) |
 		(c->screening_ind & 0x3);
 
+	return datalen + 2;
+}
+
+static FUNC_DUMP(connected_num_dump)
+{
+	int oddeven = (parm[0] >> 7) & 0x1;
+	char numbuf[64] = "";
+
+	ss7_message(ss7, "\t\t\tNature of address: %x\n", parm[0] & 0x7f);
+	ss7_message(ss7, "\t\t\tNumbering plan: %x\n", (parm[1] >> 4) & 0x7);
+	ss7_message(ss7, "\t\t\tPresentation: %x\n", (parm[1] >> 2) & 0x3);
+	ss7_message(ss7, "\t\t\tScreening: %x\n", parm[1] & 0x3);
+
+	isup_get_number(numbuf, &parm[2], len - 2, oddeven);
+
+	ss7_message(ss7, "\t\t\tAddress signals: %s\n", numbuf);
+
+	return len;
+}
+
+static FUNC_RECV(connected_num_receive)
+{
+	int oddeven = (parm[0] >> 7) & 0x1;
+
+	isup_get_number(c->connected_num, &parm[2], len - 2, oddeven);
+
+	c->connected_nai = parm[0] & 0x7f;		/* Nature of Address Indicator */
+	c->connected_presentation_ind = (parm[1] >> 2) & 0x3;
+	c->connected_screening_ind = parm[1] & 0x3;
+
+	return len;
+}
+
+static FUNC_SEND(connected_num_transmit)
+{
+	int oddeven = 0, datalen = 0;
+
+	if (!c->col_req) {
+		return 0;				/* if they don't ask we won't tell */
+	}
+
+	if (!c->connected_num[0]) {
+		c->connected_presentation_ind = SS7_PRESENTATION_ADDR_NOT_AVAILABLE;
+	} else {
+		isup_put_number(&parm[2], c->connected_num, &datalen, &oddeven);
+	}
+
+	parm[0] = (oddeven << 7) | c->connected_nai;	/* Nature of Address Indicator */
+	 /* Assume E.164 ISDN numbering plan, calling number complete */
+	parm[1] = ((c->connected_presentation_ind & 0x3) << 2) | (c->connected_screening_ind & 0x3);
 	return datalen + 2;
 }
 
@@ -1236,17 +1487,17 @@ static FUNC_RECV(originating_line_information_receive)
 	return 1;
 }
 
-static FUNC_SEND(originating_line_information_transmit) 
+static FUNC_SEND(originating_line_information_transmit)
 {
-	if (c->oli_ani2 < 0) {  /* Allow dialplan to strip OLI parm if you don't want to resend what was received */
+	if (c->oli_ani2 < 0) {	/* Allow dialplan to strip OLI parm if you don't want to resend what was received */
 		return 0;
 	} else if (c->oli_ani2 < 99) {
-		parm[0] = c->oli_ani2;  
+		parm[0] = c->oli_ani2;
 		return 1;
 	} else {
-		parm[0] = 0x00; /* This value is setting OLI equal to POTS line. */
+		parm[0] = 0x00;	/* This value is setting OLI equal to POTS line. */
 		return 1;
-	}   
+	}
 }
 
 static FUNC_DUMP(carrier_identification_dump)
@@ -1261,8 +1512,8 @@ static FUNC_RECV(carrier_identification_receive)
 
 static FUNC_SEND(carrier_identification_transmit)
 {
-	parm[0] = 0x22;  /* 4 digit CIC */
-	parm[1] = 0x00;  /* would send default 0000 */
+	parm[0] = 0x22;	/* 4 digit CIC */
+	parm[1] = 0x00;	/* would send default 0000 */
 	parm[2] = 0x00;
 
 	return 3;
@@ -1305,7 +1556,7 @@ static FUNC_RECV(hop_counter_receive)
 
 static FUNC_SEND(hop_counter_transmit)
 {
-	parm[0] = 0x01; /* would send hop counter with value of 1 */
+	parm[0] = 0x01;	/* would send hop counter with value of 1 */
 	return 1;
 }
 
@@ -1315,7 +1566,7 @@ static FUNC_RECV(charge_number_receive)
 
 	isup_get_number(c->charge_number, &parm[2], len - 2, oddeven);
 
-	c->charge_nai = parm[0] & 0x7f;                /* Nature of Address Indicator */
+	c->charge_nai = parm[0] & 0x7f;			/* Nature of Address Indicator */
 	c->charge_num_plan = (parm[1] >> 4) & 0x7;
 
 	return len;
@@ -1336,38 +1587,40 @@ static FUNC_DUMP(charge_number_dump)
 	return len;
 }
 
-static FUNC_SEND(charge_number_transmit)  //ANSI network
+static FUNC_SEND(charge_number_transmit)	// ANSI network
 {
 	int oddeven, datalen;
 
 	if (!c->charge_number[0])
 		return 0;
 
-	isup_put_number(&parm[2], c->charge_number, &datalen, &oddeven);  /* use the value from callerid in sip.conf to fill charge number */
+	isup_put_number(&parm[2], c->charge_number, &datalen, &oddeven);	/* use the value from callerid in sip.conf to fill charge number */
 
-	parm[0] = (oddeven << 7) | c->charge_nai;        /* Nature of Address Indicator = odd/even and ANI of the Calling party, subscriber number */
-	parm[1] = (1 << 4) | 0x0;       //c->charge_num_plan    /* Assume E.164 ISDN numbering plan, calling number complete and make sure reserved bits are zero */
+	parm[0] = (oddeven << 7) | c->charge_nai;		/* Nature of Address Indicator = odd/even and ANI of the Calling party, subscriber number */
+	parm[1] = (1 << 4) | 0x0;	//c->charge_num_plan	/* Assume E.164 ISDN numbering plan, calling number complete and make sure reserved bits are zero */
 
 	return datalen + 2;
-
 }
 
 static FUNC_SEND(continuity_ind_transmit)
 {
-	if (c->cot_check_passed)
+	if (c->cot_check_passed) {
 		parm[0] = 0x01;
-	else
+	} else {
 		parm[0] = 0x00;
+	}
 
 	return 1;
 }
 
 static FUNC_RECV(continuity_ind_receive)
 {
-	if (0x1 & parm[0])
+	if (0x1 & parm[0]) {
 		c->cot_check_passed = 1;
-	else
+	} else {
 		c->cot_check_passed = 0;
+	}
+
 	return 1;
 }
 
@@ -1552,11 +1805,22 @@ static FUNC_DUMP(redirection_info_dump)
 
 static FUNC_RECV(redirection_info_receive)
 {
+	c->redirect_info = 1;
+	c->redirect_info_ind = parm[0] & 0x7;
+	c->redirect_info_orig_reas = (parm[0] >> 4) & 0xf;
+	c->redirect_info_counter = parm[1] & 0x7;
+	c->redirect_info_reas = (parm[1] >> 4) & 0xf;
 	return 2;
 }
 
 static FUNC_SEND(redirection_info_transmit)
 {
+	if (!c->redirect_info) {
+		return 0;
+	}
+
+	parm[0] = (c->redirect_info_ind & 0x7) | ((c->redirect_info_orig_reas << 4) & 0xf0);
+	parm[1] = (c->redirect_info_counter & 0x7) | ((c->redirect_info_reas << 4) & 0xf0);
 	return 2;
 }
 
@@ -1591,8 +1855,9 @@ static FUNC_SEND(generic_name_transmit)
 	int namelen = strlen(c->generic_name);
 
 	/* Check to see if generic name is set before we try to add it */
-	if (!c->generic_name[0])
+	if (!c->generic_name[0]) {
 		return 0;
+	}
 
 	parm[0] = (c->generic_name_typeofname << 5) | ((c->generic_name_avail & 0x1) << 4) | (c->generic_name_presentation & 0x3);
 	memcpy(&parm[1], c->generic_name, namelen);
@@ -1604,74 +1869,72 @@ static FUNC_DUMP(generic_address_dump)
 {
 	int oddeven = (parm[1] >> 7) & 0x1;
 	char numbuf[64] = "";
-	
+
 	ss7_message(ss7, "\t\t\tType of address: %x\n", parm[0]);
 	ss7_message(ss7, "\t\t\tNature of address: %x\n", parm[1] & 0x7f);
 	ss7_message(ss7, "\t\t\tOddEven: %x\n", (parm[1] >> 7) & 0x1);
 	ss7_message(ss7, "\t\t\tReserved: %x\n", parm[2] & 0x3);
 	ss7_message(ss7, "\t\t\tPresentation: %x\n", (parm[2] >> 2) & 0x3);
 	ss7_message(ss7, "\t\t\tNumbering plan: %x\n", (parm[2] >> 4) & 0x7);
-	
+
 	isup_get_number(numbuf, &parm[3], len - 3, oddeven);
-	
+
 	ss7_message(ss7, "\t\t\tAddress signals: %s\n", numbuf);
-	
+
 	return len;
 }
 
 static FUNC_RECV(generic_address_receive)
 {
 	int oddeven = (parm[1] >> 7) & 0x1;
-	
+
 	c->gen_add_type = parm[0];
 	c->gen_add_nai = parm[1] & 0x7f;
 	c->gen_add_pres_ind = (parm[2] >> 2) & 0x3;
 	c->gen_add_num_plan = (parm[2] >> 4) & 0x7;
-	
+
 	isup_get_number(c->gen_add_number, &parm[3], len - 3, oddeven);
-	
+
 	return len;
 }
 
 static FUNC_SEND(generic_address_transmit)
 {
-	
 	int oddeven, datalen;
-	
-	if (!c->gen_add_number[0])
+
+	if (!c->gen_add_number[0]) {
 		return 0;
-	
+	}
+
 	isup_put_number(&parm[3], c->gen_add_number, &datalen, &oddeven);
-	
+
 	parm[0] = c->gen_add_type;
-	parm[1] = (oddeven << 7) | c->gen_add_nai;      /* Nature of Address Indicator */
-	parm[2] = (c->gen_add_num_plan << 4) |                           
+	parm[1] = (oddeven << 7) | c->gen_add_nai;	/* Nature of Address Indicator */
+	parm[2] = (c->gen_add_num_plan << 4) |
 		((c->gen_add_pres_ind & 0x3) << 2) |
 		( 0x00 & 0x3);
-	
+
 	return datalen + 3;
 }
-
 
 static FUNC_DUMP(generic_digits_dump)
 {
 	int oddeven = (parm[0] >> 5) & 0x7;
 	char numbuf[64] = "";
-	
+
 	ss7_message(ss7, "\t\t\tType of digits: %x\n", parm[0] & 0x1f);
 	ss7_message(ss7, "\t\t\tEncoding Scheme: %x\n", (parm[0] >> 5) & 0x7);
 	isup_get_number(numbuf, &parm[1], len - 1, oddeven);
 	ss7_message(ss7, "\t\t\tAddress digits: %s\n", numbuf);
 
 	return len;
-	
 }
 
 static FUNC_RECV(generic_digits_receive)
 {
 	c->gen_dig_scheme = (parm[0] >> 5) & 0x7;
 	c->gen_dig_type = parm[0] & 0x1f;
-	
+
 	isup_get_number(c->gen_dig_number, &parm[1], len - 1, c->gen_dig_scheme);
 	return len;
 }
@@ -1679,18 +1942,19 @@ static FUNC_RECV(generic_digits_receive)
 static FUNC_SEND(generic_digits_transmit)
 {
 	int oddeven, datalen;
-	
-	if (!c->gen_dig_number[0])
+
+	if (!c->gen_dig_number[0]) {
 		return 0;
-	
+	}
+
 	switch (c->gen_dig_type) {
 		case 0:
 		case 1:
-		case 2: /* used for sending digit strings */
+		case 2:	/* used for sending digit strings */
 			isup_put_number(&parm[1], c->gen_dig_number, &datalen, &oddeven);
 			parm[0] = (oddeven << 5 ) | c->gen_dig_type;
 			break;
-		case 3:	 /*used for sending BUSINESS COMM. GROUP IDENTIY type */
+		case 3:	/*used for sending BUSINESS COMM. GROUP IDENTIY type */
 			isup_put_generic(&parm[1], c->gen_dig_number, &datalen);
 			parm[0] = (c->gen_dig_scheme << 5 ) | c->gen_dig_type;
 			break;
@@ -1706,15 +1970,16 @@ static FUNC_DUMP(original_called_num_dump)
 {
 	int oddeven = (parm[0] >> 7) & 0x1;
 	char numbuf[64] = "";
-	
+
 	ss7_message(ss7, "\t\t\tNature of address: %x\n", parm[0] & 0x7f);
 	ss7_message(ss7, "\t\t\tNumbering plan: %x\n", (parm[1] >> 4) & 0x7);
 	ss7_message(ss7, "\t\t\tPresentation: %x\n", (parm[1] >> 2) & 0x3);
-	
+	ss7_message(ss7, "\t\t\tScreening: %x\n", parm[1] & 0x3);
+
 	isup_get_number(numbuf, &parm[2], len - 2, oddeven);
-	
+
 	ss7_message(ss7, "\t\t\tAddress signals: %s\n", numbuf);
-	
+
 	return len;
 }
 
@@ -1733,7 +1998,20 @@ static FUNC_RECV(original_called_num_receive)
 
 static FUNC_SEND(original_called_num_transmit)
 {
-	return len;
+	int oddeven, datalen;
+
+	if (!c->orig_called_num[0]) {
+		return 0;
+	}
+
+	isup_put_number(&parm[2], c->orig_called_num, &datalen, &oddeven);
+
+	parm[0] = (oddeven << 7) | c->orig_called_nai;	/* Nature of Address Indicator */
+	parm[1] = (1 << 4) |				/* Assume E.164 ISDN numbering plan, calling number complete */
+		((c->orig_called_pres_ind & 0x3) << 2) |
+		(c->orig_called_screening_ind & 0x3);
+
+	return datalen + 2;
 }
 
 static FUNC_DUMP(echo_control_info_dump)
@@ -1840,7 +2118,7 @@ static FUNC_DUMP(circuit_state_ind_dump)
 	unsigned char dcbits, babits, febits;
 	char *ba_str, *dc_str, *fe_str;
 	int i;
-	
+
 	for (i = 0; i < len; i++) {
 		babits = parm[i] & 0x3;
 		dcbits = (parm[i] >> 2) & 0x3;
@@ -1919,8 +2197,9 @@ static FUNC_SEND(circuit_state_ind_transmit)
 {
 	int numcics = c->range + 1, i;
 
-	for (i = 0; i < numcics; i++)
+	for (i = 0; i < numcics; i++) {
 		parm[i] = c->status[i];
+	}
 
 	return numcics;
 }
@@ -1931,7 +2210,7 @@ static FUNC_DUMP(tns_dump)
 	ss7_message(ss7, "\t\t\tNetwork ID plan: %x\n", parm[0] & 0xf);
 	ss7_message(ss7, "\t\t\tNetwork ID: %x %x\n", parm[1], parm[2]);
 	ss7_message(ss7, "\t\t\tCircuit Code: %x\n", (parm[3] >> 4) & 0xf);
-	
+
 	return len;
 }
 
@@ -1945,13 +2224,105 @@ static FUNC_RECV(tns_receive)
 	return len;
 }
 
+static FUNC_DUMP(generic_notification_ind_dump)
+{
+	int pos = 0;
+	ss7_message(ss7, "\t\t\tNotification indicator: ");
+
+	while (pos < len && (pos || !(parm[pos - 1] & 0x80))) {
+		switch (parm[pos] & 0x7f) {
+			case 0x00:
+				ss7_message(ss7, "user suspended; ");
+				break;
+			case 0x01:
+				ss7_message(ss7, "user resumed; ");
+				break;
+			case 0x02:
+				ss7_message(ss7, "bearer service change; ");
+				break;
+			case 0x03:
+				ss7_message(ss7, "discriminator for extension to ASN.1; ");
+				break;
+			case 0x04:
+				ss7_message(ss7, "call completion delay; ");
+				break;
+			case 0x42:
+				ss7_message(ss7, "conference established; ");
+				break;
+			case 0x43:
+				ss7_message(ss7, "conference disconnected; ");
+				break;
+			case 0x44:
+				ss7_message(ss7, "other party added; ");
+				break;
+			case 0x45:
+				ss7_message(ss7, "isolated; ");
+				break;
+			case 0x46:
+				ss7_message(ss7, "reattached; ");
+				break;
+			case 0x47:
+				ss7_message(ss7, "other party isolated; ");
+				break;
+			case 0x48:
+				ss7_message(ss7, "other party reattached; ");
+				break;
+			case 0x49:
+				ss7_message(ss7, "other party split; ");
+				break;
+			case 0x4a:
+				ss7_message(ss7, "other party disconnected; ");
+				break;
+			case 0x4b:
+				ss7_message(ss7, "other party floating; ");
+				break;
+			case 0x60:
+				ss7_message(ss7, "call is a waiting call; ");
+				break;
+			case 0x68:
+				ss7_message(ss7, "diversion activated; ");
+				break;
+			case 0x69:
+				ss7_message(ss7, "call transfer, alerting; ");
+				break;
+			case 0x6a:
+				ss7_message(ss7, "call transfer, active; ");
+				break;
+			case 0x79:
+				ss7_message(ss7, "remote hold; ");
+				break;
+			case 0x7a:
+				ss7_message(ss7, "remote retrieval; ");
+				break;
+			case 0x7b:
+				ss7_message(ss7, "remote is diverting; ");
+				break;
+			default:
+				ss7_message(ss7, "reserved; ");
+		}
+		pos++;
+	}
+	ss7_message(ss7, "\n");
+	return len;
+}
+
+static FUNC_SEND(generic_notification_ind_transmit)
+{
+	return 0;
+}
+
+static FUNC_RECV(generic_notification_ind_receive)
+{
+	return len;
+}
+
 static FUNC_SEND(lspi_transmit)
 {
 	/* On Nortel this needs to be set to ARM the RLT functionality. */
 	/* This causes the Nortel switch to return the CALLREFERENCE Parm on the ACM of the outgoing call */
 	/* This parm has more fields that can be set but Nortel DMS-250/500 needs it set as below */
 	if (c->lspi_scheme) {
-		parm[0] = c->lspi_scheme << 5 | c->lspi_type;  /* only setting parms for NORTEL RLT on IMT trktype */
+		parm[0] = c->lspi_scheme << 5 | c->lspi_type;	/* only setting parms for NORTEL RLT on IMT trktype */
 		return 1;
 	}
 	return 0;
@@ -1963,7 +2334,7 @@ static FUNC_RECV(lspi_receive)
 	c->lspi_scheme = parm[0] >> 5 & 0x7;
 	c->lspi_context = parm[1] & 0xf;
 	isup_get_number(c->lspi_ident, &parm[2], len - 2, c->lspi_scheme);
-	
+
 	return len;
 }
 
@@ -1974,26 +2345,28 @@ static FUNC_DUMP(lspi_dump)
 	ss7_message(ss7, "\t\t\tContext ID: %x\n", parm[1] & 0xf);
 	ss7_message(ss7, "\t\t\tSpare: %x\n", (parm[1] >> 4) & 0xf);
 	ss7_message(ss7, "\t\t\tLSP Identity: %x\n", parm[2]);
-	
+
 	return len;
 }
 
 static FUNC_DUMP(call_ref_dump)
 {
 	unsigned int ptc, callr;
-	
+
 	callr = parm[0] | (parm[1] << 8) | (parm[2] << 16);
-	if (ss7->switchtype == SS7_ANSI)
+	if (ss7->switchtype == SS7_ANSI) {
 		ptc = parm[3] | (parm[4] << 8) | (parm[5] << 16);
-	else
+	} else {
 		ptc = parm[3] | (parm[4] << 8);
-	
+	}
+
 	ss7_message(ss7, "\t\t\tCall identity: %d\n", callr);
-	if (ss7->switchtype == SS7_ANSI)
+	if (ss7->switchtype == SS7_ANSI) {
 		ss7_message(ss7, "\t\t\tPC: Net-CLstr-Mbr: %d-%d-%d\n",(ptc >> 16) & 0xff, (ptc >> 8) & 0xff, ptc & 0xff);
-	else
+	} else {
 		ss7_message(ss7, "\t\t\tPC: 0x%x\n", ptc);
-	
+	}
+
 	return len;
 }
 
@@ -2045,7 +2418,7 @@ static FUNC_RECV(facility_ind_receive)
 
 static FUNC_SEND(facility_ind_transmit)
 {
-	parm[0] = 0x10; /* Setting Value to Nortel DMS-250/500 needs for RLT */
+	parm[0] = 0x10;	/* Setting Value to Nortel DMS-250/500 needs for RLT */
 	return 1;
 }
 
@@ -2053,66 +2426,234 @@ static FUNC_DUMP(redirecting_number_dump)
 {
 	int oddeven = (parm[0] >> 7) & 0x1;
 	char numbuf[64] = "";
-	
+
 	ss7_message(ss7, "\t\t\tNature of address: %x\n", parm[0] & 0x7f);
 	ss7_message(ss7, "\t\t\tNI: %x\n", (parm[1] >> 7) & 0x1);
 	ss7_message(ss7, "\t\t\tNumbering plan: %x\n", (parm[1] >> 4) & 0x7);
 	ss7_message(ss7, "\t\t\tPresentation: %x\n", (parm[1] >> 2) & 0x3);
 	ss7_message(ss7, "\t\t\tScreening: %x\n", parm[1] & 0x3);
-	
+
 	isup_get_number(numbuf, &parm[2], len - 2, oddeven);
-	
+
 	ss7_message(ss7, "\t\t\tAddress signals: %s\n", numbuf);
-	
+
 	return len;
 }
 
 static FUNC_RECV(redirecting_number_receive)
 {
 	int oddeven = (parm[0] >> 7) & 0x1;
-	
+
 	isup_get_number(c->redirecting_num, &parm[2], len - 2, oddeven);
-	
-	c->redirecting_num_nai = parm[0] & 0x7f;                /* Nature of Address Indicator */
+
+	c->redirecting_num_nai = parm[0] & 0x7f;			/* Nature of Address Indicator */
 	c->redirecting_num_presentation_ind = (parm[1] >> 2) & 0x3;
 	c->redirecting_num_screening_ind = parm[1] & 0x3;
-	
+
 	return len;
-	
 }
 
 static FUNC_SEND(redirecting_number_transmit)
 {
-	return 0;	
-}	
+	int oddeven, datalen;
+
+	if (!c->redirecting_num[0]) {
+		return 0;
+	}
+
+	isup_put_number(&parm[2], c->redirecting_num, &datalen, &oddeven);
+	parm[0] = (oddeven << 7) | c->redirecting_num_nai;	/* Nature of Address Indicator */
+	parm[1] = (1 << 4) |					/* Assume E.164 ISDN numbering plan, calling number complete */
+		((c->redirecting_num_presentation_ind & 0x3) << 2) |
+		(c->redirecting_num_screening_ind & 0x3);
+
+	return datalen + 2;
+}
+
+static FUNC_DUMP(redirect_counter_dump)
+{
+	ss7_message(ss7, "\t\t\tRedirect count: %i\n", parm[0] & 0x1f);
+	return 1;
+}
+
+static FUNC_RECV(redirect_counter_receive)
+{
+	c->redirect_counter = parm[0] & 0x1f;
+	return 1;
+}
+
+static FUNC_SEND(redirect_counter_transmit)
+{
+	if (!c->redirect_counter) {
+		return 0;
+	}
+
+	parm[0] = c->redirect_counter & 0x1f;
+	return 1;
+}
+
+static FUNC_DUMP(inr_ind_dump)
+{
+	ss7_message(ss7, "\t\t\tCalling party address %srequested\n", (parm[0] & 0x1) ? "" : "not ");
+	ss7_message(ss7, "\t\t\tHolding %srequested\n", (parm[0] & 0x2) ? "" : "not ");
+	ss7_message(ss7, "\t\t\tCalling party category %srequested\n", (parm[0] & 0x8) ? "" : "not ");
+	ss7_message(ss7, "\t\t\tCharge information %srequested\n", (parm[0] & 0x10) ? "" : "not ");
+	ss7_message(ss7, "\t\t\tMalicous call identification %srequested\n", (parm[0] & 0x80) ? "" : "not ");
+	return 2;
+}
+
+static FUNC_RECV(inr_ind_receive)
+{
+	c->inr_ind[0] = parm[0];
+	c->inr_ind[1] = parm[1];
+	return 2;
+}
+
+static FUNC_SEND(inr_ind_transmit)
+{
+	parm[0] = c->inr_ind[0];
+	parm[1] = c->inr_ind[1];
+	return 2;
+}
+
+static FUNC_DUMP(inf_ind_dump)
+{
+	ss7_message(ss7, "\t\t\tCalling party address: %s\n",
+		(parm[0] & 0x2) ? ((parm[0] & 0x1) ? "included" : "spare" ) : ((parm[0] & 0x1) ? "not available" : "not included") );
+	ss7_message(ss7, "\t\t\tHold: %sprovided\n", (parm[0] & 0x4) ? "" : "not ");
+	ss7_message(ss7, "\t\t\tCalling party's category %sincluded\n", (parm[0] & 0x20) ? "" : "not ");
+	ss7_message(ss7, "\t\t\tCharge information %sincluded\n", (parm[0] & 0x40) ? "" : "not ");
+	ss7_message(ss7, "\t\t\t%s\n", (parm[0] & 0x80) ? "Unsolicated" : "Solicated");
+
+	return 2;
+}
+
+static FUNC_RECV(inf_ind_receive)
+{
+	c->inf_ind[0] = parm[0];
+	c->inf_ind[1] = parm[1];
+	if ((parm[0] & 0x3) == 0x1) {
+		c->presentation_ind = SS7_PRESENTATION_ADDR_NOT_AVAILABLE;
+	}
+	return 2;
+}
+
+static FUNC_SEND(inf_ind_transmit)
+{
+	parm[0] = c->inf_ind[0];
+	parm[1] = c->inf_ind[1];
+	return 2;
+}
 
 static FUNC_DUMP(access_transport_dump)
 {
-	return len;	
-}	
+	return len;
+}
+
 static FUNC_RECV(access_transport_receive)
 {
-	return len;	
-}	
+	return len;
+}
 
 static FUNC_SEND(access_transport_transmit)
 {
-	return len;	
-}	
+	return len;
+}
 
 static FUNC_DUMP(suspend_resume_ind_dump)
 {
 	int indicator = parm[0] & 1;
 
 	ss7_message(ss7, "\t\t\tSUS/RES indicator: %s (%d)", indicator ? "Network initiated" : "ISDN Subscriber initiated", indicator);
-	return 1;	
-}	
+	return 1;
+}
 
 static FUNC_RECV(suspend_resume_ind_receive)
 {
 	c->network_isdn_indicator = parm[0] & 1;
-	return 1;	
-}	
+	return 1;
+}
+
+static FUNC_SEND(suspend_resume_ind_transmit)
+{
+	parm[0] = c->network_isdn_indicator & 1;
+	return 1;
+}
+
+static FUNC_DUMP(subs_num_dump)
+{
+	int oddeven = (parm[0] >> 7) & 0x1;
+	char numbuf[64];
+
+	isup_get_number(numbuf, &parm[1], len - 1, oddeven);
+	ss7_message(ss7, "\t\t\tSubsequent signals: %s\n", numbuf);
+
+	return len;
+}
+
+static FUNC_RECV(subs_num_receive)
+{
+	int oddeven = (parm[0] >> 7) & 0x1;
+
+	isup_get_number(c->called_party_num, &parm[1], len - 1, oddeven);
+
+	return len;
+}
+
+static FUNC_SEND(subs_num_transmit)
+{
+	int oddeven, datalen;
+
+	isup_put_number(&parm[1], c->called_party_num, &datalen, &oddeven);
+	parm[0] = (oddeven << 7);
+
+	return datalen + 1;
+}
+
+static FUNC_DUMP(cug_interlock_code_dump)
+{
+	char ni[5];
+	unsigned short code;
+
+	ni[0] = digit2char(parm[0] >> 4);
+	ni[1] = digit2char(parm[0] & 0x0f);
+	ni[2] = digit2char(parm[1] >> 4);
+	ni[3] = digit2char(parm[1] & 0x0f);
+	ni[4] = '\0';
+
+	code = (parm[2] << 8) | parm [3];
+
+	ss7_message(ss7, "\t\t\tNetwork Identify: %s\n", ni);
+	ss7_message(ss7, "\t\t\tBinary Code: %d\n", code);
+	return 4;
+}
+
+static FUNC_RECV(cug_interlock_code_receive)
+{
+	c->cug_interlock_ni[0] = digit2char(parm[0] >> 4);
+	c->cug_interlock_ni[1] = digit2char(parm[0] & 0x0f);
+	c->cug_interlock_ni[2] = digit2char(parm[1] >> 4);
+	c->cug_interlock_ni[3] = digit2char(parm[1] & 0x0f);
+	c->cug_interlock_ni[4] = '\0';
+
+	c->cug_interlock_code = (parm[2] << 8) | parm [3];
+	return 4;
+}
+
+static FUNC_SEND(cug_interlock_code_transmit)
+{
+	if (!(c->cug_indicator == ISUP_CUG_OUTGOING_ALLOWED || c->cug_indicator == ISUP_CUG_OUTGOING_NOT_ALLOWED)) {
+		return 0;
+	}
+
+	parm[0] = (char2digit(c->cug_interlock_ni[0]) << 4) | char2digit(c->cug_interlock_ni[1]);
+	parm[1] = (char2digit(c->cug_interlock_ni[2]) << 4) | char2digit(c->cug_interlock_ni[3]);
+
+	parm[2] = c->cug_interlock_code >> 8;
+	parm[3] = c->cug_interlock_code & 0xff;
+
+	return 4;
+}
 
 static struct parm_func parms[] = {
 	{ISUP_PARM_NATURE_OF_CONNECTION_IND, "Nature of Connection Indicator", nature_of_connection_ind_dump, nature_of_connection_ind_receive, nature_of_connection_ind_transmit },
@@ -2132,13 +2673,13 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_CHARGE_NUMBER, "Charge Number", charge_number_dump, charge_number_receive, charge_number_transmit},
 	{ISUP_PARM_CIRCUIT_ASSIGNMENT_MAP, "Circuit Assignment Map"},
 	{ISUP_PARM_CONNECTION_REQ, "Connection Request"},
-	{ISUP_PARM_CUG_INTERLOCK_CODE, "Interlock Code"},
+	{ISUP_PARM_CUG_INTERLOCK_CODE, "Interlock Code", cug_interlock_code_dump, cug_interlock_code_receive, cug_interlock_code_transmit},
 	{ISUP_PARM_EGRESS_SERV, "Egress Service"},
 	{ISUP_PARM_GENERIC_ADDR, "Generic Address", generic_address_dump, generic_address_receive, generic_address_transmit},
 	{ISUP_PARM_GENERIC_DIGITS, "Generic Digits", generic_digits_dump, generic_digits_receive, generic_digits_transmit},
 	{ISUP_PARM_GENERIC_NAME, "Generic Name", generic_name_dump, generic_name_receive, generic_name_transmit},
 	{ISUP_PARM_TRANSIT_NETWORK_SELECTION, "Transit Network Selection", tns_dump, tns_receive, tns_transmit},
-	{ISUP_PARM_GENERIC_NOTIFICATION_IND, "Generic Notification Indication"},
+	{ISUP_PARM_GENERIC_NOTIFICATION_IND, "Generic Notification Indication", generic_notification_ind_dump, generic_notification_ind_receive, generic_notification_ind_transmit},
 	{ISUP_PARM_PROPAGATION_DELAY, "Propagation Delay Counter", propagation_delay_cntr_dump},
 	{ISUP_PARM_HOP_COUNTER, "Hop Counter", hop_counter_dump, hop_counter_receive, hop_counter_transmit},
 	{ISUP_PARM_BACKWARD_CALL_IND, "Backward Call Indicator", backward_call_ind_dump, backward_call_ind_receive, backward_call_ind_transmit},
@@ -2146,7 +2687,7 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_CIRCUIT_GROUP_SUPERVISION_IND, "Circuit Group Supervision Indicator", circuit_group_supervision_dump, circuit_group_supervision_receive, circuit_group_supervision_transmit},
 	{ISUP_PARM_RANGE_AND_STATUS, "Range and status", range_and_status_dump, range_and_status_receive, range_and_status_transmit},
 	{ISUP_PARM_EVENT_INFO, "Event Information", event_info_dump, event_info_receive, event_info_transmit},
-	{ISUP_PARM_OPT_FORWARD_CALL_INDICATOR, "Optional forward call indicator"},
+	{ISUP_PARM_OPT_FORWARD_CALL_INDICATOR, "Optional forward call indicator", opt_forward_call_ind_dump, opt_forward_call_ind_receive, opt_forward_call_ind_transmit},
 	{ISUP_PARM_LOCATION_NUMBER, "Location Number"},
 	{ISUP_PARM_ORIG_LINE_INFO, "Originating line information", originating_line_information_dump, originating_line_information_receive, originating_line_information_transmit},
 	{ISUP_PARM_REDIRECTION_INFO, "Redirection Information", redirection_info_dump, redirection_info_receive, redirection_info_transmit},
@@ -2159,7 +2700,12 @@ static struct parm_func parms[] = {
 	{ISUP_PARM_FACILITY_IND, "Facility Indicator", facility_ind_dump, facility_ind_receive, facility_ind_transmit},
 	{ISUP_PARM_REDIRECTING_NUMBER, "Redirecting Number", redirecting_number_dump, redirecting_number_receive, redirecting_number_transmit},
 	{ISUP_PARM_ACCESS_DELIVERY_INFO, "Access Delivery Information", },
-	{ISUP_PARM_SUSPEND_RESUME_IND, "Suspend/Resume Indicators", suspend_resume_ind_dump, suspend_resume_ind_receive},
+	{ISUP_PARM_REDIRECT_COUNTER, "Redirect Counter", redirect_counter_dump, redirect_counter_receive, redirect_counter_transmit},
+	{ISUP_PARM_SUSPEND_RESUME_IND, "Suspend/Resume Indicators", suspend_resume_ind_dump, suspend_resume_ind_receive, suspend_resume_ind_transmit},
+	{ISUP_PARM_INR_IND, "Information Request Indicators", inr_ind_dump, inr_ind_receive, inr_ind_transmit},
+	{ISUP_PARM_INF_IND, "Information Indicators", inf_ind_dump, inf_ind_receive, inf_ind_transmit},
+	{ISUP_PARM_SUBSEQUENT_NUMBER, "Subsequent Number", subs_num_dump, subs_num_receive, subs_num_transmit},
+	{ISUP_CONNECTED_NUMBER, "Connected Number", connected_num_dump, connected_num_receive, connected_num_transmit}
 };
 
 static char * param2str(int parm)
@@ -2175,31 +2721,43 @@ static char * param2str(int parm)
 
 static void init_isup_call(struct isup_call *c)
 {
+	int x;
+
+	for (x = 0; x < ISUP_MAX_TIMERS; x++) {
+		c->timer[x] = -1;
+	}
 	c->oli_ani2 = -1;
+	c->range = 0;
+	c->got_sent_msg = 0;
+	c->calling_party_cat = 0x0a;	/* Default to Ordinary calling subscriber */
 }
 
 static struct isup_call * __isup_new_call(struct ss7 *ss7, int nolink)
 {
 	struct isup_call *c, *cur;
-	c = calloc(1, sizeof(struct isup_call));
-	if (!c)
+
+	c = calloc(1, sizeof(*c));
+	if (!c) {
 		return NULL;
+	}
 
 	init_isup_call(c);
 
-	if (nolink)
-		return c;
-	else {
-		cur = ss7->calls;
-		if (cur) {
-			while (cur->next)
-				cur = cur->next;
-			cur->next = c;
-		} else
-			ss7->calls = c;
-
+	if (nolink) {
 		return c;
 	}
+
+	cur = ss7->calls;
+	if (cur) {
+		while (cur->next) {
+			cur = cur->next;
+		}
+		cur->next = c;
+	} else {
+		ss7->calls = c;
+	}
+
+	return c;
 }
 
 struct isup_call * isup_new_call(struct ss7 *ss7)
@@ -2215,13 +2773,13 @@ void isup_set_call_dpc(struct isup_call *c, unsigned int dpc)
 void isup_set_called(struct isup_call *c, const char *called, unsigned char called_nai, const struct ss7 *ss7)
 {
 	if (called && called[0]) {
-		if (ss7->switchtype == SS7_ITU)
+		if (ss7->switchtype == SS7_ITU) {
 			snprintf(c->called_party_num, sizeof(c->called_party_num), "%s#", called);
-		else
+		} else {
 			snprintf(c->called_party_num, sizeof(c->called_party_num), "%s", called);
+		}
 		c->called_nai = called_nai;
 	}
-
 }
 
 void isup_set_oli(struct isup_call *c, int oli_ani2)
@@ -2229,14 +2787,98 @@ void isup_set_oli(struct isup_call *c, int oli_ani2)
 	c->oli_ani2 = oli_ani2;
 }
 
+void isup_set_tmr(struct isup_call *c, int tmr)
+{
+	c->transcap = tmr;
+}
+
 void isup_set_calling(struct isup_call *c, const char *calling, unsigned char calling_nai, unsigned char presentation_ind, unsigned char screening_ind)
 {
-	if (calling && calling[0]) {
-		strncpy(c->calling_party_num, calling, sizeof(c->calling_party_num));
+	if ((calling && calling[0]) || presentation_ind == SS7_PRESENTATION_ADDR_NOT_AVAILABLE) {
+		if (calling) {
+			strncpy(c->calling_party_num, calling, sizeof(c->calling_party_num));
+		} else {
+			c->calling_party_num[0] = '\0';
+		}
 		c->calling_nai = calling_nai;
 		c->presentation_ind = presentation_ind;
 		c->screening_ind = screening_ind;
 	}
+}
+
+void isup_set_connected(struct isup_call *c, const char *connected, unsigned char connected_nai, unsigned char connected_presentation_ind, unsigned char connected_screening_ind) {
+	if ((connected && connected[0]) || connected_presentation_ind == SS7_PRESENTATION_ADDR_NOT_AVAILABLE) {
+		if (connected) {
+			strncpy(c->connected_num, connected, sizeof(c->connected_num));
+		} else {
+			c->connected_num[0] = '\0';
+		}
+		c->connected_nai = connected_nai;
+		c->connected_presentation_ind = connected_presentation_ind;
+		c->connected_screening_ind = connected_screening_ind;
+	}
+}
+
+void isup_set_redirecting_number(struct isup_call *c, const char *redirecting_number, unsigned char redirecting_num_nai, unsigned char redirecting_num_presentation_ind, unsigned char redirecting_num_screening_ind)
+{
+	if (redirecting_number && redirecting_number[0]) {
+		strncpy(c->redirecting_num, redirecting_number, sizeof(c->redirecting_num));
+		c->redirecting_num_nai = redirecting_num_nai;
+		c->redirecting_num_presentation_ind = redirecting_num_presentation_ind;
+		c->redirecting_num_screening_ind = redirecting_num_screening_ind;
+	}
+}
+
+void isup_set_redirection_info(struct isup_call *c, unsigned char redirect_info_ind, unsigned char redirect_info_orig_reas,
+	unsigned char redirect_info_counter, unsigned char redirect_info_reas)
+{
+	c->redirect_info = 1;
+	c->redirect_info_ind = redirect_info_ind;
+	c->redirect_info_orig_reas = redirect_info_orig_reas;
+	c->redirect_info_counter = redirect_info_counter;
+	c->redirect_info_reas = redirect_info_reas;
+}
+
+void isup_set_redirect_counter(struct isup_call *c, unsigned char redirect_counter)
+{
+	c->redirect_counter = redirect_counter;
+}
+
+void isup_set_orig_called_num(struct isup_call *c, const char *orig_called_num, unsigned char orig_called_nai, unsigned char orig_called_pres_ind, unsigned char orig_called_screening_ind)
+{
+	if (orig_called_num && orig_called_num[0]) {
+		strncpy(c->orig_called_num, orig_called_num, sizeof(c->orig_called_num));
+		c->orig_called_nai = orig_called_nai;
+		c->orig_called_pres_ind = orig_called_pres_ind;
+		c->orig_called_screening_ind = orig_called_screening_ind;
+	}
+}
+
+void isup_set_col_req(struct isup_call *c)
+{
+	c->col_req = 1;
+}
+
+void isup_set_cug(struct isup_call *c, unsigned char cug_indicator, const char *cug_interlock_ni, unsigned short cug_interlock_code)
+{
+	c->cug_indicator = cug_indicator;
+	strncpy(c->cug_interlock_ni, cug_interlock_ni, sizeof(c->cug_interlock_ni));
+	c->cug_interlock_code = cug_interlock_code;
+}
+
+void isup_set_interworking_indicator(struct isup_call *c, unsigned char interworking_indicator)
+{
+	c->interworking_indicator = interworking_indicator;
+}
+
+void isup_set_forward_indicator_pmbits(struct isup_call *c, unsigned char pmbits)
+{
+	c->forward_indicator_pmbits = pmbits;
+}
+
+void isup_set_echocontrol(struct isup_call *c, unsigned char ec)
+{
+	c->local_echocontrol_ind = ec;
 }
 
 void isup_set_charge(struct isup_call *c, const char *charge, unsigned char charge_nai, unsigned char charge_num_plan)
@@ -2303,63 +2945,65 @@ void isup_set_callref(struct isup_call *c, unsigned int call_ref_ident, unsigned
 	c->call_ref_pc = call_ref_pc;
 }
 
+void isup_set_calling_party_category(struct isup_call *c, unsigned int category)
+{
+	c->calling_party_cat = category;
+}
+
 void isup_init_call(struct ss7 *ss7, struct isup_call *c, int cic, unsigned int dpc)
 {
 	c->cic = cic;
 	c->dpc = dpc;
-	if (ss7->switchtype == SS7_ANSI)
+	if (ss7->switchtype == SS7_ANSI) {
 		c->sls = ansi_sls_next(ss7);
-	else
+	} else {
 		c->sls = cic & 0xf;
+	}
 }
 
 static struct isup_call * isup_find_call(struct ss7 *ss7, struct routing_label *rl, int cic)
 {
-	struct isup_call *cur, *winner = NULL;
+	struct isup_call *cur = ss7->calls;
 
-	cur = ss7->calls;
-	while (cur) {
-		if ((cur->cic == cic) && (cur->dpc == rl->opc)) {
-			winner = cur;
-			break;
-		}
+	while (cur && (cur->cic != cic || cur->dpc != rl->opc)) {
 		cur = cur->next;
 	}
 
-	if (!winner) {
-		winner = __isup_new_call(ss7, 0);
-		winner->cic = cic;
-		winner->dpc = rl->opc;
-		winner->sls = rl->sls;
+	if (!cur) {
+		cur = __isup_new_call(ss7, 0);
+		cur->cic = cic;
+		cur->dpc = rl->opc;
+		cur->sls = rl->sls;
 	}
 
-	return winner;
+	return cur;
 }
 
-static void isup_free_call(struct ss7 *ss7, struct isup_call *c)
+void isup_free_call(struct ss7 *ss7, struct isup_call *c)
 {
-	struct isup_call *cur, *prev = NULL, *winner = NULL;
+	struct isup_call *cur, *prev = NULL;
+
+	if (!ss7 || !c) {
+		return;
+	}
 
 	cur = ss7->calls;
-	while (cur) {
-		if (cur == c) {
-			winner = cur;
-			break;
-		}
+	while (cur && cur != c) {
 		prev = cur;
 		cur = cur->next;
 	}
 
-	if (winner) {
-		if (!prev)
-			ss7->calls = winner->next;
-		else
-			prev->next = winner->next;
+	if (cur) {
+		if (!prev) {
+			ss7->calls = cur->next;
+		} else {
+			prev->next = cur->next;
+		}
+		isup_stop_all_timers(ss7, c);
+		free(c);
+	} else {
+		ss7_error(ss7, "Requested free an unlinked call!!!\n");
 	}
-
-	free(c);
-
-	return;
 }
 
 static int do_parm(struct ss7 *ss7, struct isup_call *c, int message, int parm, unsigned char *parmbuf, int maxlen, int parmtype, int tx)
@@ -2374,10 +3018,11 @@ static int do_parm(struct ss7 *ss7, struct isup_call *c, int message, int parm, 
 			if ((tx && parms[x].transmit) || (!tx && parms[x].receive)) {
 				switch (parmtype) {
 					case PARM_TYPE_FIXED:
-						if (tx)
+						if (tx) {
 							return parms[x].transmit(ss7, c, message, parmbuf, maxlen);
-						else
+						} else {
 							return parms[x].receive(ss7, c, message, parmbuf, maxlen);
+						}
 					case PARM_TYPE_VARIABLE:
 						if (tx) {
 							res = parms[x].transmit(ss7, c, message, parmbuf + 1, maxlen);
@@ -2398,10 +3043,12 @@ static int do_parm(struct ss7 *ss7, struct isup_call *c, int message, int parm, 
 							res = parms[x].transmit(ss7, c, message, optparm->data, maxlen);
 							if (res > 0) {
 								optparm->len = res;
-							} else
+							} else {
 								return res;
-						} else
+							}
+						} else {
 							res = parms[x].receive(ss7, c, message, optparm->data, optparm->len);
+						}
 						return res + 2;
 				}
 			}
@@ -2476,6 +3123,7 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 	int offset = 0;
 	int x = 0;
 	int i = 0;
+	int priority = -1;
 
 	/* Do init stuff */
 	msg = ss7_msg_new();
@@ -2494,7 +3142,7 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 	rl.sls = c->sls;
 	rl.type = ss7->switchtype;
 	rlsize = set_routinglabel(rlptr, &rl);
-	mh = (struct isup_h *)(rlptr + rlsize); /* Note to self, do NOT put a typecasted pointer next to an addition operation */
+	mh = (struct isup_h *)(rlptr + rlsize);	/* Note to self, do NOT put a typecasted pointer next to an addition operation */
 
 	/* Set the CIC - ITU style */
 	if (ss7->switchtype == SS7_ITU) {
@@ -2507,9 +3155,11 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 
 	mh->type = messagetype;
 	/* Find the metadata for our message */
-	for (x = 0; x < sizeof(messages)/sizeof(struct message_data); x++)
-		if (messages[x].messagetype == messagetype)
+	for (x = 0; x < sizeof(messages)/sizeof(struct message_data); x++) {
+		if (messages[x].messagetype == messagetype) {
 			ourmessage = x;
+		}
+	}
 
 	if (ourmessage < 0) {
 		ss7_error(ss7, "Unable to find message %d in message list!\n", mh->type);
@@ -2519,6 +3169,7 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 	fixedparams = messages[ourmessage].mand_fixed_params;
 	varparams = messages[ourmessage].mand_var_params;
 	optparams = messages[ourmessage].opt_params;
+	priority = messages[ourmessage].ansi_priority;
 
 	/* Again, the ANSI exception */
 	if (ss7->switchtype == SS7_ANSI) {
@@ -2527,6 +3178,10 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 			varparams = 2;
 		} else if (messages[ourmessage].messagetype == ISUP_RLC) {
 			optparams = 0;
+		} else if (messages[ourmessage].messagetype == ISUP_GRS) {
+			optparams = 1;
+		} else if (messages[ourmessage].messagetype == ISUP_GRA) {
+			optparams = 1;
 		}
 	}
 
@@ -2547,7 +3202,7 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 	/* Make sure we grab our opional parameters */
 	if (optparams) {
 		opt_ptr = &mh->data[offset + varparams];
-		offset += varparams + 1; /* add one for the optionals */
+		offset += varparams + 1;	/* add one for the optionals */
 		len -= varparams + 1;
 	} else {
 		opt_ptr = NULL;
@@ -2569,7 +3224,8 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 		len -= res;
 		offset += res;
 	}
-       	/* Optional parameters */
+
+	/* Optional parameters */
 	if (optparams) {
 		int addedparms = 0;
 		int offsetbegins = offset;
@@ -2582,8 +3238,9 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 				return -1;
 			}
 
-			if (res > 0)
+			if (res > 0) {
 				addedparms++;
+			}
 
 			len -= res;
 			offset += res;
@@ -2593,14 +3250,14 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 			*opt_ptr = &mh->data[offsetbegins] - opt_ptr;
 			/* Add end of optional parameters */
 			mh->data[offset++] = 0;
-		} else
+		} else {
 			*opt_ptr = 0;
-
+		}
 	}
 
-	ss7_msg_userpart_len(msg, offset + rlsize + CIC_SIZE + 1);   /* Message type length is 1 */
+	ss7_msg_userpart_len(msg, offset + rlsize + CIC_SIZE + 1);	/* Message type length is 1 */
 
-	return mtp3_transmit(ss7, SIG_ISUP, rl.sls, msg);
+	return mtp3_transmit(ss7, SIG_ISUP, rl, priority, msg, NULL);
 }
 
 int isup_dump(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len)
@@ -2612,9 +3269,11 @@ int isup_dump(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len)
 	int offset = 0;
 	int fixedparams = 0, varparams = 0, optparams = 0;
 	int res, x;
-	unsigned char *opt_ptr = NULL;
+	unsigned char *param_pointer = NULL;
 
 	mh = (struct isup_h*) buf;
+
+	len -= 3;	/* ISUP msg header size !*/
 
 	if (ss7->switchtype == SS7_ITU) {
 		cic = mh->cic[0] | ((mh->cic[1] & 0x0f) << 8);
@@ -2628,9 +3287,11 @@ int isup_dump(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len)
 	ss7_dump_buf(ss7, 2, &buf[2], 1);
 
 	/* Find us in the message list */
-	for (x = 0; x < sizeof(messages)/sizeof(struct message_data); x++)
-		if (messages[x].messagetype == mh->type)
+	for (x = 0; x < sizeof(messages)/sizeof(struct message_data); x++) {
+		if (messages[x].messagetype == mh->type) {
 			ourmessage = x;
+		}
+	}
 
 	if (ourmessage < 0) {
 		ss7_error(ss7, "!! Unable to handle message of type 0x%x\n", mh->type);
@@ -2654,8 +3315,9 @@ int isup_dump(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len)
 		}
 	}
 
-	if (fixedparams)
+	if (fixedparams) {
 		ss7_message(ss7, "\t\t--FIXED LENGTH PARMS[%d]--\n", fixedparams);
+	}
 
 	/* Parse fixed parms */
 	for (x = 0; x < fixedparams; x++) {
@@ -2670,33 +3332,46 @@ int isup_dump(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len)
 		offset += res;
 	}
 
+	if (len < 1) {
+		return 0;
+	}
+
+	if (varparams || optparams) {
+		param_pointer = &mh->data[offset];
+	} else {
+		return 0;
+	}
+
 	if (varparams) {
-		offset += varparams; /* add one for the optionals */
-		len -= varparams;
-	}
-	if (optparams) {
-		opt_ptr = &mh->data[offset++];
-		len++;
-	}
-
-	if (varparams)
 		ss7_message(ss7, "\t\t--VARIABLE LENGTH PARMS[%d]--\n", varparams);
-	for (; (x - fixedparams) < varparams; x++) {
-		res = dump_parm(ss7, mh->type, parms[x], (void *)(mh->data + offset), len, PARM_TYPE_VARIABLE);
 
-		if (res < 0) {
-			ss7_error(ss7, "!! Unable to parse mandatory variable parameter '%s'\n", param2str(parms[x]));
-			return -1;
+		for (x = 0; x < varparams && len > 0; x++) {
+			if (!param_pointer[0]) {
+				return 0;
+			}
+			res = dump_parm(ss7, mh->type, parms[fixedparams + x],
+					(void *)(param_pointer + param_pointer[0]), len, PARM_TYPE_VARIABLE);
+
+			if (res < 0) {
+				ss7_error(ss7, "!! Unable to parse mandatory variable parameter '%s'\n", param2str(parms[fixedparams + x]));
+				return -1;
+			}
+			len -= (res + 1);	/* 1byte for pointer */
+			param_pointer++;
+			offset++;
 		}
+	}
 
-		len -= res;
-		offset += res;
+	if (len < 1 || !param_pointer[0]) {
+		return 0;
 	}
 
 	/* Optional paramter parsing code */
-	if (optparams && *opt_ptr) {
-		if (len > 0)
-			ss7_message(ss7, "\t\t--OPTIONAL PARMS--\n");
+	if (optparams) {
+		ss7_message(ss7, "\t\t--OPTIONAL PARMS--\n");
+		offset += param_pointer[0];
+		len-- ;	/* optional parameter pointer */
+
 		while ((len > 0) && (mh->data[offset] != 0)) {
 			struct isup_parm_opt *optparm = (struct isup_parm_opt *)(mh->data + offset);
 
@@ -2718,6 +3393,37 @@ int isup_dump(struct ss7 *ss7, struct mtp2 *link, unsigned char *buf, int len)
 	return 0;
 }
 
+/* Checking we whether got more 1 bits back in the status */
+static int isup_check_status(unsigned char *sent_status, unsigned char *got_status, int range)
+{
+	int i;
+	for (i = 0; i <= range; i++) {
+		if (got_status[i] > sent_status[i]) {
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+static int isup_handle_unexpected(struct ss7 *ss7, struct isup_call *c, unsigned int opc)
+{
+	int res;
+
+	if (c->got_sent_msg & (ISUP_CALL_CONNECTED)) {
+		ss7_message(ss7, "ignoring... \n");
+	} else {
+		ss7_message(ss7, "reseting the cic\n");
+		res = ss7_hangup(ss7, c->cic, opc, 16, SS7_HANGUP_SEND_RSC);
+		if (res == SS7_CIC_IDLE) {
+			isup_rsc(ss7, c);
+		} else if (res == SS7_CIC_NOT_EXISTS) {
+			isup_free_call(ss7, c);
+		}
+	}
+	return 0;
+}
+
 int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, unsigned char *buf, int len)
 {
 	unsigned short cic;
@@ -2727,15 +3433,14 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 	int *parms = NULL;
 	int offset = 0;
 	int ourmessage = -1;
-	int not_linked = 0;
 	int fixedparams = 0, varparams = 0, optparams = 0;
 	int res, x;
-	unsigned char *opt_ptr = NULL;
+	unsigned char *param_pointer = NULL;
 	unsigned int opc = rl->opc;
 	ss7_event *e;
 
-
 	mh = (struct isup_h*) buf;
+	len -= 3; /* ISUP msg header size !*/
 	if (ss7->switchtype == SS7_ITU) {
 		cic = mh->cic[0] | ((mh->cic[1] & 0x0f) << 8);
 	} else {
@@ -2743,10 +3448,11 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 	}
 
 	/* Find us in the message list */
-	for (x = 0; x < sizeof(messages)/sizeof(struct message_data); x++)
-		if (messages[x].messagetype == mh->type)
+	for (x = 0; x < sizeof(messages)/sizeof(struct message_data); x++) {
+		if (messages[x].messagetype == mh->type) {
 			ourmessage = x;
-
+		}
+	}
 
 	if (ourmessage < 0) {
 		ss7_error(ss7, "!! Unable to handle message of type 0x%x on CIC %d\n", mh->type, cic);
@@ -2767,39 +3473,14 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			parms = ansi_iam_params;
 		} else if (messages[ourmessage].messagetype == ISUP_RLC) {
 			optparams = 0;
+		} else if (messages[ourmessage].messagetype == ISUP_GRS) {
+			optparams = 1;
+		} else if (messages[ourmessage].messagetype == ISUP_GRA) {
+			optparams = 1;
 		}
 	}
 
-	/* Make sure we don't hijack a call associated isup_call for non call
-	 * associated messages */
-	switch (mh->type) {
-		/* All of these messages are ones where a persistent call is associated with them and
-		should not generate a new, unlinked call, or free a call (unless explicitly done, link in RLC) */
-		case ISUP_IAM:
-		case ISUP_ANM:
-		case ISUP_ACM:
-		case ISUP_CPG:
-		case ISUP_COT:
-		case ISUP_CON:
-		case ISUP_REL:
-		case ISUP_RLC:
-		case ISUP_RSC:
-		case ISUP_FAA:
-		case ISUP_FAR:
-		case ISUP_RES:
-		case ISUP_SUS:
-			c = isup_find_call(ss7, rl, cic);
-			break;
-		default:
-			not_linked = 1;
-			c = __isup_new_call(ss7, not_linked);
-			if (!c) {
-				break;
-			}
-			c->dpc = rl->opc;
-			c->cic = cic;
-			break;
-	}
+	c = isup_find_call(ss7, rl, cic);
 
 	if (!c) {
 		ss7_error(ss7, "Huh? No call!!!???\n");
@@ -2812,6 +3493,8 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 
 		if (res < 0) {
 			ss7_error(ss7, "!! Unable to parse mandatory fixed parameter '%s'\n", param2str(parms[x]));
+			ss7_call_null(ss7, c, 1);
+			isup_free_call(ss7, c);
 			return -1;
 		}
 
@@ -2819,29 +3502,32 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 		offset += res;
 	}
 
-	if (varparams) {
-		offset += varparams; /* add one for the optionals */
-		res -= varparams;
-	}
-	if (optparams) {
-		/* ANSI doesn't have optional parameters on RLC */
-		opt_ptr = &mh->data[offset++];
-	}
+	if (varparams || optparams)
+		param_pointer = &mh->data[offset];
 
-	for (; (x - fixedparams) < varparams; x++) {
-		res = do_parm(ss7, c, mh->type, parms[x], (void *)(mh->data + offset), len, PARM_TYPE_VARIABLE, 0);
+	if (varparams && len > 0) {
+		for (x = 0; x < varparams && len && param_pointer[0]; x++) {
+			res = do_parm(ss7, c, mh->type, parms[fixedparams + x],
+					(void *)(param_pointer + param_pointer[0]), len, PARM_TYPE_VARIABLE, 0);
 
-		if (res < 0) {
-			ss7_error(ss7, "!! Unable to parse mandatory variable parameter '%s'\n", param2str(parms[x]));
-			return -1;
+			if (res < 0) {
+				ss7_error(ss7, "!! Unable to parse mandatory variable parameter '%s'\n", param2str(parms[fixedparams + x]));
+				ss7_call_null(ss7, c, 1);
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
+			len -= (res + 1);	/* 1byte for pointer */
+			param_pointer++;
+			offset++;
 		}
-
-		len -= res;
-		offset += res;
 	}
 
 	/* Optional paramter parsing code */
-	if (optparams && *opt_ptr) {
+	if (optparams && len > 0 && param_pointer[0]) {
+		offset += param_pointer[0];
+		len-- ;	/* optional parameter pointer */
+
 		while ((len > 0) && (mh->data[offset] != 0)) {
 			struct isup_parm_opt *optparm = (struct isup_parm_opt *)(mh->data + offset);
 
@@ -2860,61 +3546,74 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 
 	switch (mh->type) {
 		case ISUP_IAM:
-			/* This is a new incoming call. */
+			return isup_event_iam(ss7, c, opc);
+		case ISUP_SAM:
+			if (!(c->got_sent_msg & ISUP_GOT_IAM)) {
+				ss7_message(ss7, "Got unexpected SAM on CIC %d PC %d ", c->cic, opc);
+				return isup_handle_unexpected(ss7, c, opc);
+			}
+
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
-				/* Act like we never saw it */
+				ss7_call_null(ss7, c, 1);
 				isup_free_call(ss7, c);
 				return -1;
 			}
 
-			e->e = ISUP_EVENT_IAM;
-			e->iam.cic = c->cic;
-			e->iam.transcap = c->transcap;
-			e->iam.cot_check_required = c->cot_check_required;
-			strncpy(e->iam.called_party_num, c->called_party_num, sizeof(e->iam.called_party_num));
-			e->iam.called_nai = c->called_nai;
-			strncpy(e->iam.calling_party_num, c->calling_party_num, sizeof(e->iam.calling_party_num));
-			e->iam.calling_nai = c->calling_nai;
-			e->iam.presentation_ind = c->presentation_ind;
-			e->iam.screening_ind = c->screening_ind;
-			strncpy(e->iam.charge_number, c->charge_number, sizeof(e->iam.charge_number));
-			e->iam.charge_nai = c->charge_nai;
-			e->iam.charge_num_plan = c->charge_num_plan;
-			e->iam.oli_ani2 = c->oli_ani2;
-			e->iam.gen_add_nai = c->gen_add_nai;
-			e->iam.gen_add_num_plan = c->gen_add_num_plan;
-			strncpy(e->iam.gen_add_number, c->gen_add_number, sizeof(e->iam.gen_add_number));
-			e->iam.gen_add_pres_ind = c->gen_add_pres_ind;
-			e->iam.gen_add_type = c->gen_add_type;
-			strncpy(e->iam.gen_dig_number, c->gen_dig_number, sizeof(e->iam.gen_dig_number));
-			e->iam.gen_dig_type = c->gen_dig_type;
-			e->iam.gen_dig_scheme = c->gen_dig_scheme;
-			strncpy(e->iam.jip_number, c->jip_number, sizeof(e->iam.jip_number));
-			strncpy(e->iam.generic_name, c->generic_name, sizeof(e->iam.generic_name));
-			e->iam.generic_name_typeofname = c->generic_name_typeofname;
-			e->iam.generic_name_avail = c->generic_name_avail;
-			e->iam.generic_name_presentation = c->generic_name_presentation;
-			e->iam.lspi_type = c->lspi_type;
-			e->iam.lspi_scheme = c->lspi_scheme;
-			e->iam.lspi_context = c->lspi_context;
-			strncpy(e->iam.lspi_ident, c->lspi_ident, sizeof(e->iam.lspi_ident));
-			strncpy(e->iam.orig_called_num, c->orig_called_num, sizeof(e->iam.orig_called_num));
-			e->iam.orig_called_nai = c->orig_called_nai;
-			e->iam.orig_called_pres_ind = c->orig_called_pres_ind;
-			e->iam.orig_called_screening_ind = c->orig_called_screening_ind;
-			strncpy(e->iam.redirecting_num, c->redirecting_num, sizeof(e->iam.redirecting_num));
-			e->iam.redirecting_num_nai = c->redirecting_num_nai;
-			e->iam.redirecting_num_presentation_ind = c->redirecting_num_presentation_ind;
-			e->iam.redirecting_num_screening_ind = c->redirecting_num_screening_ind;
-			e->iam.calling_party_cat = c->calling_party_cat;
-			e->iam.call = c;
-			e->iam.opc = opc; /* keep OPC information */
+			e->e = ISUP_EVENT_SAM;
+			e->sam.cic = c->cic;
+			e->sam.call = c;
+			e->sam.opc = opc;	/* keep OPC information */
+			strncpy(e->sam.called_party_num, c->called_party_num, sizeof(e->sam.called_party_num));
+			e->sam.called_nai = c->called_nai;
+			e->sam.got_sent_msg = c->got_sent_msg;
+			e->sam.cot_check_passed = c->cot_check_passed;
+			e->sam.cot_check_required = c->cot_check_required;
+			e->sam.cot_performed_on_previous_cic = c->cot_performed_on_previous_cic;
+			isup_start_timer(ss7, c, ISUP_TIMER_T35);
+			return 0;
+		case ISUP_INF:
+			if (!(c->got_sent_msg & ISUP_SENT_INR) && !(c->inf_ind[0] & 0x80)) {
+				ss7_message(ss7, "Got solicated INF but we didn't send INR on CIC %d PC %d ", c->cic, opc);
+				return isup_handle_unexpected(ss7, c, opc);
+			}
+			if ((ss7->flags & SS7_INR_IF_NO_CALLING) &&
+				!c->calling_party_num[0] &&
+				c->presentation_ind != SS7_PRESENTATION_ADDR_NOT_AVAILABLE) {
+				isup_rel(ss7, c, 16);
+				return 0;
+			}
+
+			if (c->inf_ind[0] & 0x80) {
+				/* unsolicated */
+				if (!isup_free_call_if_clear(ss7, c)) {
+					ss7_call_null(ss7, c, 1);
+				}
+				return 0;
+			} else {
+				isup_stop_timer(ss7, c, ISUP_TIMER_T33);
+				c->got_sent_msg &= ~ISUP_SENT_INR;
+				return isup_event_iam(ss7, c, opc);
+			}
+		case ISUP_INR:
+			if (!(c->got_sent_msg & ISUP_SENT_IAM)) {
+				ss7_message(ss7, "Got INR but no outgoing call on CIC %d PC %d ", c->cic, opc);
+				return isup_handle_unexpected(ss7, c, opc);
+			}
+
+			if (!c->calling_party_num[0]) {
+				isup_inf(ss7, c, 0x21, 0);	/* Calling party category included, solicated (0x20). Calling party address not available */
+			} else {
+				isup_inf(ss7, c, 0x23, 0);	/* Calling party category included, solicated (0x20). Calling party address included */
+			}
+			if (!isup_free_call_if_clear(ss7, c)) {
+				ss7_call_null(ss7, c, 1);
+			}
 			return 0;
 		case ISUP_CQM:
-			/* The call is not linked. */
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
+				ss7_call_null(ss7, c, 1);
 				isup_free_call(ss7, c);
 				return -1;
 			}
@@ -2922,13 +3621,13 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->e = ISUP_EVENT_CQM;
 			e->cqm.startcic = cic;
 			e->cqm.endcic = cic + c->range;
-			e->cqm.opc = opc; /* keep OPC information */
-			isup_free_call(ss7, c); /* Won't need this again */
+			e->cqm.opc = opc;	/* keep OPC information */
+			e->cqm.call = c;
 			return 0;
 		case ISUP_GRS:
-			/* The call is not linked. */
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
+				ss7_call_null(ss7, c, 1);
 				isup_free_call(ss7, c);
 				return -1;
 			}
@@ -2936,13 +3635,23 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->e = ISUP_EVENT_GRS;
 			e->grs.startcic = cic;
 			e->grs.endcic = cic + c->range;
-			e->grs.opc = opc; /* keep OPC information */
-			isup_free_call(ss7, c); /* Won't need this again */
+			e->grs.opc = opc;	/* keep OPC information */
+			e->grs.call = c;
 			return 0;
 		case ISUP_GRA:
-			/* The call is not linked. */
+			if (!(c->got_sent_msg & ISUP_SENT_GRS)) {
+				ss7_message(ss7, "Got GRA but we didn't send GRS on CIC %d PC %d ", c->cic, opc);
+				return isup_handle_unexpected(ss7, c, opc);
+			}
+			/* checking the answer */
+			if (c->range != c->sent_grs_endcic - c->cic) {
+				ss7_message(ss7, "Got GRA doesn't match with the sent GRS on CIC %d DPC %d\n", c->cic, opc);
+				return 0;
+			}
+
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
+				ss7_call_null(ss7, c, 1);
 				isup_free_call(ss7, c);
 				return -1;
 			}
@@ -2950,196 +3659,304 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->e = ISUP_EVENT_GRA;
 			e->gra.startcic = cic;
 			e->gra.endcic = cic + c->range;
-			for (i = 0; i < (c->range + 1); i++)
+			for (i = 0; i < (c->range + 1); i++) {
 				e->gra.status[i] = c->status[i];
-			e->gra.opc = opc; /* keep OPC information */
-
-			isup_free_call(ss7, c); /* Won't need this again */
+			}
+			e->gra.opc = opc;	/* keep OPC information */
+			e->gra.call = c;
+			e->gra.sent_endcic = c->sent_grs_endcic;
+			e->gra.got_sent_msg = c->got_sent_msg;
+			c->got_sent_msg &= ~ISUP_SENT_GRS;
+			isup_stop_timer(ss7, c, ISUP_TIMER_T22);
+			isup_stop_timer(ss7, c, ISUP_TIMER_T23);
 			return 0;
 		case ISUP_RSC:
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
-				/* Act like we never saw it */
+				ss7_call_null(ss7, c, 1);
+				isup_free_call(ss7, c);
 				return -1;
 			}
 
+			isup_stop_all_timers(ss7, c);
 			e->e = ISUP_EVENT_RSC;
 			e->rsc.cic = cic;
 			e->rsc.call = c;
-			e->rsc.opc = opc; /* keep OPC information */
+			e->rsc.opc = opc;	/* keep OPC information */
+			e->rsc.got_sent_msg = c->got_sent_msg;
+			c->got_sent_msg = 0;
 			return 0;
 		case ISUP_REL:
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
-				/* Act like we never saw it */
+				ss7_call_null(ss7, c, 1);
+				isup_free_call(ss7, c);
 				return -1;
 			}
 
+			isup_stop_timer(ss7, c, ISUP_TIMER_T7);
+			isup_stop_timer(ss7, c, ISUP_TIMER_T2);
+			isup_stop_timer(ss7, c, ISUP_TIMER_T6);
+			isup_stop_timer(ss7, c, ISUP_TIMER_T35);
+			isup_stop_timer(ss7, c, ISUP_TIMER_T10);
+			c->got_sent_msg &= ~(ISUP_CALL_CONNECTED | ISUP_SENT_IAM | ISUP_GOT_IAM | ISUP_GOT_CCR | ISUP_SENT_INR);
 			e->e = ISUP_EVENT_REL;
 			e->rel.cic = c->cic;
 			e->rel.call = c;
 			e->rel.cause = c->cause;
-			e->rel.opc = opc; /* keep OPC information */
+			e->rel.opc = opc;	/* keep OPC information */
+			e->rel.got_sent_msg = c->got_sent_msg;
 			return 0;
 		case ISUP_ACM:
+			if (!(c->got_sent_msg & ISUP_SENT_IAM)) {
+				ss7_message(ss7, "Got ACM but we didn't send IAM on CIC %d PC %d ", c->cic, opc);
+				return isup_handle_unexpected(ss7, c, opc);
+			}
+
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
-				/* Act like we never saw it */
+				ss7_call_null(ss7, c, 1);
+				isup_free_call(ss7, c);
 				return -1;
 			}
 
+			isup_stop_timer(ss7, c, ISUP_TIMER_T7);
+			c->got_sent_msg |= ISUP_GOT_ACM;
 			e->e = ISUP_EVENT_ACM;
 			e->acm.cic = c->cic;
 			e->acm.call_ref_ident = c->call_ref_ident;
 			e->acm.call_ref_pc = c->call_ref_pc;
 			e->acm.call = c;
-			e->acm.opc = opc; /* keep OPC information */
+			e->acm.opc = opc;	/* keep OPC information */
 			e->acm.called_party_status_ind = c->called_party_status_ind;
+			e->acm.echocontrol_ind = c->echocontrol_ind;
+			e->acm.got_sent_msg = c->got_sent_msg;
 			return 0;
 		case ISUP_CON:
+			if (!(c->got_sent_msg & ISUP_SENT_IAM)) {
+				ss7_message(ss7, "Got CON but we didn't send IAM on CIC %d PC %d ", c->cic, opc);
+				return isup_handle_unexpected(ss7, c, opc);
+			}
+
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
-				/* Act like we never saw it */
+				ss7_call_null(ss7, c, 1);
+				isup_free_call(ss7, c);
 				return -1;
 			}
 
+			isup_stop_timer(ss7, c, ISUP_TIMER_T7);
+			c->got_sent_msg |= ISUP_GOT_CON;
 			e->e = ISUP_EVENT_CON;
 			e->con.cic = c->cic;
 			e->con.call = c;
-			e->con.opc = opc; /* keep OPC information */
+			e->con.opc = opc;	/* keep OPC information */
+			e->con.connected_nai = c->connected_nai;
+			e->con.connected_presentation_ind = c->connected_presentation_ind;
+			e->con.connected_screening_ind = c->connected_screening_ind;
+			strncpy(e->con.connected_num, c->connected_num, sizeof(e->con.connected_num));
+			e->con.echocontrol_ind = c->echocontrol_ind;
+			e->con.got_sent_msg = c->got_sent_msg;
 			return 0;
 		case ISUP_ANM:
+			if (!(c->got_sent_msg & ISUP_SENT_IAM)) {
+				ss7_message(ss7, "Got ANM but we didn't send IAM on CIC %d PC %d ", c->cic, opc);
+				return isup_handle_unexpected(ss7, c, opc);
+			}
+
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
-				/* Act like we never saw it */
+				ss7_call_null(ss7, c, 1);
+				isup_free_call(ss7, c);
 				return -1;
 			}
 
+			c->got_sent_msg |= ISUP_GOT_ANM;
 			e->e = ISUP_EVENT_ANM;
 			e->anm.cic = c->cic;
 			e->anm.call = c;
-			e->anm.opc = opc; /* keep OPC information */
+			e->anm.opc = opc;	/* keep OPC information */
+			e->anm.connected_nai = c->connected_nai;
+			e->anm.connected_presentation_ind = c->connected_presentation_ind;
+			e->anm.connected_screening_ind = c->connected_screening_ind;
+			strncpy(e->anm.connected_num, c->connected_num, sizeof(e->anm.connected_num));
+			e->anm.echocontrol_ind = c->echocontrol_ind;
+			e->anm.got_sent_msg = c->got_sent_msg;
 			return 0;
 		case ISUP_RLC:
+			if (!(c->got_sent_msg & (ISUP_SENT_REL | ISUP_SENT_RSC))) {
+				ss7_message(ss7, "Got RLC but we didn't send REL/RSC on CIC %d PC %d ", c->cic, opc);
+				return isup_handle_unexpected(ss7, c, opc);
+			}
+
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
-				/* Act like we never saw it */
+				ss7_call_null(ss7, c, 1);
+				isup_free_call(ss7, c);
 				return -1;
 			}
 
 			e->e = ISUP_EVENT_RLC;
 			e->rlc.cic = c->cic;
-			e->rlc.opc = opc; /* keep OPC information */
-			/* XXX Call ptr really should be passed up! */
-			isup_free_call(ss7, c);
+			e->rlc.opc = opc;	/* keep OPC information */
+			e->rlc.call = c;
+			e->rlc.got_sent_msg = c->got_sent_msg;
+			c->got_sent_msg &= ~(ISUP_SENT_REL | ISUP_SENT_RSC);
+			isup_stop_timer(ss7, c, ISUP_TIMER_T1);
+			isup_stop_timer(ss7, c, ISUP_TIMER_T2);
+			isup_stop_timer(ss7, c, ISUP_TIMER_T5);
+			isup_stop_timer(ss7, c, ISUP_TIMER_T6);
+			isup_stop_timer(ss7, c, ISUP_TIMER_T16);
+			isup_stop_timer(ss7, c, ISUP_TIMER_T17);
 			return 0;
 		case ISUP_COT:
+			/* Got we CCR or CCR in IAM ?*/
+			if (!(c->got_sent_msg & ISUP_GOT_CCR) & !c->cot_performed_on_previous_cic) {
+				ss7_message(ss7, "Got COT but we didn't got CCR previously on CIC %d PC %d ", c->cic, opc);
+				return isup_handle_unexpected(ss7, c, opc);
+			}
+
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
-				/* Act like we never saw it */
+				ss7_call_null(ss7, c, 1);
+				isup_free_call(ss7, c);
 				return -1;
 			}
 
 			e->e = ISUP_EVENT_COT;
 			e->cot.cic = c->cic;
 			e->cot.passed = c->cot_check_passed;
+			e->cot.cot_performed_on_previous_cic = c->cot_performed_on_previous_cic;
+			if (!c->cot_check_passed) {
+				c->got_sent_msg &= ~ISUP_GOT_IAM;	/* we will get a new IAM but we are kepping the call */
+			}
 			e->cot.call = c;
-			e->cot.opc = opc; /* keep OPC information */
+			e->cot.opc = opc;	/* keep OPC information */
+			e->cot.got_sent_msg = c->got_sent_msg;
+			c->got_sent_msg &= ~ISUP_GOT_CCR;
+			isup_stop_timer(ss7, c, ISUP_TIMER_T8);
+			if (!c->cot_check_passed) {
+				isup_start_timer(ss7, c, ISUP_TIMER_T27);
+			}
 			return 0;
 		case ISUP_CCR:
-			/* The call is not linked. */
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
+				ss7_call_null(ss7, c, 1);
 				isup_free_call(ss7, c);
 				return -1;
 			}
 
+			c->got_sent_msg |= ISUP_GOT_CCR;
 			e->e = ISUP_EVENT_CCR;
 			e->ccr.cic = c->cic;
-			e->ccr.opc = opc; /* keep OPC information */
-			isup_free_call(ss7, c);
+			e->ccr.opc = opc;	/* keep OPC information */
+			e->ccr.call = c;
+			e->ccr.got_sent_msg = c->got_sent_msg;
+			isup_stop_timer(ss7, c, ISUP_TIMER_T27);
 			return 0;
 		case ISUP_CVT:
-			/* The call is not linked. */
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
+				ss7_call_null(ss7, c, 1);
 				isup_free_call(ss7, c);
 				return -1;
 			}
 
 			e->e = ISUP_EVENT_CVT;
 			e->cvt.cic = c->cic;
-			isup_free_call(ss7, c);
+			e->cvt.call = c;
 			return 0;
 		case ISUP_BLO:
-			/* The call is not linked. */
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
+				ss7_call_null(ss7, c, 1);
 				isup_free_call(ss7, c);
 				return -1;
 			}
 
 			e->e = ISUP_EVENT_BLO;
 			e->blo.cic = c->cic;
-			e->blo.opc = opc; /* keep OPC information */
-			isup_free_call(ss7, c);
+			e->blo.opc = opc;	/* keep OPC information */
+			e->blo.call = c;
+			e->blo.got_sent_msg = c->got_sent_msg;
 			return 0;
 		case ISUP_UBL:
-			/* The call is not linked. */
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
+				ss7_call_null(ss7, c, 1);
 				isup_free_call(ss7, c);
 				return -1;
 			}
 
 			e->e = ISUP_EVENT_UBL;
 			e->ubl.cic = c->cic;
-			e->ubl.opc = opc; /* keep OPC information */
-			isup_free_call(ss7, c);
+			e->ubl.opc = opc;	/* keep OPC information */
+			e->ubl.call = c;
 			return 0;
 		case ISUP_BLA:
-			/* The call is not linked. */
+			if (!(c->got_sent_msg & ISUP_SENT_BLO)) {
+				ss7_message(ss7, "Got BLA but we didn't send BLO on CIC %d PC %d ", c->cic, opc);
+				return isup_handle_unexpected(ss7, c, opc);
+			}
+
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
+				ss7_call_null(ss7, c, 1);
 				isup_free_call(ss7, c);
 				return -1;
 			}
 
+			isup_stop_timer(ss7, c, ISUP_TIMER_T12);
+			isup_stop_timer(ss7, c, ISUP_TIMER_T13);
+
 			e->e = ISUP_EVENT_BLA;
 			e->bla.cic = c->cic;
-			e->bla.opc = opc; /* keep OPC information */
-			isup_free_call(ss7, c);
+			e->bla.opc = opc;	/* keep OPC information */
+			e->bla.call = c;
+			e->bla.got_sent_msg = c->got_sent_msg;
+			c->got_sent_msg &= ~ISUP_SENT_BLO;
 			return 0;
 		case ISUP_LPA:
-			/* The call is not linked. */
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
+				ss7_call_null(ss7, c, 1);
 				isup_free_call(ss7, c);
 				return -1;
 			}
 
 			e->e = ISUP_EVENT_LPA;
 			e->lpa.cic = c->cic;
-			e->lpa.opc = opc; /* keep OPC information */
-			isup_free_call(ss7, c);
+			e->lpa.opc = opc;	/* keep OPC information */
+			e->lpa.call = c;
 			return 0;
 		case ISUP_UBA:
-			/* The call is not linked. */
+			if (!(c->got_sent_msg & ISUP_SENT_UBL)) {
+				ss7_message(ss7, "Got UBA but we didn't send UBL on CIC %d PC %d ", c->cic, opc);
+				return isup_handle_unexpected(ss7, c, opc);
+			}
+
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
+				ss7_call_null(ss7, c, 1);
 				isup_free_call(ss7, c);
 				return -1;
 			}
 
+			isup_stop_timer(ss7, c, ISUP_TIMER_T14);
+			isup_stop_timer(ss7, c, ISUP_TIMER_T15);
+
 			e->e = ISUP_EVENT_UBA;
 			e->uba.cic = c->cic;
-			e->uba.opc = opc; /* keep OPC information */
-			isup_free_call(ss7, c);
+			e->uba.opc = opc;	/* keep OPC information */
+			e->uba.call = c;
+			e->uba.got_sent_msg = c->got_sent_msg;
+			c->got_sent_msg &= ~ISUP_SENT_UBL;
 			return 0;
 		case ISUP_CGB:
-			/* The call is not linked. */
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
+				ss7_call_null(ss7, c, 1);
 				isup_free_call(ss7, c);
 				return -1;
 			}
@@ -3149,16 +3966,16 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->cgb.endcic = cic + c->range;
 			e->cgb.type = c->cicgroupsupervisiontype;
 
-			for (i = 0; i < (c->range + 1); i++)
+			for (i = 0; i < (c->range + 1); i++) {
 				e->cgb.status[i] = c->status[i];
-			e->cgb.opc = opc; /* keep OPC information */
-
-			isup_free_call(ss7, c);
+			}
+			e->cgb.opc = opc;	/* keep OPC information */
+			e->cgb.call = c;
 			return 0;
 		case ISUP_CGU:
-			/* The call is not linked. */
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
+				ss7_call_null(ss7, c, 1);
 				isup_free_call(ss7, c);
 				return -1;
 			}
@@ -3168,42 +3985,55 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->cgu.endcic = cic + c->range;
 			e->cgu.type = c->cicgroupsupervisiontype;
 
-			for (i = 0; i < (c->range + 1); i++)
+			for (i = 0; i < (c->range + 1); i++) {
 				e->cgu.status[i] = c->status[i];
-			e->cgu.opc = opc; /* keep OPC information */
-
-			isup_free_call(ss7, c);
+			}
+			e->cgu.opc = opc;	/* keep OPC information */
+			e->cgu.call = c;
 			return 0;
 		case ISUP_CPG:
+			if (!(c->got_sent_msg & ISUP_SENT_IAM)) {
+				ss7_message(ss7, "Got CPG but we didn't send IAM on CIC %d PC %d ", c->cic, opc);
+				return isup_handle_unexpected(ss7, c, opc);
+			}
+
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
-				/* Act like we never saw it */
+				ss7_call_null(ss7, c, 1);
+				isup_free_call(ss7, c);
 				return -1;
 			}
 
 			e->e = ISUP_EVENT_CPG;
 			e->cpg.cic = c->cic;
-			e->cpg.opc = opc; /* keep OPC information */
+			e->cpg.opc = opc;	/* keep OPC information */
 			e->cpg.event = c->event_info;
-			/* XXX Call ptr really should be passed up! */
+			e->cpg.call = c;
+			e->cpg.got_sent_msg = c->got_sent_msg;
+			e->cpg.echocontrol_ind = c->echocontrol_ind;
+			e->cpg.connected_nai = c->connected_nai;
+			e->cpg.connected_presentation_ind = c->connected_presentation_ind;
+			e->cpg.connected_screening_ind = c->connected_screening_ind;
+			strncpy(e->cpg.connected_num, c->connected_num, sizeof(e->cpg.connected_num));
 			return 0;
 		case ISUP_UCIC:
-			/* The call is not linked. */
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
+				ss7_call_null(ss7, c, 1);
 				isup_free_call(ss7, c);
 				return -1;
 			}
 
 			e->e = ISUP_EVENT_UCIC;
 			e->ucic.cic = c->cic;
-			e->ucic.opc = opc; /* keep OPC information */
-			isup_free_call(ss7, c);
+			e->ucic.opc = opc;	/* keep OPC information */
+			e->ucic.call = c;
 			return 0;
 		case ISUP_FAA:
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
-				/* Act like we never saw it */
+				ss7_call_null(ss7, c, 1);
+				isup_free_call(ss7, c);
 				return -1;
 			}
 
@@ -3211,13 +4041,14 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->faa.cic = c->cic;
 			e->faa.call_ref_ident = c->call_ref_ident;
 			e->faa.call_ref_pc = c->call_ref_pc;
-			e->faa.opc = opc; /* keep OPC information */
+			e->faa.opc = opc;	/* keep OPC information */
 			e->faa.call = c;
 			return 0;
 		case ISUP_FAR:
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
-				/* Act like we never saw it */
+				ss7_call_null(ss7, c, 1);
+				isup_free_call(ss7, c);
 				return -1;
 			}
 
@@ -3225,66 +4056,246 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->far.cic = c->cic;
 			e->far.call_ref_ident = c->call_ref_ident;
 			e->far.call_ref_pc = c->call_ref_pc;
-			e->ucic.opc = opc; /* keep OPC information */
+			e->ucic.opc = opc;	/* keep OPC information */
 			e->far.call = c;
 			return 0;
-		case ISUP_RES:
+		case ISUP_CGBA:
+			if (!(c->got_sent_msg & ISUP_SENT_CGB)) {
+				ss7_message(ss7, "Got CGBA but we didn't send CGB on CIC %d PC %d ", c->cic, opc);
+				return isup_handle_unexpected(ss7, c, opc);
+			}
+			/* checking the answer */
+			if (c->range != c->sent_cgb_endcic - c->cic || c->cicgroupsupervisiontype != c->sent_cgb_type ||
+				isup_check_status(c->sent_cgb_status, c->status, c->range)) {
+				ss7_message(ss7, "Got CGBA doesn't match with the sent CGB on CIC %d DPC %d\n", c->cic, opc);
+				return 0;
+			}
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
-				/* Act like we never saw it */
+				ss7_call_null(ss7, c, 1);
+				isup_free_call(ss7, c);
 				return -1;
 			}
 
-			e->e = ISUP_EVENT_RES;
-			e->res.cic = c->cic;
-			e->res.opc = opc; /* keep OPC information */
-			e->res.call = c;
-			e->res.network_isdn_indicator = c->network_isdn_indicator;
+			e->e = ISUP_EVENT_CGBA;
+			e->cgba.startcic = c->cic;
+			e->cgba.endcic = c->cic + c->range;
+			e->cgba.sent_endcic = c->sent_cgb_endcic;
+			e->cgba.type = c->cicgroupsupervisiontype;
+			e->cgba.sent_type = c->sent_cgb_type;
+			for (i = 0; i < (c->range + 1); i++) {
+				e->cgba.status[i] = c->status[i];
+				e->cgba.sent_status[i] = c->sent_cgb_status[i];
+			}
+			e->cgba.got_sent_msg = c->got_sent_msg;
+			e->cgba.opc = opc;
+			e->cgba.call = c;
+			isup_clear_callflags(ss7, c, ISUP_SENT_CGB);
 			return 0;
-		case ISUP_SUS:
+		case ISUP_CGUA:
+			if (!(c->got_sent_msg & ISUP_SENT_CGU)) {
+				ss7_message(ss7, "Got CGUA but we didn't send CGU on CIC %d PC %d ", c->cic, opc);
+				return isup_handle_unexpected(ss7, c, opc);
+			}
+			/* checking the answer */
+			if (c->range != c->sent_cgu_endcic - c->cic || c->cicgroupsupervisiontype != c->sent_cgu_type ||
+				isup_check_status(c->sent_cgu_status, c->status, c->range)) {
+				ss7_message(ss7, "Got CGUA doesn't match with the sent CGU on CIC %d DPC %d\n", c->cic, opc);
+				return 0;
+			}
+
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
-				/* Act like we never saw it */
+				ss7_call_null(ss7, c, 1);
+				isup_free_call(ss7, c);
 				return -1;
+			}
+
+			e->e = ISUP_EVENT_CGUA;
+			e->cgua.startcic = c->cic;
+			e->cgua.endcic = c->cic + c->range;
+			e->cgua.sent_endcic = c->sent_cgu_endcic;
+			e->cgua.type = c->cicgroupsupervisiontype;
+			e->cgua.sent_type = c->sent_cgu_type;
+			for (i = 0; i < (c->range + 1); i++) {
+				e->cgua.status[i] = c->status[i];
+				e->cgua.sent_status[i] = c->sent_cgu_status[i];
+			}
+			e->cgua.got_sent_msg = c->got_sent_msg;
+			e->cgua.opc = opc;
+			e->cgua.call = c;
+			isup_clear_callflags(ss7, c, ISUP_SENT_CGU);
+			return 0;
+		case ISUP_SUS:
+			if (!(c->got_sent_msg & (ISUP_GOT_IAM | ISUP_SENT_IAM))) {
+				ss7_message(ss7, "Got SUS but no call on CIC %d PC %d ", c->cic, opc);
+				return isup_handle_unexpected(ss7, c, opc);
+			}
+
+			if (c->got_sent_msg & (ISUP_SENT_RSC | ISUP_SENT_REL)) {
+				return 0;	/* ignoring SUS we are in hangup now */
+			}
+
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				ss7_call_null(ss7, c, 1);
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
+			if (c->network_isdn_indicator) {
+				isup_start_timer(ss7, c, ISUP_TIMER_T6);	/* network */
+			} else {
+				isup_start_timer(ss7, c, ISUP_TIMER_T2);
 			}
 
 			e->e = ISUP_EVENT_SUS;
 			e->sus.cic = c->cic;
-			e->sus.opc = opc; /* keep OPC information */
+			e->sus.opc = opc;	/* keep OPC information */
 			e->sus.call = c;
 			e->sus.network_isdn_indicator = c->network_isdn_indicator;
+			e->sus.got_sent_msg = c->got_sent_msg;
+			return 0;
+		case ISUP_RES:
+			if (!(c->got_sent_msg & (ISUP_GOT_IAM | ISUP_SENT_IAM))) {
+				ss7_message(ss7, "Got RES but no call on CIC %d PC %d ", c->cic, opc);
+				return isup_handle_unexpected(ss7, c, opc);
+			}
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				ss7_call_null(ss7, c, 1);
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
+			if (c->network_isdn_indicator) {
+				isup_stop_timer(ss7, c, ISUP_TIMER_T6);	/* network */
+			} else {
+				isup_stop_timer(ss7, c, ISUP_TIMER_T2);
+			}
+
+			e->e = ISUP_EVENT_RES;
+			e->res.cic = c->cic;
+			e->res.opc = opc;	/* keep OPC information */
+			e->res.call = c;
+			e->res.network_isdn_indicator = c->network_isdn_indicator;
+			e->res.got_sent_msg = c->got_sent_msg;
 			return 0;
 		default:
-			if (not_linked) {
-				isup_free_call(ss7, c);
+			if (!isup_free_call_if_clear(ss7, c)) {
+				ss7_call_null(ss7, c, 1);
 			}
 			return 0;
 	}
 }
 
-static int isup_send_cicgroupmessage(struct ss7 *ss7, int messagetype, int begincic, int endcic, unsigned int dpc, unsigned char status[], int type)
+int isup_event_iam(struct ss7 *ss7, struct isup_call *c, int opc)
 {
-	struct isup_call call = {{0},};
-	int i;
+	ss7_event *e;
 
-	for (i = 0; (i + begincic) <= endcic; i++)
-		call.status[i] = status[i];
+	/* Checking dual seizure Q.764 2.9.1.4 */
+	if (c->got_sent_msg == ISUP_SENT_IAM) {
+		if ((ss7->pc > opc) ? (~c->cic & 1) : (c->cic & 1)) {
+			ss7_message(ss7, "Dual seizure on CIC %d DPC %d we are the controlling, ignore IAM\n", c->cic, opc);
+			return 0;
+		} else {
+			ss7_message(ss7, "Dual seizure on CIC %d DPC %d they are the controlling, hangup our call\n", c->cic, opc);
+			c->got_sent_msg = ISUP_GOT_IAM;
+			ss7_hangup(ss7, c->cic, opc, SS7_CAUSE_TRY_AGAIN, SS7_HANGUP_REEVENT_IAM);
+			return 0;
+		}
+	}
 
-	call.cic = begincic;
-	call.range = endcic - begincic;
-	call.cicgroupsupervisiontype = type;
-	call.dpc = dpc;
+	c->got_sent_msg |= ISUP_GOT_IAM;
 
-	if (call.range > 31)
+	if ((ss7->flags & SS7_INR_IF_NO_CALLING) &&
+		!c->calling_party_num[0] && c->presentation_ind != SS7_PRESENTATION_ADDR_NOT_AVAILABLE) {
+		c->dpc = opc;
+		isup_inr(ss7, c, 0x1, 0);	/* Calling party address requested */
+		return 0;
+	}
+
+	e = ss7_next_empty_event(ss7);
+	if (!e) {
+		ss7_call_null(ss7, c, 1);
+		isup_free_call(ss7, c);
 		return -1;
+	}
 
-	return isup_send_message(ss7, &call, messagetype, cicgroup_params);
+	if (c->cot_check_required) {
+		c->got_sent_msg |= ISUP_GOT_CCR;
+	}
+
+	e->e = ISUP_EVENT_IAM;
+	e->iam.got_sent_msg = c->got_sent_msg;
+	e->iam.cic = c->cic;
+	e->iam.transcap = c->transcap;
+	e->iam.cot_check_required = c->cot_check_required;
+	e->iam.cot_performed_on_previous_cic = c->cot_performed_on_previous_cic;
+	c->cot_check_passed = 0;
+	strncpy(e->iam.called_party_num, c->called_party_num, sizeof(e->iam.called_party_num));
+	e->iam.called_nai = c->called_nai;
+	strncpy(e->iam.calling_party_num, c->calling_party_num, sizeof(e->iam.calling_party_num));
+	e->iam.calling_nai = c->calling_nai;
+	e->iam.presentation_ind = c->presentation_ind;
+	e->iam.screening_ind = c->screening_ind;
+	strncpy(e->iam.charge_number, c->charge_number, sizeof(e->iam.charge_number));
+	e->iam.charge_nai = c->charge_nai;
+	e->iam.charge_num_plan = c->charge_num_plan;
+	e->iam.oli_ani2 = c->oli_ani2;
+	e->iam.gen_add_nai = c->gen_add_nai;
+	e->iam.gen_add_num_plan = c->gen_add_num_plan;
+	strncpy(e->iam.gen_add_number, c->gen_add_number, sizeof(e->iam.gen_add_number));
+	e->iam.gen_add_pres_ind = c->gen_add_pres_ind;
+	e->iam.gen_add_type = c->gen_add_type;
+	strncpy(e->iam.gen_dig_number, c->gen_dig_number, sizeof(e->iam.gen_dig_number));
+	e->iam.gen_dig_type = c->gen_dig_type;
+	e->iam.gen_dig_scheme = c->gen_dig_scheme;
+	strncpy(e->iam.jip_number, c->jip_number, sizeof(e->iam.jip_number));
+	strncpy(e->iam.generic_name, c->generic_name, sizeof(e->iam.generic_name));
+	e->iam.generic_name_typeofname = c->generic_name_typeofname;
+	e->iam.generic_name_avail = c->generic_name_avail;
+	e->iam.generic_name_presentation = c->generic_name_presentation;
+	e->iam.lspi_type = c->lspi_type;
+	e->iam.lspi_scheme = c->lspi_scheme;
+	e->iam.lspi_context = c->lspi_context;
+	strncpy(e->iam.lspi_ident, c->lspi_ident, sizeof(e->iam.lspi_ident));
+	strncpy(e->iam.orig_called_num, c->orig_called_num, sizeof(e->iam.orig_called_num));
+	e->iam.orig_called_nai = c->orig_called_nai;
+	e->iam.orig_called_pres_ind = c->orig_called_pres_ind;
+	e->iam.orig_called_screening_ind = c->orig_called_screening_ind;
+	strncpy(e->iam.redirecting_num, c->redirecting_num, sizeof(e->iam.redirecting_num));
+	e->iam.redirecting_num_nai = c->redirecting_num_nai;
+	e->iam.redirecting_num_presentation_ind = c->redirecting_num_presentation_ind;
+	e->iam.redirecting_num_screening_ind = c->redirecting_num_screening_ind;
+	e->iam.redirect_counter = c->redirect_counter;
+	e->iam.redirect_info = c->redirect_info;
+	e->iam.redirect_info_ind = c->redirect_info_ind;
+	e->iam.redirect_info_orig_reas = c->redirect_info_orig_reas;
+	e->iam.redirect_info_counter = c->redirect_info_counter;
+	e->iam.redirect_info_reas = c->redirect_info_reas;
+	e->iam.calling_party_cat = c->calling_party_cat;
+	e->iam.cug_indicator = c->cug_indicator;
+	e->iam.cug_interlock_code = c->cug_interlock_code;
+	strncpy(e->iam.cug_interlock_ni, c->cug_interlock_ni, sizeof(e->iam.cug_interlock_ni));
+	e->iam.call = c;
+	e->iam.opc = opc;	/* keep OPC information */
+	e->iam.echocontrol_ind = c->echocontrol_ind;
+	if (!strchr(c->called_party_num, '#')) {
+		isup_start_timer(ss7, c, ISUP_TIMER_T35);
+	}
+
+	if (c->cot_check_required || c->cot_performed_on_previous_cic) {
+		isup_start_timer(ss7, c, ISUP_TIMER_T8);
+	}
+
+	return 0;
 }
 
 int isup_cqr(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsigned char status[])
 {
 	struct isup_call call = {{0},};
-	int i;
+	int i, res;
 
 	for (i = 0; (i + begincic) <= endcic; i++)
 		call.status[i] = status[i];
@@ -3293,155 +4304,499 @@ int isup_cqr(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsign
 	call.range = endcic - begincic;
 	call.dpc = dpc;
 
-	if (call.range > 31)
+	if (call.range > 31) {
 		return -1;
+	}
 
-	return isup_send_message(ss7, &call, ISUP_CQR, cqr_params);
+	res = isup_send_message(ss7, &call, ISUP_CQR, cqr_params);
+
+	if (res == -1) {
+		ss7_error(ss7, "Unable to send CQR to DPC: %d\n", dpc);
+	}
+
+	return res;
 }
 
-int isup_grs(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc)
+int isup_grs(struct ss7 *ss7, struct isup_call *c, int endcic)
 {
-	struct isup_call call = {{0},};
+	int res;
 
-	if (!ss7)
+	if (!ss7 || !c) {
 		return -1;
+	}
 
-	call.cic = begincic;
-	call.range = endcic - begincic;
-	call.dpc = dpc;
-
-	if (call.range > 31)
+	if (endcic - c->cic > 31) {
 		return -1;
+	}
 
-	return isup_send_message(ss7, &call, ISUP_GRS, greset_params);
+	c->range = endcic - c->cic;
+
+	res = isup_send_message(ss7, c, ISUP_GRS, greset_params);
+
+	if (ss7->switchtype == SS7_ANSI) {
+		/* ANSI require that we send it twice.  Don't think I understand completely why.
+		 * T1.113 in 2.9.3.2 */
+		res = isup_send_message(ss7, c, ISUP_GRS, greset_params);
+	}
+
+	if (res > -1) {
+		c->got_sent_msg = ISUP_SENT_GRS;
+		c->sent_grs_endcic = endcic;
+		isup_stop_all_timers(ss7, c);
+		isup_start_timer(ss7, c, ISUP_TIMER_T22);
+		isup_start_timer(ss7, c, ISUP_TIMER_T23);
+	} else {
+		ss7_call_null(ss7, c, 0);
+		isup_free_call(ss7, c);
+		ss7_error(ss7, "Unable to send GRS to DPC: %d\n", c->dpc);
+	}
+
+	return res;
 }
 
-int isup_gra(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc)
+int isup_gra(struct ss7 *ss7, struct isup_call *c, int endcic, unsigned char state[])
 {
-	struct isup_call call = {{0},};
+	int i, res;
 
-	if (!ss7)
+	if (!ss7 || !c) {
 		return -1;
-	call.cic = begincic;
-	call.range = endcic - begincic;
-	call.dpc = dpc;
+	}
 
-	if (call.range > 31)
+	if (endcic - c->cic > 31) {
 		return -1;
+	}
 
-	return isup_send_message(ss7, &call, ISUP_GRA, greset_params);
+	c->range = endcic - c->cic;
+
+	for (i = 0; (i + c->cic) <= endcic; i++) {
+		c->status[i] = state[i];
+	}
+
+	res = isup_send_message(ss7, c, ISUP_GRA, greset_params);
+
+	if (res == -1) {
+		ss7_call_null(ss7, c, 0);
+		isup_free_call(ss7, c);
+		ss7_error(ss7, "Unable to send GRA to DPC: %d\n", c->dpc);
+	}
+
+	return res;
 }
 
-int isup_cgb(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsigned char state[], int type)
+int isup_cgb(struct ss7 *ss7, struct isup_call *c, int endcic, unsigned char state[], int type)
 {
-	if (!ss7)
-		return -1;
+	int i, res;
 
-	return isup_send_cicgroupmessage(ss7, ISUP_CGB, begincic, endcic, dpc, state, type);
+	if (!ss7 || !c) {
+		return -1;
+	}
+
+	if (endcic - c->cic > 31) {
+		return -1;
+	}
+
+	c->range = endcic - c->cic;
+	c->sent_cgb_endcic = endcic;
+	c->cicgroupsupervisiontype = type;
+	c->sent_cgb_type = type;
+
+	for (i = 0; (i + c->cic) <= endcic; i++) {
+		c->status[i] = state[i];
+		c->sent_cgb_status[i] = state[i];
+	}
+
+	res = isup_send_message(ss7, c, ISUP_CGB, cicgroup_params);
+
+	if (res > -1) {
+		c->got_sent_msg |= ISUP_SENT_CGB;
+		c->sent_cgb_type = type;
+		isup_start_timer(ss7, c, ISUP_TIMER_T18);
+		isup_start_timer(ss7, c, ISUP_TIMER_T19);
+	} else {
+		ss7_call_null(ss7, c, 0);
+		isup_free_call(ss7, c);
+		ss7_error(ss7, "Unable to send CGB to DPC: %d\n", c->dpc);
+	}
+	return res;
 }
 
-int isup_cgu(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsigned char state[], int type)
+int isup_cgu(struct ss7 *ss7, struct isup_call *c, int endcic, unsigned char state[], int type)
 {
-	if (!ss7)
-		return -1;
+	int i, res;
 
-	return isup_send_cicgroupmessage(ss7, ISUP_CGU, begincic, endcic, dpc, state, type);
+	if (!ss7 || !c) {
+		return -1;
+	}
+
+	if (endcic - c->cic > 31) {
+		return -1;
+	}
+
+	c->range = endcic - c->cic;
+	c->sent_cgu_endcic = endcic;
+	c->cicgroupsupervisiontype = type;
+	c->sent_cgu_type = type;
+
+	for (i = 0; (i + c->cic) <= endcic; i++) {
+		c->status[i] = state[i];
+		c->sent_cgu_status[i] = state[i];
+	}
+
+	isup_start_timer(ss7, c, ISUP_TIMER_T20);
+	isup_start_timer(ss7, c, ISUP_TIMER_T21);
+	res = isup_send_message(ss7, c, ISUP_CGU, cicgroup_params);
+
+	if (res > -1) {
+		c->got_sent_msg |= ISUP_SENT_CGU;
+		isup_start_timer(ss7, c, ISUP_TIMER_T20);
+		isup_start_timer(ss7, c, ISUP_TIMER_T21);
+	} else {
+		ss7_call_null(ss7, c, 0);
+		isup_free_call(ss7, c);
+		ss7_error(ss7, "Unable to send CGU to DPC: %d\n", c->dpc);
+	}
+	return res;
 }
 
-int isup_cgba(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsigned char state[], int type)
+int isup_cgba(struct ss7 *ss7, struct isup_call *c, int endcic, unsigned char state[])
 {
-	if (!ss7)
+	int i, res;
+
+	if (!ss7 || !c) {
 		return -1;
-	return isup_send_cicgroupmessage(ss7, ISUP_CGBA, begincic, endcic, dpc, state, type);
+	}
+
+	if (endcic - c->cic > 31) {
+		return -1;
+	}
+
+	c->range = endcic - c->cic;
+
+	for (i = 0; (i + c->cic) <= endcic; i++) {
+		c->status[i] = state[i];
+	}
+
+	res = isup_send_message(ss7, c, ISUP_CGBA, cicgroup_params);
+	if (res == -1) {
+		ss7_call_null(ss7, c, 0);
+		isup_free_call(ss7, c);
+		ss7_error(ss7, "Unable to send CGBA to DPC: %d\n", c->dpc);
+	}
+
+	return res;
 }
 
-int isup_cgua(struct ss7 *ss7, int begincic, int endcic, unsigned int dpc, unsigned char state[], int type)
+int isup_cgua(struct ss7 *ss7, struct isup_call *c, int endcic, unsigned char state[])
 {
-	if (!ss7)
-		return -1;
+	int i, res;
 
-	return isup_send_cicgroupmessage(ss7, ISUP_CGUA, begincic, endcic, dpc, state, type);
+	if (!ss7 || !c) {
+		return -1;
+	}
+
+	if (endcic - c->cic > 31) {
+		return -1;
+	}
+
+	c->range = endcic - c->cic;
+
+	for (i = 0; (i + c->cic) <= endcic; i++) {
+		c->status[i] = state[i];
+	}
+
+	res = isup_send_message(ss7, c, ISUP_CGUA, cicgroup_params);
+
+	if (res == -1) {
+		ss7_call_null(ss7, c, 0);
+		isup_free_call(ss7, c);
+		ss7_error(ss7, "Unable to send CGUA to DPC: %d\n", c->dpc);
+	}
+
+	return res;
 }
 
 int isup_iam(struct ss7 *ss7, struct isup_call *c)
 {
-	if (!ss7 || !c)
-		return -1;
+	int res;
 
-	if (ss7->switchtype == SS7_ITU)
-		return isup_send_message(ss7, c, ISUP_IAM, iam_params);
-	else
-		return isup_send_message(ss7, c, ISUP_IAM, ansi_iam_params);
+	if (!ss7 || !c) {
+		return -1;
+	}
+
+	if (ss7->switchtype == SS7_ITU) {
+		res = isup_send_message(ss7, c, ISUP_IAM, iam_params);
+	} else {
+		res = isup_send_message(ss7, c, ISUP_IAM, ansi_iam_params);
+	}
+
+	if (res > -1) {
+		isup_start_timer(ss7, c, ISUP_TIMER_T7);
+		c->got_sent_msg |= ISUP_SENT_IAM;
+	} else {
+		ss7_call_null(ss7, c, 0);
+		isup_free_call(ss7, c);
+		ss7_error(ss7, "Unable to send IAM to DPC: %d\n", c->dpc);
+	}
+
+	return res;
 }
 
 int isup_acm(struct ss7 *ss7, struct isup_call *c)
 {
-	if (!ss7 || !c)
-		return -1;
+	int res;
 
-	return isup_send_message(ss7, c, ISUP_ACM, acm_params);
+	if (!ss7 || !c) {
+		return -1;
+	}
+
+	res = isup_send_message(ss7, c, ISUP_ACM, acm_params);
+
+	if (res > -1) {
+		c->got_sent_msg |= ISUP_SENT_ACM;
+		isup_stop_timer(ss7, c, ISUP_TIMER_T35);
+		isup_stop_timer(ss7, c, ISUP_TIMER_T10);
+	} else {
+		ss7_call_null(ss7, c, 0);
+		isup_free_call(ss7, c);
+		ss7_error(ss7, "Unable to send ACM to DPC: %d\n", c->dpc);
+	}
+
+	return res;
 }
 
 int isup_faa(struct ss7 *ss7, struct isup_call *c)
 {
-	if (!ss7 || !c)
+	int res;
+
+	if (!ss7 || !c) {
 		return -1;
-	
-	return isup_send_message(ss7, c, ISUP_FAA, faa_params);
+	}
+
+	res = isup_send_message(ss7, c, ISUP_FAA, faa_params);
+
+	if (res == -1) {
+		ss7_call_null(ss7, c, 0);
+		isup_free_call(ss7, c);
+		ss7_error(ss7, "Unable to send FAA to DPC: %d\n", c->dpc);
+	}
+
+	return res;
 }
 
 int isup_far(struct ss7 *ss7, struct isup_call *c)
 {
-	if (!ss7 || !c)
+	int res = -1;
+
+	if (!ss7 || !c) {
 		return -1;
-	
+	}
+
 	if (c->next && c->next->call_ref_ident) {
 		c->call_ref_ident = c->next->call_ref_ident;
 		c->call_ref_pc = c->next->call_ref_pc;
-		return isup_send_message(ss7, c, ISUP_FAR, far_params);
+		c->got_sent_msg |= ISUP_SENT_FAR;
+		res = isup_send_message(ss7, c, ISUP_FAR, far_params);
 	}
-	return -1;
+
+	if (res > -1) {
+		c->got_sent_msg |= ISUP_SENT_FAR;
+	} else {
+		ss7_call_null(ss7, c, 0);
+		isup_free_call(ss7, c);
+		ss7_error(ss7, "Unable to send FAR to DPC: %d\n", c->dpc);
+	}
+
+	return res;
 }
 
 int isup_anm(struct ss7 *ss7, struct isup_call *c)
 {
-	if (!ss7 || !c)
-		return -1;
+	int res;
 
-	return isup_send_message(ss7, c, ISUP_ANM, anm_params);
+	if (!ss7 || !c) {
+		return -1;
+	}
+
+	res = isup_send_message(ss7, c, ISUP_ANM, anm_params);
+
+	if (res > -1) {
+		c->got_sent_msg |= ISUP_SENT_ANM;
+		isup_stop_timer(ss7, c, ISUP_TIMER_T35);
+		isup_stop_timer(ss7, c, ISUP_TIMER_T10);
+	} else {
+		ss7_call_null(ss7, c, 0);
+		isup_free_call(ss7, c);
+		ss7_error(ss7, "Unable to send ANM to DPC: %d\n", c->dpc);
+	}
+
+	return res;
 }
 
 int isup_con(struct ss7 *ss7, struct isup_call *c)
 {
-	if (!ss7 || !c)
-		return -1;
+	int res;
 
-	return isup_send_message(ss7, c, ISUP_CON, con_params);
+	if (!ss7 || !c) {
+		return -1;
+	}
+
+	c->got_sent_msg |= ISUP_SENT_CON;
+	isup_stop_timer(ss7, c, ISUP_TIMER_T35);
+	isup_stop_timer(ss7, c, ISUP_TIMER_T10);
+	res = isup_send_message(ss7, c, ISUP_CON, con_params);
+
+	if (res < 0) {
+		ss7_call_null(ss7, c, 0);
+		isup_free_call(ss7, c);
+		ss7_error(ss7, "Unable to send CON to DPC: %d\n", c->dpc);
+	}
+
+	return res;
 }
 
 int isup_rel(struct ss7 *ss7, struct isup_call *c, int cause)
 {
-	if (!ss7 || !c)
-		return -1;
+	int res;
 
-	if (cause < 0)
+	if (!ss7 || !c) {
+		return -1;
+	}
+
+	if (cause < 0) {
 		cause = 16;
+	}
 
 	c->cause = cause;
 	c->causecode = CODE_CCITT;
-	c->causeloc = LOC_PRIV_NET_LOCAL_USER;
-	return isup_send_message(ss7, c, ISUP_REL, rel_params);
+	c->causeloc = ss7->cause_location;
+
+	res = isup_send_message(ss7, c, ISUP_REL, rel_params);
+
+	if (res > -1) {
+		isup_stop_timer(ss7, c, ISUP_TIMER_T7);
+		isup_stop_timer(ss7, c, ISUP_TIMER_T8);
+		isup_stop_timer(ss7, c, ISUP_TIMER_T27);
+		isup_stop_timer(ss7, c, ISUP_TIMER_T2);
+		isup_stop_timer(ss7, c, ISUP_TIMER_T6);
+		isup_stop_timer(ss7, c, ISUP_TIMER_T35);
+		isup_stop_timer(ss7, c, ISUP_TIMER_T10);
+		isup_start_timer(ss7, c, ISUP_TIMER_T1);
+		isup_start_timer(ss7, c, ISUP_TIMER_T5);
+
+		c->got_sent_msg |= ISUP_SENT_REL;
+		c->got_sent_msg &= ~(ISUP_SENT_IAM | ISUP_CALL_CONNECTED | ISUP_GOT_IAM | ISUP_GOT_CCR | ISUP_SENT_INR);
+	} else {
+		ss7_call_null(ss7, c, 0);
+		isup_free_call(ss7, c);
+		ss7_error(ss7, "Unable to send REL to DPC: %d\n", c->dpc);
+	}
+
+	return res;
 }
 
 int isup_rlc(struct ss7 *ss7, struct isup_call *c)
 {
 	int res;
 
-	if (!ss7 || !c)
+	if (!ss7 || !c) {
 		return -1;
+	}
 
 	res = isup_send_message(ss7, c, ISUP_RLC, empty_params);
-	isup_free_call(ss7, c);
+
+	if (res == -1) {
+		ss7_call_null(ss7, c, 0);
+		isup_free_call(ss7, c);
+		ss7_error(ss7, "Unable to send RLC to DPC: %d\n", c->dpc);
+	}
+
+	return res;
+}
+
+int isup_inr(struct ss7 *ss7, struct isup_call *c, unsigned char ind0, unsigned char ind1)
+{
+	int res;
+
+	if (!ss7 || !c) {
+		return -1;
+	}
+
+	c->inr_ind[0] = ind0;
+	c->inr_ind[1] = ind1;
+
+	res = isup_send_message(ss7, c, ISUP_INR, inr_params);
+
+	if (res > -1) {
+		c->got_sent_msg |= ISUP_SENT_INR;
+		isup_start_timer(ss7, c, ISUP_TIMER_T33);
+	} else {
+		ss7_call_null(ss7, c, 0);
+		isup_free_call(ss7, c);
+		ss7_error(ss7, "Unable to send INR to DPC: %d\n", c->dpc);
+	}
+
+	return res;
+}
+
+int isup_inf(struct ss7 *ss7, struct isup_call *c, unsigned char ind0, unsigned char ind1)
+{
+	int res;
+
+	if (!ss7 || !c) {
+		return -1;
+	}
+
+	c->inf_ind[0] = ind0;
+	c->inf_ind[1] = ind1;
+
+	res = isup_send_message(ss7, c, ISUP_INF, inf_params);
+
+	if (res == -1) {
+		ss7_call_null(ss7, c, 0);
+		isup_free_call(ss7, c);
+		ss7_error(ss7, "Unable to send INF to DPC: %d\n", c->dpc);
+	}
+
+	return res;
+}
+
+int isup_sus(struct ss7 *ss7, struct isup_call *c, unsigned char indicator)
+{
+	int res;
+
+	if (!ss7 || !c) {
+		return -1;
+	}
+
+	c->network_isdn_indicator = indicator;
+	res = isup_send_message(ss7, c, ISUP_SUS, sus_res_params);
+
+	if (res == -1) {
+		ss7_call_null(ss7, c, 0);
+		isup_free_call(ss7, c);
+		ss7_error(ss7, "Unable to send SUS to DPC: %d\n", c->dpc);
+	}
+
+	return res;
+}
+
+int isup_res(struct ss7 *ss7, struct isup_call *c, unsigned char indicator)
+{
+	int res;
+
+	if (!ss7 || !c) {
+		return -1;
+	}
+
+	c->network_isdn_indicator = indicator;
+	res = isup_send_message(ss7, c, ISUP_RES, sus_res_params);
+
+	if (res == -1) {
+		ss7_call_null(ss7, c, 0);
+		isup_free_call(ss7, c);
+		ss7_error(ss7, "Unable to send RES to DPC: %d\n", c->dpc);
+	}
+
 	return res;
 }
 
@@ -3458,76 +4813,612 @@ static int isup_send_message_ciconly(struct ss7 *ss7, int messagetype, int cic, 
 
 int isup_cpg(struct ss7 *ss7, struct isup_call *c, int event)
 {
-	if (!ss7 || !c)
+	int res;
+
+	if (!ss7 || !c) {
 		return -1;
+	}
 
 	c->event_info = event;
-	return isup_send_message(ss7, c, ISUP_CPG, cpg_params);
+
+	res = isup_send_message(ss7, c, ISUP_CPG, cpg_params);
+
+	if (res > -1) {
+		isup_stop_timer(ss7, c, ISUP_TIMER_T35);
+		isup_stop_timer(ss7, c, ISUP_TIMER_T10);
+	} else {
+		ss7_call_null(ss7, c, 0);
+		isup_free_call(ss7, c);
+		ss7_error(ss7, "Unable to send CPG to DPC: %d\n", c->dpc);
+	}
+
+	return res;
 }
 
-int isup_rsc(struct ss7 *ss7, int cic, unsigned int dpc)
+int isup_rsc(struct ss7 *ss7, struct isup_call *c)
 {
-	if (!ss7)
-		return -1;
+	int res;
 
-	return isup_send_message_ciconly(ss7, ISUP_RSC, cic, dpc);
+	if (!ss7 || !c) {
+		return -1;
+	}
+
+	res = isup_send_message(ss7, c, ISUP_RSC, empty_params);
+
+	if (res > -1) {
+		isup_stop_all_timers(ss7, c);
+		isup_start_timer(ss7, c, ISUP_TIMER_T17);
+		c->got_sent_msg = ISUP_SENT_RSC;
+	} else {
+		ss7_call_null(ss7, c, 0);
+		isup_free_call(ss7, c);
+		ss7_error(ss7, "Unable to send RSC to DPC: %d\n", c->dpc);
+	}
+
+	return res;
 }
 
-int isup_blo(struct ss7 *ss7, int cic, unsigned int dpc)
+int isup_blo(struct ss7 *ss7, struct isup_call *c)
 {
-	if (!ss7)
-		return -1;
+	int res;
 
-	return isup_send_message_ciconly(ss7, ISUP_BLO, cic, dpc);
+	if (!ss7 || !c) {
+		return -1;
+	}
+
+	res = isup_send_message(ss7, c, ISUP_BLO, empty_params);
+
+	if (res > -1) {
+		isup_start_timer(ss7, c, ISUP_TIMER_T12);
+		isup_start_timer(ss7, c, ISUP_TIMER_T13);
+		c->got_sent_msg |= ISUP_SENT_BLO;
+	} else {
+		ss7_call_null(ss7, c, 0);
+		isup_free_call(ss7, c);
+		ss7_error(ss7, "Unable to send BLO to DPC: %d\n", c->dpc);
+	}
+
+	return res;
 }
 
-int isup_ubl(struct ss7 *ss7, int cic, unsigned int dpc)
+int isup_ubl(struct ss7 *ss7, struct isup_call *c)
 {
-	if (!ss7)
-		return -1;
+	int res;
 
-	return isup_send_message_ciconly(ss7, ISUP_UBL, cic, dpc);
+	if (!ss7 || !c) {
+		return -1;
+	}
+
+	res = isup_send_message(ss7, c, ISUP_UBL, empty_params);
+
+	if (res > -1) {
+		isup_start_timer(ss7, c, ISUP_TIMER_T14);
+		isup_start_timer(ss7, c, ISUP_TIMER_T15);
+		c->got_sent_msg |= ISUP_SENT_UBL;
+	} else {
+		ss7_call_null(ss7, c, 0);
+		isup_free_call(ss7, c);
+		ss7_error(ss7, "Unable to send UBL to DPC: %d\n", c->dpc);
+	}
+
+	return res;
 }
 
-int isup_bla(struct ss7 *ss7, int cic, unsigned int dpc)
+int isup_bla(struct ss7 *ss7, struct isup_call *c)
 {
-	if (!ss7)
-		return -1;
+	int res;
 
-	return isup_send_message_ciconly(ss7, ISUP_BLA, cic, dpc);
+	if (!ss7 || !c) {
+		return -1;
+	}
+
+	res = isup_send_message(ss7, c, ISUP_BLA, empty_params);
+
+	if (res == -1) {
+		ss7_call_null(ss7, c, 0);
+		isup_free_call(ss7, c);
+		ss7_error(ss7, "Unable to send BLA to DPC: %d\n", c->dpc);
+	}
+
+	return res;
 }
 
 int isup_lpa(struct ss7 *ss7, int cic, unsigned int dpc)
 {
-	if (!ss7)
-		return -1;
+	int res;
 
-	return isup_send_message_ciconly(ss7, ISUP_LPA, cic, dpc);
+	if (!ss7) {
+		return -1;
+	}
+
+	res = isup_send_message_ciconly(ss7, ISUP_LPA, cic, dpc);
+
+	if (res == -1) {
+		ss7_error(ss7, "Unable to send LPA to DPC: %d\n", dpc);
+	}
+
+	return res;
 }
 
 int isup_ucic(struct ss7 *ss7, int cic, unsigned int dpc)
 {
-	if (!ss7)
-		return -1;
+	int res;
 
-	return isup_send_message_ciconly(ss7, ISUP_UCIC, cic, dpc);
+	if (!ss7) {
+		return -1;
+	}
+
+	res = isup_send_message_ciconly(ss7, ISUP_UCIC, cic, dpc);
+
+	if (res == -1) {
+		ss7_error(ss7, "Unable to send UCIC to DPC: %d\n", dpc);
+	}
+
+	return res;
 }
 
-int isup_uba(struct ss7 *ss7, int cic, unsigned int dpc)
+int isup_uba(struct ss7 *ss7, struct isup_call *c)
 {
-	if (!ss7)
-		return -1;
+	int res;
 
-	return isup_send_message_ciconly(ss7, ISUP_UBA, cic, dpc);
+	if (!ss7 || !c) {
+		return -1;
+	}
+
+	res = isup_send_message(ss7, c, ISUP_UBA, empty_params);
+
+	if (res == -1) {
+		ss7_call_null(ss7, c, 0);
+		isup_free_call(ss7, c);
+		ss7_error(ss7, "Unable to send UBA to DPC: %d\n", c->dpc);
+	}
+
+	return res;
 }
 
 int isup_cvr(struct ss7 *ss7, int cic, unsigned int dpc)
 {
-	if (!ss7)
+	int res;
+
+	if (!ss7) {
 		return -1;
-	
-	return isup_send_message_ciconly(ss7, ISUP_CVR, cic, dpc);
+	}
+
+	res = isup_send_message_ciconly(ss7, ISUP_CVR, cic, dpc);
+	if (res == -1) {
+		ss7_error(ss7, "Unable to send CVR to DPC: %d\n", dpc);
+	}
+
+	return res;
 }
 
+/*!
+ * \internal
+ * \brief Append snprintf output to the given buffer.
+ *
+ * \param buf Buffer currently filling.
+ * \param buf_used Offset into buffer where to put new stuff.
+ * \param buf_size Actual buffer size of buf.
+ * \param format printf format string.
+ *
+ * \return Total buffer space used.
+ */
+static size_t ss7_snprintf(char *buf, size_t buf_used, size_t buf_size, const char *format, ...) __attribute__((format(printf, 4, 5)));
+static size_t ss7_snprintf(char *buf, size_t buf_used, size_t buf_size, const char *format, ...)
+{
+	va_list args;
 
-/* Janelle is the bomb (Again) */
+	if (buf_used < buf_size) {
+		va_start(args, format);
+		buf_used += vsnprintf(buf + buf_used, buf_size - buf_used, format, args);
+		va_end(args);
+	}
+	if (buf_size < buf_used) {
+		buf_used = buf_size + 1;
+	}
+	return buf_used;
+}
+
+void isup_show_calls(struct ss7 *ss7, ss7_printf_cb cust_printf, int fd)
+{
+	int x;
+	char *buf, *tmp_buf;
+	size_t tmp_used, buf_used;
+	size_t buf_size = 4096;	/* This should be bigger than we will ever need. */
+	struct isup_call *c = ss7->calls;
+
+	buf = malloc(buf_size);
+	if (!buf) {
+		return;
+	}
+	tmp_buf = malloc(buf_size);
+	if (!tmp_buf) {
+		free(buf);
+		return;
+	}
+
+	cust_printf(fd, "%5s %5s %3s  %-24s  %-16s  %s\n", "  CIC", "  DPC", "SLS", "Sent", "Got", "TIMERS (time left s)");
+
+	while (c) {
+		buf_used = 0;
+		tmp_used = 0;
+		if (c->got_sent_msg & ISUP_SENT_RSC) {
+			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "RSC ");
+		}
+		if (c->got_sent_msg & ISUP_SENT_IAM) {
+			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "IAM ");
+		}
+		if (c->got_sent_msg & ISUP_SENT_ACM) {
+			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "ACM ");
+		}
+		if (c->got_sent_msg & ISUP_SENT_REL) {
+			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "REL ");
+		}
+		if (c->got_sent_msg & ISUP_SENT_BLO) {
+			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "BLO ");
+		}
+		if (c->got_sent_msg & ISUP_SENT_UBL) {
+			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "UBL ");
+		}
+		if (c->got_sent_msg & ISUP_SENT_GRS) {
+			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "GRS ");
+		}
+		if (c->got_sent_msg & ISUP_SENT_CGB) {
+			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "CGB ");
+		}
+		if (c->got_sent_msg & ISUP_SENT_CGU) {
+			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "CGU ");
+		}
+		if (c->got_sent_msg & ISUP_SENT_CON) {
+			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "CON ");
+		}
+		if (c->got_sent_msg & ISUP_SENT_ANM) {
+			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "ANM ");
+		}
+		if (c->got_sent_msg & ISUP_SENT_INR) {
+			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "INR ");
+		}
+		buf_used = ss7_snprintf(buf, buf_used, buf_size, "%5i %5i %3i  %-24s", c->cic, c->dpc, c->sls, tmp_buf);
+
+		tmp_used = 0;
+		if (c->got_sent_msg & ISUP_GOT_CCR) {
+			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "CCR ");
+		}
+		if (c->got_sent_msg & ISUP_GOT_IAM) {
+			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "IAM ");
+		}
+		if (c->got_sent_msg & ISUP_GOT_ACM) {
+			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "ACM ");
+		}
+		if (c->got_sent_msg & ISUP_GOT_ANM) {
+			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "ANM ");
+		}
+		if (c->got_sent_msg & ISUP_GOT_CON) {
+			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "CON ");
+		}
+		buf_used = ss7_snprintf(buf, buf_used, buf_size, "  %-16s  ", tmp_buf);
+
+		for (x = 0; x < ISUP_MAX_TIMERS; x++) {
+			if (c->timer[x] > -1) {
+				buf_used = ss7_snprintf(buf, buf_used, buf_size, "%s(%li) ", isup_timer2str(x),  ss7->ss7_sched[c->timer[x]].when.tv_sec - time(NULL));
+			}
+		}
+		cust_printf(fd, "%s\n", buf);
+		c = c->next;
+	}
+
+	free(buf);
+	free(tmp_buf);
+}
+
+int ss7_set_isup_timer(struct ss7 *ss7, char *name, int ms)
+{
+	if (!strcasecmp(name, "t1")) {
+		ss7->isup_timers[ISUP_TIMER_T1] = ms;
+	} else if (!strcasecmp(name, "t2")) {
+		ss7->isup_timers[ISUP_TIMER_T2] = ms;
+	} else if (!strcasecmp(name, "t5")) {
+		ss7->isup_timers[ISUP_TIMER_T5] = ms;
+	} else if (!strcasecmp(name, "t6")) {
+		ss7->isup_timers[ISUP_TIMER_T6] = ms;
+	} else if (!strcasecmp(name, "t7")) {
+		ss7->isup_timers[ISUP_TIMER_T7] = ms;
+	} else if (!strcasecmp(name, "t8")) {
+		ss7->isup_timers[ISUP_TIMER_T8] = ms;
+	} else if (!strcasecmp(name, "t10")) {
+		ss7->isup_timers[ISUP_TIMER_T10] = ms;
+	} else if (!strcasecmp(name, "t12")) {
+		ss7->isup_timers[ISUP_TIMER_T12] = ms;
+	} else if (!strcasecmp(name, "t13")) {
+		ss7->isup_timers[ISUP_TIMER_T13] = ms;
+	} else if (!strcasecmp(name, "t14")) {
+		ss7->isup_timers[ISUP_TIMER_T14] = ms;
+	} else if (!strcasecmp(name, "t15")) {
+		ss7->isup_timers[ISUP_TIMER_T15] = ms;
+	} else if (!strcasecmp(name, "t16")) {
+		ss7->isup_timers[ISUP_TIMER_T16] = ms;
+	} else if (!strcasecmp(name, "t17")) {
+		ss7->isup_timers[ISUP_TIMER_T17] = ms;
+	} else if (!strcasecmp(name, "t18")) {
+		ss7->isup_timers[ISUP_TIMER_T18] = ms;
+	} else if (!strcasecmp(name, "t19")) {
+		ss7->isup_timers[ISUP_TIMER_T19] = ms;
+	} else if (!strcasecmp(name, "t20")) {
+		ss7->isup_timers[ISUP_TIMER_T20] = ms;
+	} else if (!strcasecmp(name, "t21")) {
+		ss7->isup_timers[ISUP_TIMER_T21] = ms;
+	} else if (!strcasecmp(name, "t22")) {
+		ss7->isup_timers[ISUP_TIMER_T22] = ms;
+	} else if (!strcasecmp(name, "t23")) {
+		ss7->isup_timers[ISUP_TIMER_T23] = ms;
+	} else if (!strcasecmp(name, "t27")) {
+		ss7->isup_timers[ISUP_TIMER_T27] = ms;
+	} else if (!strcasecmp(name, "t33")) {
+		ss7->isup_timers[ISUP_TIMER_T33] = ms;
+	} else if (!strcasecmp(name, "t35")) {
+		ss7->isup_timers[ISUP_TIMER_T35] = ms;
+	} else {
+		ss7_message(ss7, "Unknown ISUP timer: %s\n", name);
+		return 0;
+	}
+	ss7_message(ss7, "ISUP timer %s = %ims\n", name, ms);
+	return 1;
+}
+
+static void isup_timer_expiry(void *data)
+{
+	struct isup_timer_param *param = data;
+	int x;
+	ss7_event *e;
+
+	if (param->timer == ISUP_TIMER_T5 || param->timer == ISUP_TIMER_T13 || param->timer == ISUP_TIMER_T15 ||
+			param->timer == ISUP_TIMER_T17 || param->timer == ISUP_TIMER_T19 ||
+			param->timer == ISUP_TIMER_T21 || param->timer == ISUP_TIMER_T22) {
+		ss7_error(param->ss7, "ISUP timer %s expired on CIC %i DPC %i\n", isup_timer2str(param->timer), param->c->cic, param->c->dpc);
+	} else {
+		ss7_message(param->ss7, "ISUP timer %s expired on CIC %i DPC %i\n", isup_timer2str(param->timer), param->c->cic, param->c->dpc);
+	}
+
+	param->c->timer[param->timer] = -1;
+
+	switch (param->timer) {
+		case ISUP_TIMER_T1:
+			isup_send_message(param->ss7, param->c, ISUP_REL, rel_params);
+			isup_start_timer(param->ss7, param->c, ISUP_TIMER_T1);
+			break;
+		case ISUP_TIMER_T16:
+			param->c->got_sent_msg = ISUP_SENT_RSC;
+			isup_send_message(param->ss7, param->c, ISUP_RSC, empty_params);
+			isup_start_timer(param->ss7, param->c, ISUP_TIMER_T16);
+			break;
+		case ISUP_TIMER_T2:
+		case ISUP_TIMER_T6:
+			ss7_hangup(param->ss7, param->c->cic, param->c->dpc, 16, SS7_HANGUP_SEND_REL);
+			break;
+		case ISUP_TIMER_T7:
+			ss7_hangup(param->ss7, param->c->cic, param->c->dpc, 31, SS7_HANGUP_SEND_REL);
+			break;
+		case ISUP_TIMER_T8:
+			isup_rel(param->ss7, param->c, 41);	/* Q.764 2.1.8 */
+			break;
+		case ISUP_TIMER_T5:
+			ss7_notinservice(param->ss7, param->c->cic, param->c->dpc);
+			/* no break here */
+		case ISUP_TIMER_T17:
+			isup_stop_all_timers(param->ss7, param->c);
+			param->c->got_sent_msg = ISUP_SENT_RSC;
+			isup_send_message(param->ss7, param->c, ISUP_RSC, empty_params);
+			isup_start_timer(param->ss7, param->c, ISUP_TIMER_T17);
+			break;
+		case ISUP_TIMER_T10:
+			e = ss7_next_empty_event(param->ss7);
+			if (!e) {
+				ss7_call_null(param->ss7, param->c, 1);
+				isup_free_call(param->ss7, param->c);
+				break;
+			}
+
+			e->e = ISUP_EVENT_DIGITTIMEOUT;
+			e->digittimeout.cic = param->c->cic;
+			e->digittimeout.call = param->c;
+			e->digittimeout.opc = param->c->dpc;
+			e->digittimeout.cot_check_required = param->c->cot_check_required;
+			e->digittimeout.cot_performed_on_previous_cic = param->c->cot_performed_on_previous_cic;
+			e->digittimeout.cot_check_passed = param->c->cot_check_passed;
+			break;
+		case ISUP_TIMER_T12:
+			isup_send_message(param->ss7, param->c, ISUP_BLO, empty_params);
+			isup_start_timer(param->ss7, param->c, ISUP_TIMER_T12);
+			break;
+		case ISUP_TIMER_T13:
+			isup_stop_timer(param->ss7, param->c, ISUP_TIMER_T12);
+			isup_send_message(param->ss7, param->c, ISUP_BLO, empty_params);
+			isup_start_timer(param->ss7, param->c, ISUP_TIMER_T13);
+			break;
+		case ISUP_TIMER_T14:
+			isup_send_message(param->ss7, param->c, ISUP_UBL, empty_params);
+			isup_start_timer(param->ss7, param->c, ISUP_TIMER_T14);
+			break;
+		case ISUP_TIMER_T15:
+			isup_stop_timer(param->ss7, param->c, ISUP_TIMER_T14);
+			isup_send_message(param->ss7, param->c, ISUP_UBL, empty_params);
+			isup_start_timer(param->ss7, param->c, ISUP_TIMER_T15);
+			break;
+		case ISUP_TIMER_T19:
+			isup_stop_timer(param->ss7, param->c, ISUP_TIMER_T18);
+			isup_start_timer(param->ss7, param->c, ISUP_TIMER_T19);
+			/* no break here */
+		case ISUP_TIMER_T18:
+			if (param->timer != ISUP_TIMER_T19) {
+				isup_start_timer(param->ss7, param->c, ISUP_TIMER_T18);
+			}
+			param->c->range = param->c->sent_cgb_endcic - param->c->cic;
+			param->c->cicgroupsupervisiontype = param->c->sent_cgb_type;
+			for (x = 0; (x + param->c->cic) <= param->c->sent_cgb_endcic; x++) {
+				param->c->status[x] = param->c->sent_cgb_status[x];
+			}
+			isup_send_message(param->ss7, param->c, ISUP_CGB, cicgroup_params);
+			break;
+		case ISUP_TIMER_T21:
+			isup_stop_timer(param->ss7, param->c, ISUP_TIMER_T20);
+			isup_start_timer(param->ss7, param->c, ISUP_TIMER_T21);
+			/* no break here */
+		case ISUP_TIMER_T20:
+			if (param->timer != ISUP_TIMER_T21) {
+				isup_start_timer(param->ss7, param->c, ISUP_TIMER_T20);
+			}
+			param->c->range = param->c->sent_cgu_endcic - param->c->cic;
+			param->c->cicgroupsupervisiontype = param->c->sent_cgu_type;
+			for (x = 0; (x + param->c->cic) <= param->c->sent_cgu_endcic; x++) {
+				param->c->status[x] = param->c->sent_cgu_status[x];
+			}
+			isup_send_message(param->ss7, param->c, ISUP_CGU, cicgroup_params);
+		case ISUP_TIMER_T23:
+			isup_stop_timer(param->ss7, param->c, ISUP_TIMER_T22);
+			isup_start_timer(param->ss7, param->c, ISUP_TIMER_T23);
+			/* no break here */
+		case ISUP_TIMER_T22:
+			if (param->timer != ISUP_TIMER_T23) {
+				isup_start_timer(param->ss7, param->c, ISUP_TIMER_T22);
+			}
+			param->c->range = param->c->sent_grs_endcic - param->c->cic;
+			isup_send_message(param->ss7, param->c, ISUP_GRS, greset_params);
+			break;
+		case ISUP_TIMER_T27:
+			isup_rsc(param->ss7, param->c);
+			break;
+		case ISUP_TIMER_T33:
+			param->c->got_sent_msg &= ~ISUP_SENT_INR;
+			isup_rel(param->ss7, param->c, 16);
+			break;
+		case ISUP_TIMER_T35:
+			isup_rel(param->ss7, param->c, 28);
+			break;
+		default:
+			ss7_message (param->ss7, "timer expired, doing nothing\n");
+	}
+	free(param);
+}
+
+static void isup_stop_timer(struct ss7 *ss7, struct isup_call *c, int timer)
+{
+	struct isup_timer_param *param;
+
+	if (!ss7 || !c) {
+		return;
+	}
+
+	if (c->timer[timer] > -1) {
+		param = ss7->ss7_sched[c->timer[timer]].data;
+		ss7_schedule_del(ss7, &c->timer[timer]);
+		free(param);
+		c->timer[timer] = -1;
+		ss7_message(ss7, "ISUP timer %s stopped on CIC %i DPC: %i\n", isup_timer2str(timer), c->cic, c->dpc);
+	}
+}
+
+static void isup_stop_all_timers(struct ss7 *ss7, struct isup_call *c)
+{
+	int x;
+
+	if (!ss7 || !c) {
+		return;
+	}
+
+	for (x = 0; x < ISUP_MAX_TIMERS; x++) {
+		if (c->timer[x] > -1) {
+			isup_stop_timer(ss7, c, x);
+		}
+	}
+}
+
+static int isup_start_timer(struct ss7 *ss7, struct isup_call *c, int timer)
+{
+	struct isup_timer_param *data;
+
+	if (!ss7 || !c) {
+		return -1;
+	}
+
+	if (!ss7->isup_timers[timer]) {
+		return -1;
+	}
+
+	data = calloc(1, sizeof(struct isup_timer_param));
+
+	data->ss7 = ss7;
+	data->c = c;
+	data->timer = timer;
+
+	if (c->timer[timer] > -1) {
+		isup_stop_timer(ss7, c, timer);
+	}
+	c->timer[timer] = ss7_schedule_event(ss7, ss7->isup_timers[timer], &isup_timer_expiry, data);
+
+	if (c->timer[timer] > -1) {
+		ss7_message(ss7, "ISUP timer %s (%ims) started on CIC %i DPC %i\n", isup_timer2str(timer), ss7->isup_timers[timer], c->cic, c->dpc);
+		return 0;
+	}
+
+	ss7_error(ss7, "Unable to start ISUP timer %s (%ims) on CIC %i DPC %i\n", isup_timer2str(timer), ss7->isup_timers[timer], c->cic, c->dpc);
+	free(data);
+	return -1;
+}
+
+struct isup_call * isup_free_call_if_clear(struct ss7 *ss7, struct isup_call *c)
+{
+	int x;
+
+	if (!ss7 || !c) {
+		return NULL;
+	}
+
+	if (c->got_sent_msg) {
+		return c;
+	}
+
+	for (x = 0; x < ISUP_MAX_TIMERS; x++) {
+		if (c->timer[x] > -1) {
+			return c;
+		}
+	}
+
+	isup_free_call(ss7, c);
+	return NULL;
+}
+
+void isup_free_all_calls(struct ss7 *ss7)
+{
+	while (ss7->calls) {
+		ss7_call_null(ss7, ss7->calls, 1);
+		isup_free_call(ss7, ss7->calls);
+	}
+}
+
+void isup_clear_callflags(struct ss7 *ss7, struct isup_call *c, unsigned long flags)
+{
+	if (!ss7 || !c) {
+		return;
+	}
+
+	c->got_sent_msg &= ~flags;
+
+	if (flags & ISUP_SENT_IAM) {
+		isup_stop_timer(ss7, c, ISUP_TIMER_T7);
+	}
+
+	if (flags & ISUP_SENT_CGB) {
+		isup_stop_timer(ss7, c, ISUP_TIMER_T18);
+		isup_stop_timer(ss7, c, ISUP_TIMER_T19);
+	}
+
+	if (flags & ISUP_SENT_CGU) {
+		isup_stop_timer(ss7, c, ISUP_TIMER_T20);
+		isup_stop_timer(ss7, c, ISUP_TIMER_T21);
+	}
+}
+
+void isup_start_digittimeout(struct ss7 *ss7, struct isup_call *c)
+{
+	isup_start_timer(ss7, c, ISUP_TIMER_T10);
+}
