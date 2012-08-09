@@ -40,7 +40,7 @@
 #include <sys/ioctl.h>
 #include <pthread.h>
 #include <errno.h>
-#include <time.h>
+#include <sys/time.h>
 #include <dahdi/user.h>
 #include "libss7.h"
 
@@ -57,9 +57,8 @@ unsigned int dpc;
 
 #define NUM_BUFS 32
 
-void ss7_call(struct ss7 *ss7)
+static void ss7_call(struct ss7 *ss7)
 {
-	int i;
 	struct isup_call *c;
 
 	c = isup_new_call(ss7);
@@ -73,14 +72,12 @@ void ss7_call(struct ss7 *ss7)
 	}
 }
 
-void *ss7_run(void *data)
+static void *ss7_run(void *data)
 {
 	int res = 0;
-	unsigned char readbuf[512] = "";
 	struct timeval *next = NULL, tv;
 	struct linkset *linkset = (struct linkset *) data;
 	struct ss7 *ss7 = linkset->ss7;
-	int ourlink = linknum;
 	ss7_event *e = NULL;
 	struct pollfd poller;
 	int nextms;
@@ -104,6 +101,8 @@ void *ss7_run(void *data)
 			}
 			nextms = tv.tv_sec * 1000;
 			nextms += tv.tv_usec / 1000;
+		} else {
+			nextms = -1;
 		}
 		poller.fd = linkset->fd;
 		poller.events = ss7_pollflags(ss7, linkset->fd);
@@ -111,10 +110,10 @@ void *ss7_run(void *data)
 
 		res = poll(&poller, 1, nextms);
 		if (res < 0) {
-			printf("next->tv_sec = %d\n", next->tv_sec);
-			printf("next->tv_usec = %d\n", next->tv_usec);
-			printf("tv->tv_sec = %d\n", tv.tv_sec);
-			printf("tv->tv_usec = %d\n", tv.tv_usec);
+			printf("next->tv_sec = %d\n", (int) next->tv_sec);
+			printf("next->tv_usec = %d\n", (int) next->tv_usec);
+			printf("tv->tv_sec = %d\n", (int) tv.tv_sec);
+			printf("tv->tv_usec = %d\n", (int) tv.tv_usec);
 			perror("select");
 		}
 		else if (!res) {
@@ -217,15 +216,16 @@ void *ss7_run(void *data)
 			}
 		}
 	}
+
+	return NULL;
 }
 
-void myprintf(struct ss7 *ss7, char *fmt)
+static void myprintf(struct ss7 *ss7, char *fmt)
 {
-	int i = 0;
 	printf("%s", fmt);
 }
 
-int zap_open(int devnum, int *ismtp2)
+static int zap_open(int devnum, int *ismtp2)
 {
 	int fd;
 	struct dahdi_bufferinfo bi;
@@ -256,7 +256,7 @@ int zap_open(int devnum, int *ismtp2)
 	return fd;
 }
 
-void print_args(void)
+static void print_args(void)
 {
 	printf("Incorrect arguments.  Should be:\n");
 	printf("ss7linktest [sigchan number] [ss7 style - itu or ansi] [OPC - in decimal] [DPC - in decimal]\n");

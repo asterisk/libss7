@@ -349,7 +349,7 @@ static FUNC_RECV(nature_of_connection_ind_receive)
 static FUNC_DUMP(nature_of_connection_ind_dump)
 {
 	unsigned char con = parm[0];
-	char *continuity;
+	char *continuity = "";
 
 	ss7_message(ss7, "\t\t\tSatellites in connection: %d\n", con&0x03);
 	con>>=2; 
@@ -392,6 +392,8 @@ static FUNC_RECV(forward_call_ind_receive)
 static FUNC_DUMP(forward_call_ind_dump)
 {
 	char *cb_str, *hg_str, *kj_str;
+
+	cb_str = hg_str = kj_str = "";
 	switch ((parm[0] >> 1) & 3) {
 		case 0:
 			cb_str = "no end-to-end";
@@ -1844,6 +1846,8 @@ static FUNC_DUMP(circuit_state_ind_dump)
 		dcbits = (parm[i] >> 2) & 0x3;
 		febits = (parm[i] >> 4) & 0x3;
 
+		ba_str = dc_str = fe_str = "";
+
 		if (dcbits == 0) {
 			switch (babits) {
 				case 0:
@@ -2546,6 +2550,7 @@ static int isup_send_message(struct ss7 *ss7, struct isup_call *c, int messagety
 		offset += varparams + 1; /* add one for the optionals */
 		len -= varparams + 1;
 	} else {
+		opt_ptr = NULL;
 		offset += varparams;
 		len -= varparams;
 	}
