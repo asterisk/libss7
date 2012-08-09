@@ -40,9 +40,6 @@
 
 /* ISUP parameters */
 
-/* ISUP Timers */
-#define ISUP_MAX_TIMERS 64
-
 /* Information Transfer Capability */
 #define ISUP_TRANSCAP_SPEECH 0x00
 #define ISUP_TRANSCAP_UNRESTRICTED_DIGITAL 0x08
@@ -54,18 +51,11 @@
 #define ISUP_L1PROT_G711ULAW 0x02
 
 #define MAX_EVENTS		16
-#define MAX_SCHED		512 /* need a lot cause of isup timers... */
+#define MAX_SCHED		64
 #define SS7_MAX_LINKS		4
-#define SS7_MAX_ADJSPS		4
 
 #define SS7_STATE_DOWN	0
 #define SS7_STATE_UP 1
-
-/* delay to starting sending GRS when linkset came up */
-#define LINKSET_UP_DELAY 500
-
-/* MTP3 timers */
-#define MTP3_MAX_TIMERS 32
 
 typedef unsigned int point_code;
 
@@ -88,25 +78,8 @@ struct ss7_sched {
 	void *data;
 };
 
-#define ISUP_MASQ_MAX_ENTRIES 128
-
-struct isup_masq_route {
-	/* These three fields are what defines the reception route */
-	point_code opc;
-	int startcic;
-	int endcic;
-
-	struct mtp2 *mtp2;
-};
-
-struct isup_masq {
-	struct isup_masq_route routes[ISUP_MASQ_MAX_ENTRIES];
-	int numentries;
-};
-
 struct ss7 {
 	unsigned int switchtype;
-	unsigned int numsps;
 	unsigned int numlinks;
 
 	/* Our point code */
@@ -128,20 +101,6 @@ struct ss7 {
 
 	unsigned int mtp2_linkstate[SS7_MAX_LINKS];
 	struct mtp2 *links[SS7_MAX_LINKS];
-	struct adjacent_sp *adj_sps[SS7_MAX_ADJSPS];
-	int isup_timers[ISUP_MAX_TIMERS];
-	int mtp3_timers[MTP3_MAX_TIMERS];
-	unsigned char sls_shift;
-	unsigned int flags;
-	unsigned char cb_seq;
-	int linkset_up_timer;
-	
-	/* lite links are links that pretty much go straight to and from a user part */
-	struct mtp2 *slavelinks[SS7_MAX_LINKS];
-	int numslavelinks;
-
-	/* Data members needed for ISUP slave channels */
-	struct isup_masq isup_masq_table;
 };
 
 /* Getto hacks for developmental purposes */
@@ -160,24 +119,11 @@ unsigned char *ss7_msg_userpart(struct ss7_msg *m);
 
 void ss7_msg_userpart_len(struct ss7_msg *m, int len);
 
-void ss7_message(struct ss7 *ss7, char *fmt, ...);
-
-void ss7_error(struct ss7 *ss7, char *fmt, ...);
+void ss7_message(struct ss7 *ss7, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
+void ss7_error(struct ss7 *ss7, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 
 void ss7_dump_buf(struct ss7 *ss7, int tabs,  unsigned char *buf, int len);
 
 void ss7_dump_msg(struct ss7 *ss7, unsigned char *buf, int len);
-
-extern void (*ss7_notinservice)(struct ss7 *ss7, int cic, unsigned int dpc);
-extern int (*ss7_hangup)(struct ss7 *ss7, int cic, unsigned int dpc, int cause, int do_hangup);
-extern void (*ss7_call_null)(struct ss7 *ss7, struct isup_call *c, int lock);
-
-int isup_needs_masquerade(struct ss7 *ss7, struct routing_label *rl, unsigned int cic, unsigned char *buf, int len);
-
-int isup_ip_msu(struct mtp2 *mtp2, struct ss7_msg *msg);
-
-int isup_ip_receive(struct mtp2 *mtp2);
-
-struct mtp2* ss7_add_slave_link(struct ss7 *ss7, int transport, char *name, int slc, unsigned int adjpc);
 
 #endif /* _SS7_H */

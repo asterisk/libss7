@@ -38,7 +38,7 @@
 #include <sys/socket.h>
 #include <pthread.h>
 #include <errno.h>
-#include <time.h>
+#include <sys/time.h>
 #include <dahdi/user.h>
 #include "libss7.h"
 
@@ -52,10 +52,9 @@ int linknum = 1;
 
 #define NUM_BUFS 32
 
-void *ss7_run(void *data)
+static void *ss7_run(void *data)
 {
 	int res = 0;
-	unsigned char readbuf[512] = "";
 	struct timeval *next = NULL, tv;
 	struct linkset *linkset = (struct linkset *) data;
 	struct ss7 *ss7 = linkset->ss7;
@@ -90,10 +89,10 @@ void *ss7_run(void *data)
 		FD_SET(linkset->fd, &efds);
 		res = select(linkset->fd + 1, &rfds, &wfds, &efds, next ? &tv : NULL);
 		if (res < 0) {
-			printf("next->tv_sec = %d\n", next->tv_sec);
-			printf("next->tv_usec = %d\n", next->tv_usec);
-			printf("tv->tv_sec = %d\n", tv.tv_sec);
-			printf("tv->tv_usec = %d\n", tv.tv_usec);
+			printf("next->tv_sec = %d\n", (int) next->tv_sec);
+			printf("next->tv_usec = %d\n", (int) next->tv_usec);
+			printf("tv->tv_sec = %d\n", (int) tv.tv_sec);
+			printf("tv->tv_usec = %d\n", (int) tv.tv_usec);
 			perror("select");
 		}
 		else if (!res)
@@ -144,7 +143,7 @@ void *ss7_run(void *data)
 	}
 }
 
-void myprintf(struct ss7 *ss7, char *fmt)
+static void myprintf(struct ss7 *ss7, char *fmt)
 {
 	int i = 0;
 	for (i = 0; i < 2; i++) {
@@ -218,7 +217,7 @@ int main(int argc, char *argv[])
 	ss7_set_error(myprintf);
 
 	ss7_set_debug(ss7, 0xffffffff);
-	if ((ss7_add_link(ss7, SS7_TRANSPORT_DAHDIDCHAN, fds[0], -1, 0))) {
+	if ((ss7_add_link(ss7, SS7_TRANSPORT_DAHDIDCHAN, fds[0]))) {
 		perror("ss7_add_link");
 		exit(1);
 	}
@@ -235,7 +234,7 @@ int main(int argc, char *argv[])
 	ss7_set_debug(ss7, 0xffffffff);
 	linkset[1].linkno = 1;
 
-	if ((ss7_add_link(ss7, SS7_TRANSPORT_DAHDIDCHAN, fds[1], -1, 1))) {
+	if ((ss7_add_link(ss7, SS7_TRANSPORT_DAHDIDCHAN, fds[1]))) {
 		perror("ss7_add_link");
 		exit(1);
 	}
