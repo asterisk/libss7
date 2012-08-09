@@ -32,6 +32,15 @@
 #ifndef _LIBSS7_H
 #define _LIBSS7_H
 
+/*!
+ * Bump this for each libss7 Application Binary Interface (ABI)
+ * change that makes the ABI/API incompatible with previous
+ * versions.  This is expected to just be the major version of
+ * the libss7 branches.
+ */
+#define LIBSS7_ABI_COMPATIBILITY	2
+
+
 /* Internal -- MTP2 events */
 #define SS7_EVENT_UP		1	/*!< SS7 link up */
 #define SS7_EVENT_DOWN		2	/*!< SS7 link down */
