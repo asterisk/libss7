@@ -4596,14 +4596,13 @@ int isup_far(struct ss7 *ss7, struct isup_call *c)
 		c->call_ref_pc = c->next->call_ref_pc;
 		c->got_sent_msg |= ISUP_SENT_FAR;
 		res = isup_send_message(ss7, c, ISUP_FAR, far_params);
-	}
-
-	if (res > -1) {
-		c->got_sent_msg |= ISUP_SENT_FAR;
-	} else {
-		ss7_call_null(ss7, c, 0);
-		isup_free_call(ss7, c);
-		ss7_error(ss7, "Unable to send FAR to DPC: %d\n", c->dpc);
+		if (res > -1) {
+			c->got_sent_msg |= ISUP_SENT_FAR;
+		} else {
+			ss7_call_null(ss7, c, 0);
+			isup_free_call(ss7, c);
+			ss7_error(ss7, "Unable to send FAR to DPC: %d\n", c->dpc);
+		}
 	}
 
 	return res;
