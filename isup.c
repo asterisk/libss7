@@ -3666,11 +3666,19 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->gra.call = c;
 			e->gra.sent_endcic = c->sent_grs_endcic;
 			e->gra.got_sent_msg = c->got_sent_msg;
-			c->got_sent_msg &= ~ISUP_SENT_GRS;
+			if (c->got_sent_msg & ISUP_SENT_GRS2) {
+				c->got_sent_msg &= ~ISUP_SENT_GRS2;
+			} else {
+				c->got_sent_msg &= ~ISUP_SENT_GRS;
+			}
 			isup_stop_timer(ss7, c, ISUP_TIMER_T22);
 			isup_stop_timer(ss7, c, ISUP_TIMER_T23);
 			return 0;
 		case ISUP_RSC:
+			if (c->got_sent_msg & ISUP_SENT_RSC) {
+				ss7_message(ss7, "Got RSC on CIC %d DPC %d, but we have sent RSC too. Ignoring!!!\n", c->cic, opc);
+				return 0;
+			}
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
 				ss7_call_null(ss7, c, 1);
@@ -4194,13 +4202,13 @@ int isup_event_iam(struct ss7 *ss7, struct isup_call *c, int opc)
 	ss7_event *e;
 
 	/* Checking dual seizure Q.764 2.9.1.4 */
-	if (c->got_sent_msg == ISUP_SENT_IAM) {
+	if (c->got_sent_msg & ISUP_SENT_IAM) {
 		if ((ss7->pc > opc) ? (~c->cic & 1) : (c->cic & 1)) {
 			ss7_message(ss7, "Dual seizure on CIC %d DPC %d we are the controlling, ignore IAM\n", c->cic, opc);
 			return 0;
 		} else {
 			ss7_message(ss7, "Dual seizure on CIC %d DPC %d they are the controlling, hangup our call\n", c->cic, opc);
-			c->got_sent_msg = ISUP_GOT_IAM;
+			c->got_sent_msg |= ISUP_GOT_IAM;
 			ss7_hangup(ss7, c->cic, opc, SS7_CAUSE_TRY_AGAIN, SS7_HANGUP_REEVENT_IAM);
 			return 0;
 		}
@@ -4340,7 +4348,10 @@ int isup_grs(struct ss7 *ss7, struct isup_call *c, int endcic)
 	}
 
 	if (res > -1) {
-		c->got_sent_msg = ISUP_SENT_GRS;
+		c->got_sent_msg |= ISUP_SENT_GRS;
+		if (ss7->switchtype == SS7_ANSI) {
+			c->got_sent_msg |= ISUP_SENT_GRS2;
+		}
 		c->sent_grs_endcic = endcic;
 		isup_stop_all_timers(ss7, c);
 		isup_start_timer(ss7, c, ISUP_TIMER_T22);
@@ -4594,7 +4605,6 @@ int isup_far(struct ss7 *ss7, struct isup_call *c)
 	if (c->next && c->next->call_ref_ident) {
 		c->call_ref_ident = c->next->call_ref_ident;
 		c->call_ref_pc = c->next->call_ref_pc;
-		c->got_sent_msg |= ISUP_SENT_FAR;
 		res = isup_send_message(ss7, c, ISUP_FAR, far_params);
 		if (res > -1) {
 			c->got_sent_msg |= ISUP_SENT_FAR;
@@ -4847,7 +4857,7 @@ int isup_rsc(struct ss7 *ss7, struct isup_call *c)
 	if (res > -1) {
 		isup_stop_all_timers(ss7, c);
 		isup_start_timer(ss7, c, ISUP_TIMER_T17);
-		c->got_sent_msg = ISUP_SENT_RSC;
+		c->got_sent_msg |= ISUP_SENT_RSC;
 	} else {
 		ss7_call_null(ss7, c, 0);
 		isup_free_call(ss7, c);
@@ -5186,7 +5196,7 @@ static void isup_timer_expiry(void *data)
 			isup_start_timer(param->ss7, param->c, ISUP_TIMER_T1);
 			break;
 		case ISUP_TIMER_T16:
-			param->c->got_sent_msg = ISUP_SENT_RSC;
+			param->c->got_sent_msg |= ISUP_SENT_RSC;
 			isup_send_message(param->ss7, param->c, ISUP_RSC, empty_params);
 			isup_start_timer(param->ss7, param->c, ISUP_TIMER_T16);
 			break;
@@ -5205,7 +5215,7 @@ static void isup_timer_expiry(void *data)
 			/* no break here */
 		case ISUP_TIMER_T17:
 			isup_stop_all_timers(param->ss7, param->c);
-			param->c->got_sent_msg = ISUP_SENT_RSC;
+			param->c->got_sent_msg |= ISUP_SENT_RSC;
 			isup_send_message(param->ss7, param->c, ISUP_RSC, empty_params);
 			isup_start_timer(param->ss7, param->c, ISUP_TIMER_T17);
 			break;
