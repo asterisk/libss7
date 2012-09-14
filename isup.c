@@ -5427,7 +5427,7 @@ void isup_clear_callflags(struct ss7 *ss7, struct isup_call *c, unsigned long fl
 	}
 }
 
-void isup_start_digittimeout(struct ss7 *ss7, struct isup_call *c)
+int isup_start_digittimeout(struct ss7 *ss7, struct isup_call *c)
 {
-	isup_start_timer(ss7, c, ISUP_TIMER_T10);
+	return isup_start_timer(ss7, c, ISUP_TIMER_T10);
 }

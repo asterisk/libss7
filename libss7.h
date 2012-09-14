@@ -512,7 +512,7 @@ int ss7_set_isup_timer(struct ss7 *ss7, char *name, int ms);
 
 struct isup_call * isup_free_call_if_clear(struct ss7 *ss7, struct isup_call *c);
 
-void isup_start_digittimeout(struct ss7 *ss7, struct isup_call *c);
+int isup_start_digittimeout(struct ss7 *ss7, struct isup_call *c);
 
 /* Send an IAM */
 int isup_iam(struct ss7 *ss7, struct isup_call *c);
