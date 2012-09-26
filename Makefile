@@ -43,18 +43,20 @@ STATIC_OBJS= \
 	version.o
 DYNAMIC_OBJS= \
 	$(STATIC_OBJS)
-CFLAGS=-Wall -Werror -Wstrict-prototypes -Wmissing-prototypes -g -fPIC $(LIBSS7_OPT) $(COVERAGE_CFLAGS)
+CFLAGS ?= -g
+CFLAGS += -Wall -Werror -Wstrict-prototypes -Wmissing-prototypes
+CFLAGS += -fPIC $(LIBSS7_OPT) $(COVERAGE_CFLAGS)
 INSTALL_PREFIX=$(DESTDIR)
 INSTALL_BASE=/usr
 libdir?=$(INSTALL_BASE)/lib
 ifneq ($(findstring Darwin,$(OSARCH)),)
-  SOFLAGS=-dynamic -bundle -Xlinker -macosx_version_min -Xlinker 10.4 -Xlinker -undefined -Xlinker dynamic_lookup -force_flat_namespace
+  SOFLAGS=$(LDFLAGS) -dynamic -bundle -Xlinker -macosx_version_min -Xlinker 10.4 -Xlinker -undefined -Xlinker dynamic_lookup -force_flat_namespace
   ifeq ($(shell /usr/bin/sw_vers -productVersion | cut -c1-4),10.6)
     SOFLAGS+=/usr/lib/bundle1.o
   endif
   LDCONFIG=/usr/bin/true
 else
-  SOFLAGS=-shared -Wl,-h$(DYNAMIC_LIBRARY) $(COVERAGE_LDFLAGS)
+  SOFLAGS=$(LDFLAGS) -shared -Wl,-h$(DYNAMIC_LIBRARY) $(COVERAGE_LDFLAGS)
   LDCONFIG = /sbin/ldconfig
 endif
 ifneq (,$(findstring X$(OSARCH)X, XLinuxX XGNU/kFreeBSDX XGNUX))
