@@ -38,9 +38,6 @@
 #include "mtp3.h"
 #include "isup.h"
 
-#define mtp_error ss7_error
-#define mtp_message ss7_message
-
 char testmessage[] = "2564286288";
 
 #define mtp3_size(ss7) (((ss7)->switchtype == SS7_ITU) ? 5 : 8)
@@ -542,7 +539,7 @@ static void mtp3_stop_all_timers_except_cocb(struct mtp2 *link)
 				x != MTP3_TIMER_T2 && x != MTP3_TIMER_T4 && x != MTP3_TIMER_T5 &&
 				x != MTP3_TIMER_T22 && x != MTP3_TIMER_T23) {
 			ss7_schedule_del(link->master, &link->mtp3_timer[x]);
-			ss7_message(link->master, "Stopped MTP3 timer %s on link SLC: %i PC: %i\n", mtp3_timer2str(x), link->slc, link->dpc);
+			ss7_debug_msg(link->master, SS7_DEBUG_MTP3, "Stopped MTP3 timer %s on link SLC: %i PC: %i\n", mtp3_timer2str(x), link->slc, link->dpc);
 		}
 	}
 }
@@ -701,12 +698,12 @@ static void mtp3_check(struct adjacent_sp *adj_sp)
 
 		if (adj_sp->timer_t19 > -1) {
 			ss7_schedule_del(ss7, &adj_sp->timer_t19);
-			ss7_message(ss7, "MTP3 T19 timer stopped PC: %i\n", adj_sp->adjpc);
+			ss7_debug_msg(ss7, SS7_DEBUG_MTP3, "MTP3 T19 timer stopped PC: %i\n", adj_sp->adjpc);
 		}
 
 		if (adj_sp->timer_t21 > -1) {
 			ss7_schedule_del(ss7, &adj_sp->timer_t21);
-			ss7_message(ss7, "MTP3 T21 timer stopped PC: %i\n", adj_sp->adjpc);
+			ss7_debug_msg(ss7, SS7_DEBUG_MTP3, "MTP3 T21 timer stopped PC: %i\n", adj_sp->adjpc);
 		}
 
 		for (i = 0; i < adj_sp->numlinks; i++) {
@@ -915,7 +912,7 @@ static void mtp3_t19_expiry(void * data)
 	struct adjacent_sp *adj_sp = data;
 
 	adj_sp->timer_t19 = -1;
-	ss7_message(adj_sp->master, "MTP3 T19 timer expired PC:%i\n", adj_sp->adjpc);
+	ss7_debug_msg(adj_sp->master, SS7_DEBUG_MTP3, "MTP3 T19 timer expired PC:%i\n", adj_sp->adjpc);
 }
 
 static void mtp3_t21_expiry(void * data)
@@ -924,7 +921,8 @@ static void mtp3_t21_expiry(void * data)
 
 	adj_sp->timer_t21 = -1;
 	adj_sp->tra |= GOT;
-	ss7_message(adj_sp->master, "MTP3 T21 timer expired and accepting traffic from PC:%i\n", adj_sp->adjpc);
+	ss7_debug_msg(adj_sp->master, SS7_DEBUG_MTP3,
+		"MTP3 T21 timer expired on PC:%i. Started accepting traffic.\n", adj_sp->adjpc);
 	mtp3_check(adj_sp);
 }
 
@@ -1172,12 +1170,12 @@ static int net_mng_receive(struct ss7 *ss7, struct mtp2 *mtp2, struct routing_la
 
 			if (ss7->mtp3_timers[MTP3_TIMER_T19] > 0 && mtp2->adj_sp->timer_t19 == -1) {
 				mtp2->adj_sp->timer_t19 = ss7_schedule_event(ss7, ss7->mtp3_timers[MTP3_TIMER_T19], mtp3_t19_expiry, mtp2->adj_sp);
-				ss7_message(ss7, "MTP3 T19 timer started PC: %i\n", mtp2->adj_sp->adjpc);
+				ss7_debug_msg(ss7, SS7_DEBUG_MTP3, "MTP3 T19 timer started PC: %i\n", mtp2->adj_sp->adjpc);
 			}
 
 			if (mtp2->adj_sp->timer_t21 > -1) {
 				ss7_schedule_del(ss7, &mtp2->adj_sp->timer_t21);
-				ss7_message(ss7, "MTP3 T21 timer stopped PC: %i\n", mtp2->adj_sp->adjpc);
+				ss7_debug_msg(ss7, SS7_DEBUG_MTP3, "MTP3 T21 timer stopped PC: %i\n", mtp2->adj_sp->adjpc);
 			}
 
 			mtp2->adj_sp->tra |= GOT;
@@ -1203,7 +1201,7 @@ static int net_mng_receive(struct ss7 *ss7, struct mtp2 *mtp2, struct routing_la
 			}
 			if (winner->mtp3_timer[MTP3_TIMER_T2] > -1) {
 				ss7_schedule_del(ss7, &winner->mtp3_timer[MTP3_TIMER_T2]);
-				ss7_message(ss7, "MTP3 T2 timer stopped on link SLC: %i ADJPC: %i\n",
+				ss7_debug_msg(ss7, SS7_DEBUG_MTP3, "MTP3 T2 timer stopped on link SLC: %i ADJPC: %i\n",
 						winner->slc, winner->dpc);
 			}
 			winner->got_sent_netmsg &= ~(SENT_COO | SENT_ECO);
@@ -1220,11 +1218,11 @@ static int net_mng_receive(struct ss7 *ss7, struct mtp2 *mtp2, struct routing_la
 			}
 			winner->got_sent_netmsg &= ~SENT_CBD;
 			if (winner->mtp3_timer[MTP3_TIMER_T4] > -1) {
-				ss7_message(ss7, "MTP3 T4 timer stopped on link SLC: %i ADJPC: %i\n", winner->slc, winner->dpc);
+				ss7_debug_msg(ss7, SS7_DEBUG_MTP3, "MTP3 T4 timer stopped on link SLC: %i ADJPC: %i\n", winner->slc, winner->dpc);
 				ss7_schedule_del(ss7, &winner->mtp3_timer[MTP3_TIMER_T4]);
 			}
 			if (winner->mtp3_timer[MTP3_TIMER_T5] > -1) {
-				ss7_message(ss7, "MTP3 T5 timer stopped on link SLC: %i ADJPC: %i\n", winner->slc, winner->dpc);
+				ss7_debug_msg(ss7, SS7_DEBUG_MTP3, "MTP3 T5 timer stopped on link SLC: %i ADJPC: %i\n", winner->slc, winner->dpc);
 				ss7_schedule_del(ss7, &winner->mtp3_timer[MTP3_TIMER_T5]);
 			}
 			mtp3_changeback(winner);
@@ -1252,7 +1250,7 @@ static int net_mng_receive(struct ss7 *ss7, struct mtp2 *mtp2, struct routing_la
 		case NET_MNG_ECA:
 			if (winner->mtp3_timer[MTP3_TIMER_T2] > -1) {
 				ss7_schedule_del(ss7, &winner->mtp3_timer[MTP3_TIMER_T2]);
-				ss7_message(ss7, "MTP3 T2 timer stopped on link SLC: %i ADJPC: %i\n",
+				ss7_debug_msg(ss7, SS7_DEBUG_MTP3, "MTP3 T2 timer stopped on link SLC: %i ADJPC: %i\n",
 						winner->slc, winner->dpc);
 			}
 			winner->got_sent_netmsg &= ~(SENT_ECO | SENT_COO);
@@ -1264,7 +1262,7 @@ static int net_mng_receive(struct ss7 *ss7, struct mtp2 *mtp2, struct routing_la
 				winner->inhibit |= INHIBITED_REMOTELY;
 				mtp3_timed_changeover(winner);
 				if (ss7->mtp3_timers[MTP3_TIMER_T23] > 0) {
-					ss7_message(ss7, "MTP3 T23 timer started on link SLC: %i ADJPC %i\n", winner->slc, winner->dpc);
+					ss7_debug_msg(ss7, SS7_DEBUG_MTP3, "MTP3 T23 timer started on link SLC: %i ADJPC %i\n", winner->slc, winner->dpc);
 					winner->mtp3_timer[MTP3_TIMER_T23] = ss7_schedule_event(ss7, ss7->mtp3_timers[MTP3_TIMER_T23], &mtp3_t23_expired, winner);
 				}
 			} else {
@@ -1284,11 +1282,11 @@ static int net_mng_receive(struct ss7 *ss7, struct mtp2 *mtp2, struct routing_la
 			mtp3_changeback(winner);
 			if (winner->mtp3_timer[MTP3_TIMER_T23] > -1) {
 				ss7_schedule_del(ss7, &winner->mtp3_timer[MTP3_TIMER_T23]);
-				ss7_message(ss7, "MTP3 T23 timer stopped on link SLC: %i ADJPC %i\n", winner->slc, winner->dpc);
+				ss7_debug_msg(ss7, SS7_DEBUG_MTP3, "MTP3 T23 timer stopped on link SLC: %i ADJPC %i\n", winner->slc, winner->dpc);
 			}
 			if (winner->mtp3_timer[MTP3_TIMER_T13] > -1) {
 				ss7_schedule_del(ss7, &winner->mtp3_timer[MTP3_TIMER_T13]);
-				ss7_message(ss7, "MTP3 T13 timer stopped on link SLC: %i ADJPC %i\n", winner->slc, winner->dpc);
+				ss7_debug_msg(ss7, SS7_DEBUG_MTP3, "MTP3 T13 timer stopped on link SLC: %i ADJPC %i\n", winner->slc, winner->dpc);
 			}
 			return 0;
 		case NET_MNG_LIA:
@@ -1302,11 +1300,11 @@ static int net_mng_receive(struct ss7 *ss7, struct mtp2 *mtp2, struct routing_la
 					ss7_check(ss7);
 				}
 				if (ss7->mtp3_timers[MTP3_TIMER_T22] > 0) {
-					ss7_message(ss7, "MTP3 T22 timer started on link SLC: %i ADJPC %i\n", winner->slc, winner->dpc);
+					ss7_debug_msg(ss7, SS7_DEBUG_MTP3, "MTP3 T22 timer started on link SLC: %i ADJPC %i\n", winner->slc, winner->dpc);
 					winner->mtp3_timer[MTP3_TIMER_T22] = ss7_schedule_event(ss7, ss7->mtp3_timers[MTP3_TIMER_T22], &mtp3_t22_expired, winner);
 				}
 				if (winner->mtp3_timer[MTP3_TIMER_T14] > 0) {
-					ss7_message(ss7, "MTP3 T14 timer stopped on link SLC: %i ADJPC %i\n", winner->slc, winner->dpc);
+					ss7_debug_msg(ss7, SS7_DEBUG_MTP3, "MTP3 T14 timer stopped on link SLC: %i ADJPC %i\n", winner->slc, winner->dpc);
 					ss7_schedule_del(ss7, &winner->mtp3_timer[MTP3_TIMER_T14]);
 				}
 			}
@@ -1318,10 +1316,10 @@ static int net_mng_receive(struct ss7 *ss7, struct mtp2 *mtp2, struct routing_la
 				mtp3_changeback(winner);
 				if (winner->mtp3_timer[MTP3_TIMER_T12] > -1) {
 					ss7_schedule_del(ss7, &winner->mtp3_timer[MTP3_TIMER_T12]);
-					ss7_message(ss7, "MTP3 T12 timer stopped on link SLC: %i ADJPC %i\n", winner->slc, winner->dpc);
+					ss7_debug_msg(ss7, SS7_DEBUG_MTP3, "MTP3 T12 timer stopped on link SLC: %i ADJPC %i\n", winner->slc, winner->dpc);
 				}
 				if (winner->mtp3_timer[MTP3_TIMER_T22] > -1) {
-					ss7_message(ss7, "MTP3 T22 timer stopped on link SLC: %i ADJPC %i\n", winner->slc, winner->dpc);
+					ss7_debug_msg(ss7, SS7_DEBUG_MTP3, "MTP3 T22 timer stopped on link SLC: %i ADJPC %i\n", winner->slc, winner->dpc);
 					ss7_schedule_del(ss7, &winner->mtp3_timer[MTP3_TIMER_T22]);
 				}
 			}
@@ -1342,7 +1340,7 @@ static int net_mng_receive(struct ss7 *ss7, struct mtp2 *mtp2, struct routing_la
 			ss7_error(ss7, "Our inhibit request denied on link SLC: %i ADJPC: %i\n", winner->slc, winner->dpc);
 			winner->got_sent_netmsg &= ~SENT_LIN;
 			if (winner->mtp3_timer[MTP3_TIMER_T14] > 0) {
-				ss7_message(ss7, "MTP3 T14 timer stopped on link SLC: %i ADJPC %i\n", winner->slc, winner->dpc);
+				ss7_debug_msg(ss7, SS7_DEBUG_MTP3, "MTP3 T14 timer stopped on link SLC: %i ADJPC %i\n", winner->slc, winner->dpc);
 				ss7_schedule_del(ss7, &winner->mtp3_timer[MTP3_TIMER_T14]);
 			}
 			return 0;
@@ -1388,7 +1386,7 @@ static void mtp3_t5_expired(void *data)
 
 	link->mtp3_timer[MTP3_TIMER_T5] = -1;
 	link->got_sent_netmsg &= ~SENT_CBD;
-	ss7_message(ss7, "MTP3 T5 timer expired on link SLC: %i ADJPC: %i\n", link->slc, link->dpc);
+	ss7_debug_msg(ss7, SS7_DEBUG_MTP3, "MTP3 T5 timer expired on link SLC: %i ADJPC: %i\n", link->slc, link->dpc);
 	mtp3_t3_expired(link);
 }
 
@@ -1397,13 +1395,13 @@ static void mtp3_t4_expired(void *data)
 	struct mtp2 *link = data;
 	struct ss7 *ss7 = link->master;
 
-	ss7_message(ss7, "MTP3 T4 timer expired on link SLC: %i ADJPC: %i\n", link->slc, link->dpc);
+	ss7_debug_msg(ss7, SS7_DEBUG_MTP3, "MTP3 T4 timer expired on link SLC: %i ADJPC: %i\n", link->slc, link->dpc);
 	AUTORL(rl, link);
 	net_mng_send(link, NET_MNG_CBD, rl, link->cb_seq);
 	link->mtp3_timer[MTP3_TIMER_T4] = -1;
 	if (ss7->mtp3_timers[MTP3_TIMER_T5] > 0) {
 		link->mtp3_timer[MTP3_TIMER_T5] = ss7_schedule_event(link->master, ss7->mtp3_timers[MTP3_TIMER_T5], &mtp3_t5_expired, link);
-		ss7_message(ss7, "MTP3 T5 timer started on link SLC: %i ADJPC: %i\n", link->slc, link->dpc);
+		ss7_debug_msg(ss7, SS7_DEBUG_MTP3, "MTP3 T5 timer started on link SLC: %i ADJPC: %i\n", link->slc, link->dpc);
 	}
 }
 
@@ -1487,7 +1485,7 @@ int net_mng_send(struct mtp2 *link, unsigned char h0h1, struct routing_label rl,
 			if (ss7->mtp3_timers[MTP3_TIMER_T4] > 0 &&
 				link->mtp3_timer[MTP3_TIMER_T4] == -1) {	/* if 0 called from mtp3_t4_expired() */
 					link->mtp3_timer[MTP3_TIMER_T4] = ss7_schedule_event(ss7, ss7->mtp3_timers[MTP3_TIMER_T4], &mtp3_t4_expired, link);
-					ss7_message(ss7, "MTP3 T4 timer started on link SLC: %i ADJPC: %i\n", link->slc, link->dpc);
+					ss7_debug_msg(ss7, SS7_DEBUG_MTP3, "MTP3 T4 timer started on link SLC: %i ADJPC: %i\n", link->slc, link->dpc);
 			}
 			link->cb_seq = (unsigned char) param;		/* save the CBD sequence, we may need on retransmit */
 			/* No break here */
@@ -1502,7 +1500,7 @@ int net_mng_send(struct mtp2 *link, unsigned char h0h1, struct routing_label rl,
 					ss7_schedule_del(ss7, &link->mtp3_timer[MTP3_TIMER_T2]);
 				}
 				link->mtp3_timer[MTP3_TIMER_T2] = ss7_schedule_event(ss7, ss7->mtp3_timers[MTP3_TIMER_T2], &mtp3_t2_expired, link);
-				ss7_message(ss7, "MTP3 T2 timer started on link SLC: %i ADJPC: %i\n", link->slc, link->dpc);
+				ss7_debug_msg(ss7, SS7_DEBUG_MTP3, "MTP3 T2 timer started on link SLC: %i ADJPC: %i\n", link->slc, link->dpc);
 			}
 			/* No break here */
 		case NET_MNG_COA:
@@ -1513,7 +1511,7 @@ int net_mng_send(struct mtp2 *link, unsigned char h0h1, struct routing_label rl,
 			link->got_sent_netmsg |= SENT_LUN;
 			ss7_msg_userpart_len(m, rllen + 1);		/* no more params */
 			if (ss7->mtp3_timers[MTP3_TIMER_T14] > 0) {
-				ss7_message(ss7, "MTP3 T12 timer started on link SLC: %i ADJPC: %i\n", link->slc, link->dpc);
+				ss7_debug_msg(ss7, SS7_DEBUG_MTP3, "MTP3 T12 timer started on link SLC: %i ADJPC: %i\n", link->slc, link->dpc);
 				if (link->mtp3_timer[MTP3_TIMER_T12] == -1) {
 					link->mtp3_timer[MTP3_TIMER_T12] = ss7_schedule_event(ss7, ss7->mtp3_timers[MTP3_TIMER_T12],
 							&mtp3_t12_expired, link);
@@ -1527,7 +1525,7 @@ int net_mng_send(struct mtp2 *link, unsigned char h0h1, struct routing_label rl,
 			link->got_sent_netmsg |= SENT_LIN;
 			ss7_msg_userpart_len(m, rllen + 1);		/* no more params */
 			if (ss7->mtp3_timers[MTP3_TIMER_T14] > 0) {
-				ss7_message(ss7, "MTP3 T14 timer started on link SLC: %i ADJPC: %i\n", link->slc, link->dpc);
+				ss7_debug_msg(ss7, SS7_DEBUG_MTP3, "MTP3 T14 timer started on link SLC: %i ADJPC: %i\n", link->slc, link->dpc);
 				if (link->mtp3_timer[MTP3_TIMER_T14] == -1) {
 					link->mtp3_timer[MTP3_TIMER_T14] = ss7_schedule_event(ss7, ss7->mtp3_timers[MTP3_TIMER_T14],
 							&mtp3_t14_expired, link);
@@ -1553,7 +1551,7 @@ int net_mng_send(struct mtp2 *link, unsigned char h0h1, struct routing_label rl,
 					ss7_schedule_del(ss7, &link->mtp3_timer[MTP3_TIMER_T2]);
 				}
 				link->mtp3_timer[MTP3_TIMER_T2] = ss7_schedule_event(ss7, ss7->mtp3_timers[MTP3_TIMER_T2], &mtp3_t2_expired, link);
-				ss7_message(ss7, "MTP3 T2 timer started on link SLC: %i ADJPC: %i\n", link->slc, link->dpc);
+				ss7_debug_msg(ss7, SS7_DEBUG_MTP3, "MTP3 T2 timer started on link SLC: %i ADJPC: %i\n", link->slc, link->dpc);
 			}
 			ss7_msg_userpart_len(m, rllen + 1);		/* no more params */
 			break;
@@ -1563,7 +1561,7 @@ int net_mng_send(struct mtp2 *link, unsigned char h0h1, struct routing_label rl,
 		case NET_MNG_LFU:
 			link->got_sent_netmsg |= SENT_LFU;
 			if (ss7->mtp3_timers[MTP3_TIMER_T13] > 0) {
-				ss7_message(ss7, "MTP3 T13 timer started on link SLC: %i ADJPC: %i\n", link->slc, link->dpc);
+				ss7_debug_msg(ss7, SS7_DEBUG_MTP3, "MTP3 T13 timer started on link SLC: %i ADJPC: %i\n", link->slc, link->dpc);
 				if (link->mtp3_timer[MTP3_TIMER_T13] == -1) {
 					link->mtp3_timer[MTP3_TIMER_T13] = ss7_schedule_event(ss7, ss7->mtp3_timers[MTP3_TIMER_T13],
 							&mtp3_t13_expired, link);
@@ -1872,7 +1870,7 @@ int mtp3_receive(struct ss7 *ss7, struct mtp2 *link, void *msg, int len)
 
 	/* Check NI to make sure it's set correct */
 	if (ss7->ni != ni) {
-		mtp_error(ss7, "Received MSU with network indicator of %s, but we are %s\n", ss7_ni2str(ni), ss7_ni2str(ss7->ni));
+		ss7_error(ss7, "Received MSU with network indicator of %s, but we are %s\n", ss7_ni2str(ni), ss7_ni2str(ss7->ni));
 		return -1;
 	}
 
@@ -1880,7 +1878,7 @@ int mtp3_receive(struct ss7 *ss7, struct mtp2 *link, void *msg, int len)
 	rlsize = get_routinglabel(ss7->switchtype, sif, &rl);
 
 	if (ss7->pc != rl.dpc) {
-		mtp_error(ss7, "Received message destined for point code 0x%x but we're 0x%x.  Dropping\n", rl.dpc, ss7->pc);
+		ss7_error(ss7, "Received message destined for point code 0x%x but we're 0x%x.  Dropping\n", rl.dpc, ss7->pc);
 		return -1;
 	}
 
@@ -1903,7 +1901,7 @@ int mtp3_receive(struct ss7 *ss7, struct mtp2 *link, void *msg, int len)
 			return net_mng_receive(ss7, link, &rl, sif, siflen);
 		case SIG_SCCP:
 		default:
-			mtp_message(ss7, "Unable to process message destined for userpart %d; dropping message\n", userpart);
+			ss7_message(ss7, "Unable to process message destined for userpart %d; dropping message\n", userpart);
 			return 0;
 	}
 }

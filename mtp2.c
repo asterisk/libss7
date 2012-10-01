@@ -501,9 +501,7 @@ static void t4_expiry(void * data)
 {
 	struct mtp2 *link = data;
 
-	if (link->master->debug & SS7_DEBUG_MTP2)
-		ss7_message(link->master, "T4 expired!\n");
-
+	ss7_debug_msg(link->master, SS7_DEBUG_MTP2, "MTP2 T4 expired!\n");
 	mtp2_setstate(link, MTP_ALIGNEDREADY);
 
 	return;
@@ -526,8 +524,7 @@ int mtp2_setstate(struct mtp2 *link, int newstate)
 {
 	ss7_event *e;
 
-	if (link->master->debug & SS7_DEBUG_MTP2)
-		mtp_message(link->master, "Link state change: %s -> %s\n", linkstate2str(link->state), linkstate2str(newstate));
+	ss7_debug_msg(link->master, SS7_DEBUG_MTP2, "Link state change: %s -> %s\n", linkstate2str(link->state), linkstate2str(newstate));
 
 	switch (link->state) {
 		case MTP_ALARM:

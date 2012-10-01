@@ -147,6 +147,13 @@ void ss7_msg_userpart_len(struct ss7_msg *m, int len);
 void ss7_message(struct ss7 *ss7, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 void ss7_error(struct ss7 *ss7, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 
+#define ss7_debug_msg(ctrl, flags, ...)			\
+	do {										\
+		if ((ctrl)->debug & (flags)) {			\
+			ss7_message(ctrl, __VA_ARGS__);		\
+		}										\
+	} while (0)
+
 void ss7_dump_buf(struct ss7 *ss7, int tabs,  unsigned char *buf, int len);
 
 void ss7_dump_msg(struct ss7 *ss7, unsigned char *buf, int len);

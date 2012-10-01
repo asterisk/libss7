@@ -5185,7 +5185,7 @@ static void isup_timer_expiry(void *data)
 			param->timer == ISUP_TIMER_T21 || param->timer == ISUP_TIMER_T22) {
 		ss7_error(param->ss7, "ISUP timer %s expired on CIC %i DPC %i\n", isup_timer2str(param->timer), param->c->cic, param->c->dpc);
 	} else {
-		ss7_message(param->ss7, "ISUP timer %s expired on CIC %i DPC %i\n", isup_timer2str(param->timer), param->c->cic, param->c->dpc);
+		ss7_debug_msg(param->ss7, SS7_DEBUG_ISUP, "ISUP timer %s expired on CIC %i DPC %i\n", isup_timer2str(param->timer), param->c->cic, param->c->dpc);
 	}
 
 	param->c->timer[param->timer] = -1;
@@ -5322,7 +5322,7 @@ static void isup_stop_timer(struct ss7 *ss7, struct isup_call *c, int timer)
 		ss7_schedule_del(ss7, &c->timer[timer]);
 		free(param);
 		c->timer[timer] = -1;
-		ss7_message(ss7, "ISUP timer %s stopped on CIC %i DPC: %i\n", isup_timer2str(timer), c->cic, c->dpc);
+		ss7_debug_msg(ss7, SS7_DEBUG_ISUP, "ISUP timer %s stopped on CIC %i DPC: %i\n", isup_timer2str(timer), c->cic, c->dpc);
 	}
 }
 
@@ -5365,7 +5365,7 @@ static int isup_start_timer(struct ss7 *ss7, struct isup_call *c, int timer)
 	c->timer[timer] = ss7_schedule_event(ss7, ss7->isup_timers[timer], &isup_timer_expiry, data);
 
 	if (c->timer[timer] > -1) {
-		ss7_message(ss7, "ISUP timer %s (%ims) started on CIC %i DPC %i\n", isup_timer2str(timer), ss7->isup_timers[timer], c->cic, c->dpc);
+		ss7_debug_msg(ss7, SS7_DEBUG_ISUP, "ISUP timer %s (%ims) started on CIC %i DPC %i\n", isup_timer2str(timer), ss7->isup_timers[timer], c->cic, c->dpc);
 		return 0;
 	}
 

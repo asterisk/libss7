@@ -320,7 +320,7 @@ int main(int argc, char *argv[])
 	ss7_set_error(myprintf);
 	ss7_set_network_ind(ss7, SS7_NI_NAT);
 
-	ss7_set_debug(ss7, 0xfffffff);
+	ss7_set_debug(ss7, 0xffffffff);
 	if ((ss7_add_link(ss7, ismtp2 ? SS7_TRANSPORT_DAHDIMTP2 : SS7_TRANSPORT_DAHDIDCHAN, fd, -1, dpc))) {
 		perror("ss7_add_link");
 		exit(1);
