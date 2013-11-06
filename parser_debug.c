@@ -45,7 +45,6 @@ int main(int argc, char **argv)
 	unsigned int tmp;
 	int ss7type;
 	int res = 0, i = 0, size;
-	ss7_event *e;
 
 	if (argc != 3)
 		return -1;
@@ -81,7 +80,7 @@ int main(int argc, char **argv)
 
 	mtp2_receive(ss7->links[0], mybuf, size);
 
-	e = ss7_check_event(ss7);
+	ss7_check_event(ss7);
 
 	return 0;
 }
