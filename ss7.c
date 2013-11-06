@@ -545,11 +545,10 @@ static inline char * got_sent2str(char * buf, unsigned int got_sent)
 
 static inline char * mtp2state2str(struct ss7 *ss7, struct mtp2 *link)
 {
-	int mtp2state, i;
+	int i;
 
 	for (i = 0; i < ss7->numlinks; i++) {
 		if (ss7->links[i] == link) {
-			mtp2state = ss7->mtp2_linkstate[i];
 			break;
 		}
 	}

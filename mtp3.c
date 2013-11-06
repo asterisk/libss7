@@ -569,7 +569,6 @@ static void mtp3_move_buffer(struct ss7 *ss7, struct mtp2 *link, struct ss7_msg 
 	unsigned char *buf;
 	unsigned char userpart;
 	struct routing_label rl;
-	int rlsize;
 
 	if (fsn != -1) {
 		update_txbuf(NULL, from, fsn);
@@ -587,7 +586,7 @@ static void mtp3_move_buffer(struct ss7 *ss7, struct mtp2 *link, struct ss7_msg 
 	while (cur) {
 		buf = cur->buf;
 		userpart = get_userpart(buf[MTP2_SIZE]);
-		rlsize = get_routinglabel(ss7->switchtype, buf + MTP2_SIZE + 1, &rl);
+		get_routinglabel(ss7->switchtype, buf + MTP2_SIZE + 1, &rl);
 		next = cur->next;
 
 		if (userpart > 3 && (dpc == -1 || rl.dpc == dpc)) {
