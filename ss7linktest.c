@@ -61,12 +61,11 @@ static void ss7_call(struct ss7 *ss7)
 {
 	struct isup_call *c;
 
-	c = isup_new_call(ss7);
+	c = isup_new_call(ss7, (callcount % 12) + 1, dpc, 0);
 
 	if (c) {
 		isup_set_called(c, "12345", SS7_NAI_NATIONAL, ss7);
 		isup_set_calling(c, "7654321", SS7_NAI_NATIONAL, SS7_PRESENTATION_ALLOWED, SS7_SCREENING_USER_PROVIDED);
-		isup_init_call(ss7, c, (callcount % 12) + 1, dpc);
 		isup_iam(ss7, c);
 		printf("Callcount = %d\n ", ++callcount);
 	}
@@ -168,8 +167,7 @@ static void *ss7_run(void *data)
 				switch (e->e) {
 					case SS7_EVENT_UP:
 						printf("[%d] --- SS7 Up ---\n", linkset->linkno);
-						c = isup_new_call(ss7);
-						isup_init_call(ss7, c, 1, dpc);
+						c = isup_new_call(ss7, 1, dpc, 0);
 						isup_grs(ss7, c, 24);
 						break;
 					case MTP2_LINK_UP:

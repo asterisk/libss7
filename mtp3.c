@@ -1651,38 +1651,19 @@ static void mtp3_link_failed(struct mtp2 *link)
 	mtp3_check(link->adj_sp);
 }
 
-static int std_test_receive(struct ss7 *ss7, struct mtp2 *mtp2, unsigned char *buf, int len)
+static int std_test_receive(struct ss7 *ss7, struct mtp2 *mtp2, struct routing_label rl, unsigned char *buf, int len)
 {
-	unsigned char *sif = buf;
 	unsigned char *headerptr = buf + rl_size(ss7);
 	unsigned char h1, h0;
 	int testpatsize = 0;
-	struct routing_label rl;
 	struct routing_label drl;
 
-	get_routinglabel(ss7->switchtype, sif, &rl);
-
-	if (rl.dpc != ss7->pc) {
-		goto fail;
-	}
-
-	drl.type = ss7->switchtype;
+	/* just reverse the routing label - mtp3_receive() have checked it is correct */
+	drl.type = rl.type;
 	drl.dpc = rl.opc;
-	drl.opc = ss7->pc;
-#if 0
-	drl.sls = mtp2->slc;
-#else
-	/*
-	 * I hate that we would have to do this, but it would seem that
-	 * some telcos set things up stupid enough that we have to
-	 */
-
-	/*
-	 * The numbering of the sls have to restart on every STP!!!
-	 */
-
+	drl.opc = rl.dpc;
 	drl.sls = rl.sls;
-#endif
+
 	h1 = h0 = *headerptr;
 
 	h1 = get_h1(headerptr);
@@ -1877,8 +1858,18 @@ int mtp3_receive(struct ss7 *ss7, struct mtp2 *link, void *msg, int len)
 	rlsize = get_routinglabel(ss7->switchtype, sif, &rl);
 
 	if (ss7->pc != rl.dpc) {
-		ss7_error(ss7, "Received message destined for point code 0x%x but we're 0x%x.  Dropping\n", rl.dpc, ss7->pc);
+		ss7_error(ss7, "Received message destined for point code 0x%x, but we are 0x%x.  Dropping\n", rl.dpc, ss7->pc);
 		return -1;
+	} else if (userpart == SIG_STD_TEST || userpart == SIG_SPEC_TEST || userpart == SIG_NET_MNG) {
+		if (link->dpc != rl.opc) {
+			ss7_error(ss7, "Received message from point code 0x%x but we are connected to DPC 0x%x.  Dropping\n", rl.opc, link->dpc);
+			return -1;
+		}
+
+		if (link->slc != rl.sls) {
+			ss7_error(ss7, "Received message for slc 0x%x, but we are 0x%x.  Dropping\n", rl.sls, link->slc);
+			return -1;
+		}
 	}
 
 	/* TODO: find out what to do with the priority in ANSI networks */
@@ -1887,7 +1878,7 @@ int mtp3_receive(struct ss7 *ss7, struct mtp2 *link, void *msg, int len)
 	switch (userpart) {
 		case SIG_STD_TEST:
 		case SIG_SPEC_TEST:
-			return std_test_receive(ss7, link, sif, siflen);
+			return std_test_receive(ss7, link, rl, sif, siflen);
 		case SIG_ISUP:
 			/* Skip the routing label */
 			if (link->adj_sp->state == MTP3_UP) {

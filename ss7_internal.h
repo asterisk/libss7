@@ -55,8 +55,8 @@
 
 #define MAX_EVENTS			16
 #define MAX_SCHED			512	/* need a lot cause of isup timers... */
-#define SS7_MAX_LINKS		4
-#define SS7_MAX_ADJSPS		4
+#define SS7_MAX_LINKS		8
+#define SS7_MAX_ADJSPS		8
 
 #define SS7_STATE_DOWN		0
 #define SS7_STATE_UP		1

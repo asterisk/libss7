@@ -78,6 +78,8 @@ static int ansi_iam_params[] = {ISUP_PARM_NATURE_OF_CONNECTION_IND, ISUP_PARM_FO
 
 static int acm_params[] = {ISUP_PARM_BACKWARD_CALL_IND, -1};
 
+static int frj_params[] = {ISUP_PARM_FACILITY_IND, ISUP_PARM_CALL_REF, -1};
+
 static int faa_params[] = {ISUP_PARM_FACILITY_IND, ISUP_PARM_CALL_REF, -1};
 
 static int far_params[] = {ISUP_PARM_FACILITY_IND, ISUP_PARM_CALL_REF, -1};
@@ -142,6 +144,7 @@ static struct message_data {
 	{ISUP_UCIC, 0, 0, 0, 1, empty_params},
 	{ISUP_CQM, 0, 1, 0, 0, greset_params},
 	{ISUP_CQR, 0, 2, 0, 0, cqr_params},
+	{ISUP_FRJ, 1, 0, 1, -1, frj_params},
 	{ISUP_FAA, 1, 0, 1, -1, faa_params},
 	{ISUP_FAR, 1, 0, 1, -1, far_params},
 	{ISUP_CFN, 0, 1, 1, 0, rel_params},
@@ -2656,56 +2659,114 @@ static FUNC_SEND(cug_interlock_code_transmit)
 }
 
 static struct parm_func parms[] = {
+	{ISUP_PARM_CALL_REF, "Call Reference", call_ref_dump, call_ref_receive, call_ref_transmit},
+	{ISUP_PARM_TRANSMISSION_MEDIUM_REQS, "Transmission Medium Requirements", transmission_medium_reqs_dump, transmission_medium_reqs_receive, transmission_medium_reqs_transmit},
+	{ISUP_PARM_ACCESS_TRANS, "Access Transport", access_transport_dump, access_transport_receive, access_transport_transmit},
+	{ISUP_PARM_CALLED_PARTY_NUM, "Called Party Number", called_party_num_dump, called_party_num_receive, called_party_num_transmit},
+	{ISUP_PARM_SUBSEQUENT_NUMBER, "Subsequent Number", subs_num_dump, subs_num_receive, subs_num_transmit},
 	{ISUP_PARM_NATURE_OF_CONNECTION_IND, "Nature of Connection Indicator", nature_of_connection_ind_dump, nature_of_connection_ind_receive, nature_of_connection_ind_transmit },
 	{ISUP_PARM_FORWARD_CALL_IND, "Forward Call Indicators", forward_call_ind_dump, forward_call_ind_receive, forward_call_ind_transmit },
-	{ISUP_PARM_CALLING_PARTY_CAT, "Calling Party's Category", calling_party_cat_dump, calling_party_cat_receive, calling_party_cat_transmit},
-	{ISUP_PARM_TRANSMISSION_MEDIUM_REQS, "Transmission Medium Requirements", transmission_medium_reqs_dump, transmission_medium_reqs_receive, transmission_medium_reqs_transmit},
-	{ISUP_PARM_USER_SERVICE_INFO, "User Service Information", NULL, user_service_info_receive, user_service_info_transmit},
-	{ISUP_PARM_CALLED_PARTY_NUM, "Called Party Number", called_party_num_dump, called_party_num_receive, called_party_num_transmit},
-	{ISUP_PARM_CAUSE, "Cause Indicator", cause_dump, cause_receive, cause_transmit},
-	{ISUP_PARM_CONTINUITY_IND, "Continuity Indicator", continuity_ind_dump, continuity_ind_receive, continuity_ind_transmit},
-	{ISUP_PARM_ACCESS_TRANS, "Access Transport", access_transport_dump, access_transport_receive, access_transport_transmit},
-	{ISUP_PARM_BUSINESS_GRP, "Business Group"},
-	{ISUP_PARM_CALL_REF, "Call Reference", call_ref_dump, call_ref_receive, call_ref_transmit},
-	{ISUP_PARM_CALLING_PARTY_NUM, "Calling Party Number", calling_party_num_dump, calling_party_num_receive, calling_party_num_transmit},
-	{ISUP_PARM_CARRIER_ID, "Carrier Identification", carrier_identification_dump, carrier_identification_receive, carrier_identification_transmit},
-	{ISUP_PARM_SELECTION_INFO, "Selection Information"},
-	{ISUP_PARM_CHARGE_NUMBER, "Charge Number", charge_number_dump, charge_number_receive, charge_number_transmit},
-	{ISUP_PARM_CIRCUIT_ASSIGNMENT_MAP, "Circuit Assignment Map"},
-	{ISUP_PARM_CONNECTION_REQ, "Connection Request"},
-	{ISUP_PARM_CUG_INTERLOCK_CODE, "Interlock Code", cug_interlock_code_dump, cug_interlock_code_receive, cug_interlock_code_transmit},
-	{ISUP_PARM_EGRESS_SERV, "Egress Service"},
-	{ISUP_PARM_GENERIC_ADDR, "Generic Address", generic_address_dump, generic_address_receive, generic_address_transmit},
-	{ISUP_PARM_GENERIC_DIGITS, "Generic Digits", generic_digits_dump, generic_digits_receive, generic_digits_transmit},
-	{ISUP_PARM_GENERIC_NAME, "Generic Name", generic_name_dump, generic_name_receive, generic_name_transmit},
-	{ISUP_PARM_TRANSIT_NETWORK_SELECTION, "Transit Network Selection", tns_dump, tns_receive, tns_transmit},
-	{ISUP_PARM_GENERIC_NOTIFICATION_IND, "Generic Notification Indication", generic_notification_ind_dump, generic_notification_ind_receive, generic_notification_ind_transmit},
-	{ISUP_PARM_PROPAGATION_DELAY, "Propagation Delay Counter", propagation_delay_cntr_dump},
-	{ISUP_PARM_HOP_COUNTER, "Hop Counter", hop_counter_dump, hop_counter_receive, hop_counter_transmit},
-	{ISUP_PARM_BACKWARD_CALL_IND, "Backward Call Indicator", backward_call_ind_dump, backward_call_ind_receive, backward_call_ind_transmit},
-	{ISUP_PARM_OPT_BACKWARD_CALL_IND, "Optional Backward Call Indicator", opt_backward_call_ind_dump, opt_backward_call_ind_receive, NULL},
-	{ISUP_PARM_CIRCUIT_GROUP_SUPERVISION_IND, "Circuit Group Supervision Indicator", circuit_group_supervision_dump, circuit_group_supervision_receive, circuit_group_supervision_transmit},
-	{ISUP_PARM_RANGE_AND_STATUS, "Range and status", range_and_status_dump, range_and_status_receive, range_and_status_transmit},
-	{ISUP_PARM_EVENT_INFO, "Event Information", event_info_dump, event_info_receive, event_info_transmit},
 	{ISUP_PARM_OPT_FORWARD_CALL_INDICATOR, "Optional forward call indicator", opt_forward_call_ind_dump, opt_forward_call_ind_receive, opt_forward_call_ind_transmit},
-	{ISUP_PARM_LOCATION_NUMBER, "Location Number"},
-	{ISUP_PARM_ORIG_LINE_INFO, "Originating line information", originating_line_information_dump, originating_line_information_receive, originating_line_information_transmit},
-	{ISUP_PARM_REDIRECTION_INFO, "Redirection Information", redirection_info_dump, redirection_info_receive, redirection_info_transmit},
-	{ISUP_PARM_ORIGINAL_CALLED_NUM, "Original called number", original_called_num_dump, original_called_num_receive, original_called_num_transmit},
-	{ISUP_PARM_JIP, "Jurisdiction Information Parameter", jip_dump, jip_receive, jip_transmit},
-	{ISUP_PARM_ECHO_CONTROL_INFO, "Echo Control Information", echo_control_info_dump, NULL, NULL},
-	{ISUP_PARM_PARAMETER_COMPAT_INFO, "Parameter Compatibility Information", parameter_compat_info_dump, NULL, NULL},
-	{ISUP_PARM_CIRCUIT_STATE_IND, "Circuit State Indicator", circuit_state_ind_dump, NULL, circuit_state_ind_transmit},
-	{ISUP_PARM_LOCAL_SERVICE_PROVIDER_IDENTIFICATION, "Local Service Provider ID", lspi_dump, lspi_receive, lspi_transmit},
-	{ISUP_PARM_FACILITY_IND, "Facility Indicator", facility_ind_dump, facility_ind_receive, facility_ind_transmit},
+	{ISUP_PARM_CALLING_PARTY_CAT, "Calling Party's Category", calling_party_cat_dump, calling_party_cat_receive, calling_party_cat_transmit},
+	{ISUP_PARM_CALLING_PARTY_NUM, "Calling Party Number", calling_party_num_dump, calling_party_num_receive, calling_party_num_transmit},
 	{ISUP_PARM_REDIRECTING_NUMBER, "Redirecting Number", redirecting_number_dump, redirecting_number_receive, redirecting_number_transmit},
-	{ISUP_PARM_ACCESS_DELIVERY_INFO, "Access Delivery Information", },
-	{ISUP_PARM_REDIRECT_COUNTER, "Redirect Counter", redirect_counter_dump, redirect_counter_receive, redirect_counter_transmit},
-	{ISUP_PARM_SUSPEND_RESUME_IND, "Suspend/Resume Indicators", suspend_resume_ind_dump, suspend_resume_ind_receive, suspend_resume_ind_transmit},
+	{ISUP_PARM_REDIRECTION_NUMBER, "Redirection Number"},
+	{ISUP_PARM_CONNECTION_REQ, "Connection Request"},
 	{ISUP_PARM_INR_IND, "Information Request Indicators", inr_ind_dump, inr_ind_receive, inr_ind_transmit},
 	{ISUP_PARM_INF_IND, "Information Indicators", inf_ind_dump, inf_ind_receive, inf_ind_transmit},
-	{ISUP_PARM_SUBSEQUENT_NUMBER, "Subsequent Number", subs_num_dump, subs_num_receive, subs_num_transmit},
-	{ISUP_CONNECTED_NUMBER, "Connected Number", connected_num_dump, connected_num_receive, connected_num_transmit}
+	{ISUP_PARM_CONTINUITY_IND, "Continuity Indicator", continuity_ind_dump, continuity_ind_receive, continuity_ind_transmit},
+	{ISUP_PARM_BACKWARD_CALL_IND, "Backward Call Indicator", backward_call_ind_dump, backward_call_ind_receive, backward_call_ind_transmit},
+	{ISUP_PARM_CAUSE, "Cause Indicator", cause_dump, cause_receive, cause_transmit},
+	{ISUP_PARM_REDIRECTION_INFO, "Redirection Information", redirection_info_dump, redirection_info_receive, redirection_info_transmit},
+	{ISUP_PARM_CIRCUIT_GROUP_SUPERVISION_IND, "Circuit Group Supervision Indicator", circuit_group_supervision_dump, circuit_group_supervision_receive, circuit_group_supervision_transmit},
+	{ISUP_PARM_RANGE_AND_STATUS, "Range and status", range_and_status_dump, range_and_status_receive, range_and_status_transmit},
+	{ISUP_PARM_CALL_MODIFICATION_IND, "Call modification indicators"},
+	{ISUP_PARM_FACILITY_IND, "Facility Indicator", facility_ind_dump, facility_ind_receive, facility_ind_transmit},
+	{ISUP_PARM_CUG_INTERLOCK_CODE, "CUG Interlock Code", cug_interlock_code_dump, cug_interlock_code_receive, cug_interlock_code_transmit},
+	{ISUP_PARM_USER_SERVICE_INFO, "User Service Information", NULL, user_service_info_receive, user_service_info_transmit},
+	{ISUP_PARM_SIGNALLING_PC, "Signalling point code"},
+	{ISUP_PARM_USER_TO_USER_INFO, "User to user information"},
+	{ISUP_CONNECTED_NUMBER, "Connected Number", connected_num_dump, connected_num_receive, connected_num_transmit},
+	{ISUP_PARM_SUSPEND_RESUME_IND, "Suspend/Resume Indicators", suspend_resume_ind_dump, suspend_resume_ind_receive, suspend_resume_ind_transmit},
+	{ISUP_PARM_TRANSIT_NETWORK_SELECTION, "Transit Network Selection", tns_dump, tns_receive, tns_transmit},
+	{ISUP_PARM_EVENT_INFO, "Event Information", event_info_dump, event_info_receive, event_info_transmit},
+	{ISUP_PARM_CIRCUIT_ASSIGNMENT_MAP, "Circuit Assignment Map"},
+	{ISUP_PARM_CIRCUIT_STATE_IND, "Circuit State Indicator", circuit_state_ind_dump, NULL, circuit_state_ind_transmit},
+	{ISUP_PARAM_AUTOMATIC_CONGESTION_LEVEL, "Automatic congestion level"},
+	{ISUP_PARM_ORIGINAL_CALLED_NUM, "Original called number", original_called_num_dump, original_called_num_receive, original_called_num_transmit},
+	{ISUP_PARM_OPT_BACKWARD_CALL_IND, "Optional Backward Call Indicator", opt_backward_call_ind_dump, opt_backward_call_ind_receive, NULL},
+	{ISUP_PARM_USER_TO_USER_IND, "User to user indicators"},
+	{ISUP_PARM_ORIGINATION_ISC_PC, "Origination ISC point code"},
+	{ISUP_PARM_GENERIC_NOTIFICATION_IND, "Generic Notification Indication", generic_notification_ind_dump, generic_notification_ind_receive, generic_notification_ind_transmit},
+	{ISUP_PARM_CALL_HISTORY_INFO, "Call history information"},
+	{ISUP_PARM_ACCESS_DELIVERY_INFO, "Access Delivery Information", },
+	{ISUP_PARM_NETWORK_SPECIFIC_FACILITY, "Network specific facility"},
+	{ISUP_PARM_USER_SERVICE_INFO_PRIME, "User service information prime"},
+	{ISUP_PARM_PROPAGATION_DELAY, "Propagation Delay Counter", propagation_delay_cntr_dump},
+	{ISUP_PARM_REMOTE_OPERATIONS, "Remote operations"},
+	{ISUP_PARM_SERVICE_ACTIVATION, "Service activation"},
+	{ISUP_PARM_USER_TELESERVICE_INFO, "User teleservice information"},
+	{ISUP_PARM_TRANSMISSION_MEDIUM_USED, "Transmission medium used"},
+	{ISUP_PARM_CALL_DIVERSION_INFO, "Call diversion information"},
+	{ISUP_PARM_ECHO_CONTROL_INFO, "Echo Control Information", echo_control_info_dump, NULL, NULL},
+	{ISUP_PARM_MESSAGE_COMPAT_INFO, "Message compatibility information"},
+	{ISUP_PARM_PARAMETER_COMPAT_INFO, "Parameter Compatibility Information", parameter_compat_info_dump, NULL, NULL},
+	{ISUP_PARM_MLPP_PRECEDENCE, "MLPP precedence"},
+	{ISUP_PARM_MCID_REQUEST_IND, "MCID request indicators"},
+	{ISUP_PARM_MCID_RESPONSE_IND, "MCID response indicators"},
+	{ISUP_PARM_HOP_COUNTER, "Hop Counter", hop_counter_dump, hop_counter_receive, hop_counter_transmit},
+	{ISUP_PARM_TRANSMISSION_MEDIUM_REQ_PRIME, "Transmission medium requirement prime"},
+	{ISUP_PARM_LOCATION_NUMBER, "Location Number"},
+	{ISUP_PARM_REDIRECTION_NUM_RESTRICTION, "Redirection number restriction"},
+	{ISUP_PARM_CALL_TRANSFER_REFERENCE, "Call transfer reference"},
+	{ISUP_PARM_LOOP_PREVENTION_IND, "Loop prevention indicators"},
+	{ISUP_PARM_CALL_TRANSFER_NUMBER, "Call transfer number"},
+	{ISUP_PARM_CCSS, "CCSS"},
+	{ISUP_PARM_FORWARD_GVNS, "Forward GVNS"},
+	{ISUP_PARM_BACKWARD_GVNS, "Backward GVNS"},
+	{ISUP_PARM_REDIRECT_CAPABILITY, "Redirect capability"},
+	{ISUP_PARM_NETWORK_MANAGEMENT_CONTROL, "Network management controls"},
+	{ISUP_PARM_CORRELATION_ID, "Correlation id"},
+	{ISUP_PARM_SCF_ID, "SCF id"},
+	{ISUP_PARM_CALL_DIVERSION_TREATMENT_IND, "Call diversion treatment indicators"},
+	{ISUP_PARM_CALLED_IN_NUMBER, "Called IN number"},
+	{ISUP_PARM_CALL_OFFERING_TREATMENT_IND, "Call offering treatment indicators"},
+	{ISUP_PARM_CHARGED_PARTY_IDENT, "Charged party identification"},
+	{ISUP_PARM_CONFERENCE_TREATMENT_IND, "Conference treatment indicators"},
+	{ISUP_PARM_DISPLAY_INFO, "Display information"},
+	{ISUP_PARM_UID_ACTION_IND, "UID action indicators"},
+	{ISUP_PARM_UID_CAPABILITY_IND, "UID capability indicators"},
+	{ISUP_PARM_REDIRECT_COUNTER, "Redirect Counter", redirect_counter_dump, redirect_counter_receive, redirect_counter_transmit},
+	{ISUP_PARM_APPLICATION_TRANSPORT, "Application transport"},
+	{ISUP_PARM_COLLECT_CALL_REQUEST, "Collect call request"},
+	{ISUP_PARM_CCNR_POSSIBLE_IND, "CCNR possible indicator"},
+	{ISUP_PARM_PIVOT_CAPABILITY, "Pivot capability"},
+	{ISUP_PARM_PIVOT_ROUTING_IND, "Pivot routing indicators"},
+	{ISUP_PARM_CALLED_DIRECTORY_NUMBER, "Called directory number"},
+	{ISUP_PARM_ORIGINAL_CALLED_IN_NUM, "Original called IN number"},
+	{ISUP_PARM_CALLING_GEODETIC_LOCATION, "Calling geodetic location"},
+	{ISUP_PARM_HTR_INFO, "HTR information"},
+	{ISUP_PARM_NETWORK_ROUTING_NUMBER, "Network routing number"},
+	{ISUP_PARM_QUERY_ON_RELEASE_CAPABILITY, "Query on release capability"},
+	{ISUP_PARM_PIVOT_STATUS, "Pivot status"},
+	{ISUP_PARM_PIVOT_COUNTER, "Pivot counter"},
+	{ISUP_PARM_PIVOT_ROUTING_FORWARD_IND, "Pivot routing forward information"},
+	{ISUP_PARM_PIVOT_ROUTING_BACKWARD_IND, "Pivot routing backward information"},
+	{ISUP_PARM_REDIRECT_STATUS, "Redirect status"},
+	{ISUP_PARM_REDIRECT_FORWARD_INFO, "Redirect forward information"},
+	{ISUP_PARM_REDIRECT_BACKWARD_INFO, "Redirect backward information"},
+	{ISUP_PARM_NUM_PORTABILITY_FORWARD_INFO, "Number portability forward information"},
+	{ISUP_PARM_GENERIC_ADDR, "Generic Address", generic_address_dump, generic_address_receive, generic_address_transmit},
+	{ISUP_PARM_GENERIC_DIGITS, "Generic Digits", generic_digits_dump, generic_digits_receive, generic_digits_transmit},
+	{ISUP_PARM_EGRESS_SERV, "Egress Service"},
+	{ISUP_PARM_JIP, "Jurisdiction Information Parameter", jip_dump, jip_receive, jip_transmit},
+	{ISUP_PARM_CARRIER_ID, "Carrier Identification", carrier_identification_dump, carrier_identification_receive, carrier_identification_transmit},
+	{ISUP_PARM_BUSINESS_GRP, "Business Group"},
+	{ISUP_PARM_GENERIC_NAME, "Generic Name", generic_name_dump, generic_name_receive, generic_name_transmit},
+	{ISUP_PARM_LOCAL_SERVICE_PROVIDER_IDENTIFICATION, "Local Service Provider ID", lspi_dump, lspi_receive, lspi_transmit},
+	{ISUP_PARM_ORIG_LINE_INFO, "Originating line information", originating_line_information_dump, originating_line_information_receive, originating_line_information_transmit},
+	{ISUP_PARM_CHARGE_NUMBER, "Charge Number", charge_number_dump, charge_number_receive, charge_number_transmit},
+	{ISUP_PARM_SELECTION_INFO, "Selection Information"}
 };
 
 static char * param2str(int parm)
@@ -2730,6 +2791,17 @@ static void init_isup_call(struct isup_call *c)
 	c->range = 0;
 	c->got_sent_msg = 0;
 	c->calling_party_cat = 0x0a;	/* Default to Ordinary calling subscriber */
+}
+
+static void isup_init_call(struct ss7 *ss7, struct isup_call *c, int cic, unsigned int dpc)
+{
+	c->cic = cic;
+	c->dpc = dpc;
+	if (ss7->switchtype == SS7_ANSI) {
+		c->sls = ansi_sls_next(ss7);
+	} else {
+		c->sls = cic & 0xf;
+	}
 }
 
 static struct isup_call * __isup_new_call(struct ss7 *ss7, int nolink)
@@ -2760,9 +2832,17 @@ static struct isup_call * __isup_new_call(struct ss7 *ss7, int nolink)
 	return c;
 }
 
-struct isup_call * isup_new_call(struct ss7 *ss7)
+struct isup_call * isup_new_call(struct ss7 *ss7, int cic, unsigned int dpc, int outgoing)
 {
-	return __isup_new_call(ss7, 0);
+	struct isup_call *c = __isup_new_call(ss7, 0);
+
+	if (c) {
+		isup_init_call(ss7, c, cic, dpc);
+		if (outgoing) {
+			c->got_sent_msg |= ISUP_PENDING_IAM;
+		}
+	}
+	return c;
 }
 
 void isup_set_call_dpc(struct isup_call *c, unsigned int dpc)
@@ -2948,17 +3028,6 @@ void isup_set_callref(struct isup_call *c, unsigned int call_ref_ident, unsigned
 void isup_set_calling_party_category(struct isup_call *c, unsigned int category)
 {
 	c->calling_party_cat = category;
-}
-
-void isup_init_call(struct ss7 *ss7, struct isup_call *c, int cic, unsigned int dpc)
-{
-	c->cic = cic;
-	c->dpc = dpc;
-	if (ss7->switchtype == SS7_ANSI) {
-		c->sls = ansi_sls_next(ss7);
-	} else {
-		c->sls = cic & 0xf;
-	}
 }
 
 static struct isup_call * isup_find_call(struct ss7 *ss7, struct routing_label *rl, int cic)
@@ -3410,7 +3479,10 @@ static int isup_handle_unexpected(struct ss7 *ss7, struct isup_call *c, unsigned
 {
 	int res;
 
-	if (c->got_sent_msg & (ISUP_CALL_CONNECTED)) {
+	if ((c->got_sent_msg & (ISUP_CALL_CONNECTED)) ||
+			(c->got_sent_msg & (ISUP_SENT_REL | ISUP_SENT_RSC) &&
+			(ss7->isup_timers[ISUP_TIMER_T1] && ss7->isup_timers[ISUP_TIMER_T5]
+			&& ss7->isup_timers[ISUP_TIMER_T16] && ss7->isup_timers[ISUP_TIMER_T17]))) {
 		ss7_message(ss7, "ignoring... \n");
 	} else {
 		ss7_message(ss7, "reseting the cic\n");
@@ -3676,8 +3748,8 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			return 0;
 		case ISUP_RSC:
 			if (c->got_sent_msg & ISUP_SENT_RSC) {
-				ss7_message(ss7, "Got RSC on CIC %d DPC %d, but we have sent RSC too. Ignoring!!!\n", c->cic, opc);
-				return 0;
+				ss7_debug_msg(ss7, SS7_DEBUG_ISUP, "Got RSC on CIC %d DPC %d, but we have sent RSC too.\n", c->cic, opc);
+				return isup_send_message(ss7, c, ISUP_RLC, empty_params);
 			}
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
@@ -3707,7 +3779,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			isup_stop_timer(ss7, c, ISUP_TIMER_T6);
 			isup_stop_timer(ss7, c, ISUP_TIMER_T35);
 			isup_stop_timer(ss7, c, ISUP_TIMER_T10);
-			c->got_sent_msg &= ~(ISUP_CALL_CONNECTED | ISUP_SENT_IAM | ISUP_GOT_IAM | ISUP_GOT_CCR | ISUP_SENT_INR);
+			c->got_sent_msg &= ~(ISUP_CALL_CONNECTED | ISUP_CALL_PENDING);
 			e->e = ISUP_EVENT_REL;
 			e->rel.cic = c->cic;
 			e->rel.call = c;
@@ -3809,7 +3881,11 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->rlc.opc = opc;	/* keep OPC information */
 			e->rlc.call = c;
 			e->rlc.got_sent_msg = c->got_sent_msg;
-			c->got_sent_msg &= ~(ISUP_SENT_REL | ISUP_SENT_RSC);
+			if (c->got_sent_msg & ISUP_SENT_RSC) {
+				c->got_sent_msg &= ~(ISUP_SENT_REL | ISUP_SENT_RSC | ISUP_CALL_CONNECTED | ISUP_CALL_PENDING);
+			} else {
+				c->got_sent_msg &= ~(ISUP_SENT_REL | ISUP_SENT_RSC);
+			}
 			isup_stop_timer(ss7, c, ISUP_TIMER_T1);
 			isup_stop_timer(ss7, c, ISUP_TIMER_T2);
 			isup_stop_timer(ss7, c, ISUP_TIMER_T5);
@@ -4037,6 +4113,21 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->ucic.opc = opc;	/* keep OPC information */
 			e->ucic.call = c;
 			return 0;
+		case ISUP_FRJ:
+			e = ss7_next_empty_event(ss7);
+			if (!e) {
+				ss7_call_null(ss7, c, 1);
+				isup_free_call(ss7, c);
+				return -1;
+			}
+
+			e->e = ISUP_EVENT_FRJ;
+			e->frj.cic = c->cic;
+			e->frj.call_ref_ident = c->call_ref_ident;
+			e->frj.call_ref_pc = c->call_ref_pc;
+			e->frj.opc = opc;	/* keep OPC information */
+			e->frj.call = c;
+			return 0;
 		case ISUP_FAA:
 			e = ss7_next_empty_event(ss7);
 			if (!e) {
@@ -4064,7 +4155,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->far.cic = c->cic;
 			e->far.call_ref_ident = c->call_ref_ident;
 			e->far.call_ref_pc = c->call_ref_pc;
-			e->ucic.opc = opc;	/* keep OPC information */
+			e->far.opc = opc;	/* keep OPC information */
 			e->far.call = c;
 			return 0;
 		case ISUP_CGBA:
@@ -4135,13 +4226,13 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			isup_clear_callflags(ss7, c, ISUP_SENT_CGU);
 			return 0;
 		case ISUP_SUS:
+			if (c->got_sent_msg & (ISUP_SENT_RSC | ISUP_SENT_REL)) {
+				return 0;	/* ignoring SUS we are in hangup now */
+			}
+
 			if (!(c->got_sent_msg & (ISUP_GOT_IAM | ISUP_SENT_IAM))) {
 				ss7_message(ss7, "Got SUS but no call on CIC %d PC %d ", c->cic, opc);
 				return isup_handle_unexpected(ss7, c, opc);
-			}
-
-			if (c->got_sent_msg & (ISUP_SENT_RSC | ISUP_SENT_REL)) {
-				return 0;	/* ignoring SUS we are in hangup now */
 			}
 
 			e = ss7_next_empty_event(ss7);
@@ -4202,7 +4293,7 @@ int isup_event_iam(struct ss7 *ss7, struct isup_call *c, int opc)
 	ss7_event *e;
 
 	/* Checking dual seizure Q.764 2.9.1.4 */
-	if (c->got_sent_msg & ISUP_SENT_IAM) {
+	if (c->got_sent_msg & (ISUP_SENT_IAM | ISUP_PENDING_IAM)) {
 		if ((ss7->pc > opc) ? (~c->cic & 1) : (c->cic & 1)) {
 			ss7_message(ss7, "Dual seizure on CIC %d DPC %d we are the controlling, ignore IAM\n", c->cic, opc);
 			return 0;
@@ -4543,6 +4634,7 @@ int isup_iam(struct ss7 *ss7, struct isup_call *c)
 	if (res > -1) {
 		isup_start_timer(ss7, c, ISUP_TIMER_T7);
 		c->got_sent_msg |= ISUP_SENT_IAM;
+		c->got_sent_msg &= ~ISUP_PENDING_IAM;
 	} else {
 		ss7_call_null(ss7, c, 0);
 		isup_free_call(ss7, c);
@@ -4570,6 +4662,25 @@ int isup_acm(struct ss7 *ss7, struct isup_call *c)
 		ss7_call_null(ss7, c, 0);
 		isup_free_call(ss7, c);
 		ss7_error(ss7, "Unable to send ACM to DPC: %d\n", c->dpc);
+	}
+
+	return res;
+}
+
+int isup_frj(struct ss7 *ss7, struct isup_call *c)
+{
+	int res;
+
+	if (!ss7 || !c) {
+		return -1;
+	}
+
+	res = isup_send_message(ss7, c, ISUP_FRJ, frj_params);
+
+	if (res == -1) {
+		ss7_call_null(ss7, c, 0);
+		isup_free_call(ss7, c);
+		ss7_error(ss7, "Unable to send FRJ to DPC: %d\n", c->dpc);
 	}
 
 	return res;
@@ -4693,7 +4804,7 @@ int isup_rel(struct ss7 *ss7, struct isup_call *c, int cause)
 		isup_start_timer(ss7, c, ISUP_TIMER_T5);
 
 		c->got_sent_msg |= ISUP_SENT_REL;
-		c->got_sent_msg &= ~(ISUP_SENT_IAM | ISUP_CALL_CONNECTED | ISUP_GOT_IAM | ISUP_GOT_CCR | ISUP_SENT_INR);
+		c->got_sent_msg &= ~(ISUP_CALL_PENDING | ISUP_CALL_CONNECTED);
 	} else {
 		ss7_call_null(ss7, c, 0);
 		isup_free_call(ss7, c);
@@ -5051,6 +5162,7 @@ void isup_show_calls(struct ss7 *ss7, ss7_printf_cb cust_printf, int fd)
 	while (c) {
 		buf_used = 0;
 		tmp_used = 0;
+		tmp_buf[0] = '\0';
 		if (c->got_sent_msg & ISUP_SENT_RSC) {
 			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "RSC ");
 		}
@@ -5072,6 +5184,9 @@ void isup_show_calls(struct ss7 *ss7, ss7_printf_cb cust_printf, int fd)
 		if (c->got_sent_msg & ISUP_SENT_GRS) {
 			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "GRS ");
 		}
+		if (c->got_sent_msg & ISUP_SENT_GRS2) {
+			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "GRS2 ");
+		}
 		if (c->got_sent_msg & ISUP_SENT_CGB) {
 			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "CGB ");
 		}
@@ -5087,11 +5202,17 @@ void isup_show_calls(struct ss7 *ss7, ss7_printf_cb cust_printf, int fd)
 		if (c->got_sent_msg & ISUP_SENT_INR) {
 			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "INR ");
 		}
+		if (c->got_sent_msg & ISUP_SENT_FAR) {
+			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "FAR ");
+		}
 		buf_used = ss7_snprintf(buf, buf_used, buf_size, "%5i %5i %3i  %-24s", c->cic, c->dpc, c->sls, tmp_buf);
 
 		tmp_used = 0;
 		if (c->got_sent_msg & ISUP_GOT_CCR) {
 			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "CCR ");
+		}
+		if (c->got_sent_msg & ISUP_PENDING_IAM) {
+			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "-IAM ");
 		}
 		if (c->got_sent_msg & ISUP_GOT_IAM) {
 			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "IAM ");
@@ -5104,6 +5225,12 @@ void isup_show_calls(struct ss7 *ss7, ss7_printf_cb cust_printf, int fd)
 		}
 		if (c->got_sent_msg & ISUP_GOT_CON) {
 			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "CON ");
+		}
+		if (c->got_sent_msg & ISUP_GOT_CGB) {
+			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "CGB ");
+		}
+		if (c->got_sent_msg & ISUP_GOT_CGU) {
+			tmp_used = ss7_snprintf(tmp_buf, tmp_used, buf_size, "CGU ");
 		}
 		buf_used = ss7_snprintf(buf, buf_used, buf_size, "  %-16s  ", tmp_buf);
 

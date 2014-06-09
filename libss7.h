@@ -77,6 +77,7 @@
 #define ISUP_EVENT_CGUA		33	/*!< Circuit group unblocking acknowledgement */
 #define ISUP_EVENT_SAM		34	/*!< Subsequent address */
 #define ISUP_EVENT_DIGITTIMEOUT	35	/*!< ISUP T10 expired */
+#define ISUP_EVENT_FRJ		36	/*!< Facility rejected */
 
 /* ISUP MSG Flags */
 #define ISUP_SENT_GRS	(1 << 0)
@@ -100,8 +101,10 @@
 #define ISUP_SENT_ANM	(1 << 18)
 #define ISUP_SENT_INR	(1 << 19)
 #define ISUP_SENT_GRS2	(1 << 20)
+#define ISUP_PENDING_IAM	(1 << 21)
 
 #define ISUP_CALL_CONNECTED	(ISUP_GOT_ACM | ISUP_GOT_ANM | ISUP_GOT_CON |  ISUP_SENT_CON | ISUP_SENT_ACM | ISUP_SENT_ANM)
+#define ISUP_CALL_PENDING	(ISUP_GOT_IAM | ISUP_SENT_IAM | ISUP_PENDING_IAM | ISUP_GOT_CCR | ISUP_SENT_INR | ISUP_SENT_FAR)
 
 /* Different SS7 types */
 #define SS7_ITU		(1 << 0)
@@ -370,6 +373,15 @@ typedef struct {
 	unsigned int call_ref_pc;
 	unsigned int opc;
 	struct isup_call *call;
+} ss7_event_frj;
+
+typedef struct {
+	int e;
+	int cic;
+	unsigned int call_ref_ident;
+	unsigned int call_ref_pc;
+	unsigned int opc;
+	struct isup_call *call;
 } ss7_event_faa;
 
 typedef struct {
@@ -430,6 +442,7 @@ typedef union {
 	ss7_event_cic rlc;
 	ss7_event_anm anm;
 	ss7_event_acm acm;
+	ss7_event_frj frj;
 	ss7_event_faa faa;
 	ss7_event_far far;
 	ss7_event_con con;
@@ -525,9 +538,11 @@ int isup_anm(struct ss7 *ss7, struct isup_call *c);
 
 int isup_con(struct ss7 *ss7, struct isup_call *c);
 
-struct isup_call * isup_new_call(struct ss7 *ss7);
+struct isup_call * isup_new_call(struct ss7 *ss7, int cic, unsigned int dpc, int outgoing);
 
 int isup_acm(struct ss7 *ss7, struct isup_call *c);
+
+int isup_frj(struct ss7 *ss7, struct isup_call *c);
 
 int isup_faa(struct ss7 *ss7, struct isup_call *c);
 
@@ -580,8 +595,6 @@ int isup_event_iam(struct ss7 *ss7, struct isup_call *c, int opc);
 void isup_clear_callflags(struct ss7 *ss7, struct isup_call *c, unsigned long flags);
 
 /* Various call related sets */
-void isup_init_call(struct ss7 *ss7, struct isup_call *c, int cic, unsigned int dpc);
-
 void isup_free_call(struct ss7 *ss7, struct isup_call *c);
 
 void isup_set_call_dpc(struct isup_call *c, unsigned int dpc);
