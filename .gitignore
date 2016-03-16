@@ -1,0 +1,11 @@
+*.o
+*.o.d
+*.lo
+*.so
+*.a
+libss7.so.*
+parser_debug
+ss7linktest
+ss7test
+version.c
+
