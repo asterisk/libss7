@@ -1729,7 +1729,7 @@ static int std_test_receive(struct ss7 *ss7, struct mtp2 *mtp2, struct routing_l
 				return mtp3_init(mtp2);
 			}
 		} else {
-			ss7_error(ss7, "Missmatch the SLTA on link SLC: %i ADJPC %i\n", mtp2->slc, mtp2->dpc);
+			ss7_error(ss7, "Mismatch the SLTA on link SLC: %i ADJPC %i\n", mtp2->slc, mtp2->dpc);
 			mtp2->std_test_passed = 0;
 			mtp2->q707_t1_failed++;
 			mtp3_link_failed(mtp2);

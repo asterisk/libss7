@@ -2501,7 +2501,7 @@ static FUNC_DUMP(inr_ind_dump)
 	ss7_message(ss7, "\t\t\tHolding %srequested\n", (parm[0] & 0x2) ? "" : "not ");
 	ss7_message(ss7, "\t\t\tCalling party category %srequested\n", (parm[0] & 0x8) ? "" : "not ");
 	ss7_message(ss7, "\t\t\tCharge information %srequested\n", (parm[0] & 0x10) ? "" : "not ");
-	ss7_message(ss7, "\t\t\tMalicous call identification %srequested\n", (parm[0] & 0x80) ? "" : "not ");
+	ss7_message(ss7, "\t\t\tMalicious call identification %srequested\n", (parm[0] & 0x80) ? "" : "not ");
 	return 2;
 }
 
@@ -3485,7 +3485,7 @@ static int isup_handle_unexpected(struct ss7 *ss7, struct isup_call *c, unsigned
 			&& ss7->isup_timers[ISUP_TIMER_T16] && ss7->isup_timers[ISUP_TIMER_T17]))) {
 		ss7_message(ss7, "ignoring... \n");
 	} else {
-		ss7_message(ss7, "reseting the cic\n");
+		ss7_message(ss7, "resetting the cic\n");
 		res = ss7_hangup(ss7, c->cic, opc, 16, SS7_HANGUP_SEND_RSC);
 		if (res == SS7_CIC_IDLE) {
 			isup_rsc(ss7, c);
