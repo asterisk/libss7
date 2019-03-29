@@ -50,6 +50,17 @@
 
 #define CODE_CCITT 0x0
 
+static void safe_copy_string(char *dst, const char *src, size_t size)
+{
+	while (*src && size) {
+		*dst++ = *src++;
+		size--;
+	}
+	if (__builtin_expect(!size, 0))
+		dst--;
+	*dst = '\0';
+}
+
 struct parm_func {
 	int parm;
 	char *name;
@@ -2876,7 +2887,7 @@ void isup_set_calling(struct isup_call *c, const char *calling, unsigned char ca
 {
 	if ((calling && calling[0]) || presentation_ind == SS7_PRESENTATION_ADDR_NOT_AVAILABLE) {
 		if (calling) {
-			strncpy(c->calling_party_num, calling, sizeof(c->calling_party_num));
+			safe_copy_string(c->calling_party_num, calling, sizeof(c->calling_party_num));
 		} else {
 			c->calling_party_num[0] = '\0';
 		}
@@ -2889,7 +2900,7 @@ void isup_set_calling(struct isup_call *c, const char *calling, unsigned char ca
 void isup_set_connected(struct isup_call *c, const char *connected, unsigned char connected_nai, unsigned char connected_presentation_ind, unsigned char connected_screening_ind) {
 	if ((connected && connected[0]) || connected_presentation_ind == SS7_PRESENTATION_ADDR_NOT_AVAILABLE) {
 		if (connected) {
-			strncpy(c->connected_num, connected, sizeof(c->connected_num));
+			safe_copy_string(c->connected_num, connected, sizeof(c->connected_num));
 		} else {
 			c->connected_num[0] = '\0';
 		}
@@ -2902,7 +2913,7 @@ void isup_set_connected(struct isup_call *c, const char *connected, unsigned cha
 void isup_set_redirecting_number(struct isup_call *c, const char *redirecting_number, unsigned char redirecting_num_nai, unsigned char redirecting_num_presentation_ind, unsigned char redirecting_num_screening_ind)
 {
 	if (redirecting_number && redirecting_number[0]) {
-		strncpy(c->redirecting_num, redirecting_number, sizeof(c->redirecting_num));
+		safe_copy_string(c->redirecting_num, redirecting_number, sizeof(c->redirecting_num));
 		c->redirecting_num_nai = redirecting_num_nai;
 		c->redirecting_num_presentation_ind = redirecting_num_presentation_ind;
 		c->redirecting_num_screening_ind = redirecting_num_screening_ind;
@@ -2927,7 +2938,7 @@ void isup_set_redirect_counter(struct isup_call *c, unsigned char redirect_count
 void isup_set_orig_called_num(struct isup_call *c, const char *orig_called_num, unsigned char orig_called_nai, unsigned char orig_called_pres_ind, unsigned char orig_called_screening_ind)
 {
 	if (orig_called_num && orig_called_num[0]) {
-		strncpy(c->orig_called_num, orig_called_num, sizeof(c->orig_called_num));
+		safe_copy_string(c->orig_called_num, orig_called_num, sizeof(c->orig_called_num));
 		c->orig_called_nai = orig_called_nai;
 		c->orig_called_pres_ind = orig_called_pres_ind;
 		c->orig_called_screening_ind = orig_called_screening_ind;
@@ -2942,7 +2953,7 @@ void isup_set_col_req(struct isup_call *c)
 void isup_set_cug(struct isup_call *c, unsigned char cug_indicator, const char *cug_interlock_ni, unsigned short cug_interlock_code)
 {
 	c->cug_indicator = cug_indicator;
-	strncpy(c->cug_interlock_ni, cug_interlock_ni, sizeof(c->cug_interlock_ni));
+	safe_copy_string(c->cug_interlock_ni, cug_interlock_ni, sizeof(c->cug_interlock_ni));
 	c->cug_interlock_code = cug_interlock_code;
 }
 
@@ -2964,7 +2975,7 @@ void isup_set_echocontrol(struct isup_call *c, unsigned char ec)
 void isup_set_charge(struct isup_call *c, const char *charge, unsigned char charge_nai, unsigned char charge_num_plan)
 {
 	if (charge && charge[0]) {
-		strncpy(c->charge_number, charge, sizeof(c->charge_number));
+		safe_copy_string(c->charge_number, charge, sizeof(c->charge_number));
 		c->charge_nai = charge_nai;
 		c->charge_num_plan = charge_num_plan;
 	}
@@ -2973,7 +2984,7 @@ void isup_set_charge(struct isup_call *c, const char *charge, unsigned char char
 void isup_set_gen_address(struct isup_call *c, const char *gen_number, unsigned char gen_add_nai, unsigned char gen_pres_ind, unsigned char gen_num_plan, unsigned char gen_add_type)
 {
 	if (gen_number && gen_number[0]) {
-		strncpy(c->gen_add_number, gen_number, sizeof(c->gen_add_number));
+		safe_copy_string(c->gen_add_number, gen_number, sizeof(c->gen_add_number));
 		c->gen_add_nai = gen_add_nai;
 		c->gen_add_pres_ind = gen_pres_ind;
 		c->gen_add_num_plan = gen_num_plan;
@@ -2984,7 +2995,7 @@ void isup_set_gen_address(struct isup_call *c, const char *gen_number, unsigned 
 void isup_set_gen_digits(struct isup_call *c, const char *gen_number, unsigned char gen_dig_type, unsigned char gen_dig_scheme)
 {
 	if (gen_number && gen_number[0]) {
-		strncpy(c->gen_dig_number, gen_number, sizeof(c->gen_dig_number));
+		safe_copy_string(c->gen_dig_number, gen_number, sizeof(c->gen_dig_number));
 		c->gen_dig_type = gen_dig_type;
 		c->gen_dig_scheme = gen_dig_scheme;
 	}
@@ -2993,7 +3004,7 @@ void isup_set_gen_digits(struct isup_call *c, const char *gen_number, unsigned c
 void isup_set_generic_name(struct isup_call *c, const char *generic_name, unsigned int typeofname, unsigned int availability, unsigned int presentation)
 {
         if (generic_name && generic_name[0]) {
-		strncpy(c->generic_name, generic_name, sizeof(c->generic_name));
+		safe_copy_string(c->generic_name, generic_name, sizeof(c->generic_name));
 		/* Terminate this just in case */
 		c->generic_name[ISUP_MAX_NAME - 1] = '\0';
 		c->generic_name_typeofname = typeofname;
@@ -3005,14 +3016,14 @@ void isup_set_generic_name(struct isup_call *c, const char *generic_name, unsign
 void isup_set_jip_digits(struct isup_call *c, const char *jip_number)
 {
 	if (jip_number && jip_number[0]) {
-		strncpy(c->jip_number, jip_number, sizeof(c->jip_number));
+		safe_copy_string(c->jip_number, jip_number, sizeof(c->jip_number));
 	}
 }
 
 void isup_set_lspi(struct isup_call *c, const char *lspi_ident, unsigned char lspi_type, unsigned char lspi_scheme, unsigned char lspi_context)
 {
 	if (lspi_ident && lspi_ident[0]) {
-		strncpy(c->lspi_ident, lspi_ident, sizeof(c->lspi_ident));
+		safe_copy_string(c->lspi_ident, lspi_ident, sizeof(c->lspi_ident));
 		c->lspi_context = lspi_context;
 		c->lspi_scheme = lspi_scheme;
 		c->lspi_type = lspi_type;
@@ -3636,7 +3647,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->sam.cic = c->cic;
 			e->sam.call = c;
 			e->sam.opc = opc;	/* keep OPC information */
-			strncpy(e->sam.called_party_num, c->called_party_num, sizeof(e->sam.called_party_num));
+			safe_copy_string(e->sam.called_party_num, c->called_party_num, sizeof(e->sam.called_party_num));
 			e->sam.called_nai = c->called_nai;
 			e->sam.got_sent_msg = c->got_sent_msg;
 			e->sam.cot_check_passed = c->cot_check_passed;
@@ -3834,7 +3845,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->con.connected_nai = c->connected_nai;
 			e->con.connected_presentation_ind = c->connected_presentation_ind;
 			e->con.connected_screening_ind = c->connected_screening_ind;
-			strncpy(e->con.connected_num, c->connected_num, sizeof(e->con.connected_num));
+			safe_copy_string(e->con.connected_num, c->connected_num, sizeof(e->con.connected_num));
 			e->con.echocontrol_ind = c->echocontrol_ind;
 			e->con.got_sent_msg = c->got_sent_msg;
 			return 0;
@@ -3859,7 +3870,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->anm.connected_nai = c->connected_nai;
 			e->anm.connected_presentation_ind = c->connected_presentation_ind;
 			e->anm.connected_screening_ind = c->connected_screening_ind;
-			strncpy(e->anm.connected_num, c->connected_num, sizeof(e->anm.connected_num));
+			safe_copy_string(e->anm.connected_num, c->connected_num, sizeof(e->anm.connected_num));
 			e->anm.echocontrol_ind = c->echocontrol_ind;
 			e->anm.got_sent_msg = c->got_sent_msg;
 			return 0;
@@ -4098,7 +4109,7 @@ int isup_receive(struct ss7 *ss7, struct mtp2 *link, struct routing_label *rl, u
 			e->cpg.connected_nai = c->connected_nai;
 			e->cpg.connected_presentation_ind = c->connected_presentation_ind;
 			e->cpg.connected_screening_ind = c->connected_screening_ind;
-			strncpy(e->cpg.connected_num, c->connected_num, sizeof(e->cpg.connected_num));
+			safe_copy_string(e->cpg.connected_num, c->connected_num, sizeof(e->cpg.connected_num));
 			return 0;
 		case ISUP_UCIC:
 			e = ss7_next_empty_event(ss7);
@@ -4332,38 +4343,38 @@ int isup_event_iam(struct ss7 *ss7, struct isup_call *c, int opc)
 	e->iam.cot_check_required = c->cot_check_required;
 	e->iam.cot_performed_on_previous_cic = c->cot_performed_on_previous_cic;
 	c->cot_check_passed = 0;
-	strncpy(e->iam.called_party_num, c->called_party_num, sizeof(e->iam.called_party_num));
+	safe_copy_string(e->iam.called_party_num, c->called_party_num, sizeof(e->iam.called_party_num));
 	e->iam.called_nai = c->called_nai;
-	strncpy(e->iam.calling_party_num, c->calling_party_num, sizeof(e->iam.calling_party_num));
+	safe_copy_string(e->iam.calling_party_num, c->calling_party_num, sizeof(e->iam.calling_party_num));
 	e->iam.calling_nai = c->calling_nai;
 	e->iam.presentation_ind = c->presentation_ind;
 	e->iam.screening_ind = c->screening_ind;
-	strncpy(e->iam.charge_number, c->charge_number, sizeof(e->iam.charge_number));
+	safe_copy_string(e->iam.charge_number, c->charge_number, sizeof(e->iam.charge_number));
 	e->iam.charge_nai = c->charge_nai;
 	e->iam.charge_num_plan = c->charge_num_plan;
 	e->iam.oli_ani2 = c->oli_ani2;
 	e->iam.gen_add_nai = c->gen_add_nai;
 	e->iam.gen_add_num_plan = c->gen_add_num_plan;
-	strncpy(e->iam.gen_add_number, c->gen_add_number, sizeof(e->iam.gen_add_number));
+	safe_copy_string(e->iam.gen_add_number, c->gen_add_number, sizeof(e->iam.gen_add_number));
 	e->iam.gen_add_pres_ind = c->gen_add_pres_ind;
 	e->iam.gen_add_type = c->gen_add_type;
-	strncpy(e->iam.gen_dig_number, c->gen_dig_number, sizeof(e->iam.gen_dig_number));
+	safe_copy_string(e->iam.gen_dig_number, c->gen_dig_number, sizeof(e->iam.gen_dig_number));
 	e->iam.gen_dig_type = c->gen_dig_type;
 	e->iam.gen_dig_scheme = c->gen_dig_scheme;
-	strncpy(e->iam.jip_number, c->jip_number, sizeof(e->iam.jip_number));
-	strncpy(e->iam.generic_name, c->generic_name, sizeof(e->iam.generic_name));
+	safe_copy_string(e->iam.jip_number, c->jip_number, sizeof(e->iam.jip_number));
+	safe_copy_string(e->iam.generic_name, c->generic_name, sizeof(e->iam.generic_name));
 	e->iam.generic_name_typeofname = c->generic_name_typeofname;
 	e->iam.generic_name_avail = c->generic_name_avail;
 	e->iam.generic_name_presentation = c->generic_name_presentation;
 	e->iam.lspi_type = c->lspi_type;
 	e->iam.lspi_scheme = c->lspi_scheme;
 	e->iam.lspi_context = c->lspi_context;
-	strncpy(e->iam.lspi_ident, c->lspi_ident, sizeof(e->iam.lspi_ident));
-	strncpy(e->iam.orig_called_num, c->orig_called_num, sizeof(e->iam.orig_called_num));
+	safe_copy_string(e->iam.lspi_ident, c->lspi_ident, sizeof(e->iam.lspi_ident));
+	safe_copy_string(e->iam.orig_called_num, c->orig_called_num, sizeof(e->iam.orig_called_num));
 	e->iam.orig_called_nai = c->orig_called_nai;
 	e->iam.orig_called_pres_ind = c->orig_called_pres_ind;
 	e->iam.orig_called_screening_ind = c->orig_called_screening_ind;
-	strncpy(e->iam.redirecting_num, c->redirecting_num, sizeof(e->iam.redirecting_num));
+	safe_copy_string(e->iam.redirecting_num, c->redirecting_num, sizeof(e->iam.redirecting_num));
 	e->iam.redirecting_num_nai = c->redirecting_num_nai;
 	e->iam.redirecting_num_presentation_ind = c->redirecting_num_presentation_ind;
 	e->iam.redirecting_num_screening_ind = c->redirecting_num_screening_ind;
@@ -4376,7 +4387,7 @@ int isup_event_iam(struct ss7 *ss7, struct isup_call *c, int opc)
 	e->iam.calling_party_cat = c->calling_party_cat;
 	e->iam.cug_indicator = c->cug_indicator;
 	e->iam.cug_interlock_code = c->cug_interlock_code;
-	strncpy(e->iam.cug_interlock_ni, c->cug_interlock_ni, sizeof(e->iam.cug_interlock_ni));
+	safe_copy_string(e->iam.cug_interlock_ni, c->cug_interlock_ni, sizeof(e->iam.cug_interlock_ni));
 	e->iam.call = c;
 	e->iam.opc = opc;	/* keep OPC information */
 	e->iam.echocontrol_ind = c->echocontrol_ind;
