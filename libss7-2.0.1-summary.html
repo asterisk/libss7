@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><title>Release Summary - libss7-2.0.1</title><h1 align="center"><a name="top">Release Summary</a></h1><h3 align="center">libss7-2.0.1</h3><h3 align="center">Date: 2021-08-27</h3><h3 align="center">&lt;asteriskteam@digium.com&gt;</h3><hr><h2 align="center">Table of Contents</h2><ol>
+<li><a href="#summary">Summary</a></li>
+<li><a href="#contributors">Contributors</a></li>
+<li><a href="#commits">Other Changes</a></li>
+<li><a href="#diffstat">Diffstat</a></li>
+</ol><hr><a name="summary"><h2 align="center">Summary</h2></a><center><a href="#top">[Back to Top]</a></center><p>This release is a point release of an existing major version. The changes included were made to address problems that have been identified in this release series, or are minor, backwards compatible new features or improvements. Users should be able to safely upgrade to this version if this release series is already in use. Users considering upgrading from a previous version are strongly encouraged to review the UPGRADE.txt document as well as the CHANGES document for information about upgrading to this release series.</p><p>The data in this summary reflects changes that have been made since the previous release, libss7-2.0.0.</p><hr><a name="contributors"><h2 align="center">Contributors</h2></a><center><a href="#top">[Back to Top]</a></center><p>This table lists the people who have submitted code, those that have tested patches, as well as those that reported issues on the issue tracker that were resolved in this release. For coders, the number is how many of their patches (of any size) were committed into this release. For testers, the number is the number of times their name was listed as assisting with testing a patch. Finally, for reporters, the number is the number of issues that they reported that were affected by commits that went into this release.</p><table width="100%" border="0">
+<tr><th width="33%">Coders</th><th width="33%">Testers</th><th width="33%">Reporters</th></tr>
+<tr valign="top"><td width="33%">2 Tzafrir Cohen <tzafrir.cohen@xorcom.com><br/>1 Sean Bright <sean.bright@gmail.com><br/>1 Richard Mudgett <rmudgett@digium.com><br/>1 George Joseph <gjoseph@sangoma.com><br/></td><td width="33%"><td width="33%"></tr>
+</table><hr><a name="commits"><h2 align="center">Commits Not Associated with an Issue</h2></a><center><a href="#top">[Back to Top]</a></center><p>This is a list of all changes that went into this release that did not reference a JIRA issue.</p><table width="100%" border="1">
+<tr><th>Revision</th><th>Author</th><th>Summary</th></tr>
+<tr><td><a href="https://code.asterisk.org/code/changelog/libss7?cs=75ee1c3977995341404765343992f99903bc8831">75ee1c3977</a></td><td>George Joseph</td><td>Add .cleancount for release process</td></tr>
+<tr><td><a href="https://code.asterisk.org/code/changelog/libss7?cs=3db8080ad901014cd7225bbac0018f16355b8c4f">3db8080ad9</a></td><td>Sean Bright</td><td>isup: Replace calls to strncpy() with safe_copy_string()</td></tr>
+<tr><td><a href="https://code.asterisk.org/code/changelog/libss7?cs=0483fd10ca778df9d1c2912a1632835b65360c34">0483fd10ca</a></td><td>Tzafrir Cohen</td><td>typos reported by Lintian</td></tr>
+<tr><td><a href="https://code.asterisk.org/code/changelog/libss7?cs=50f51dc4b7303d7d83b1086e2cfe72403ef41449">50f51dc4b7</a></td><td>Tzafrir Cohen</td><td>Add a .gitreview file</td></tr>
+<tr><td><a href="https://code.asterisk.org/code/changelog/libss7?cs=4c5d458803e8af0eea34f73b053e619ae7e049cf">4c5d458803</a></td><td>Richard Mudgett</td><td>Add .gitignore</td></tr>
+</table><hr><a name="diffstat"><h2 align="center">Diffstat Results</h2></a><center><a href="#top">[Back to Top]</a></center><p>This is a summary of the changes to the source code that went into this release that was generated using the diffstat utility.</p><pre>.version                  |    1
+ChangeLog                 |  285 ----------------------------------------------
+b/.cleancount             |    2
+b/.gitignore              |   11 +
+b/.gitreview              |    4
+b/isup.c                  |   67 ++++++----
+libss7-2.0.0-summary.html |   88 --------------
+libss7-2.0.0-summary.txt  |  101 ----------------
+8 files changed, 56 insertions(+), 503 deletions(-)</pre><br></html>

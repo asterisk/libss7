@@ -1,0 +1,325 @@
+2021-08-27 15:31 +0000  Asterisk Development Team <asteriskteam@digium.com>
+
+	* libss7 2.0.1 Released.
+
+2021-08-27 10:27 +0000 [75ee1c3977]  George Joseph <gjoseph@sangoma.com>
+
+	* Add .cleancount for release process
+
+	  Change-Id: If4d23fb171bbe4efc7d7a3178d748a847c5661bb
+
+2019-03-29 08:37 +0000 [3db8080ad9]  Sean Bright <sean.bright@gmail.com>
+
+	* isup: Replace calls to strncpy() with safe_copy_string()
+
+	  safe_copy_string() ripped off shamelessly from ast_copy_string().
+
+	  Reported by Tzafrir Cohen via asterisk-dev mailing list.
+
+	  Change-Id: Ia1b669419345b585134c3eeefa65ff144120199b
+
+2016-10-31 23:40 +0000 [0483fd10ca]  Tzafrir Cohen <tzafrir.cohen@xorcom.com>
+
+	* typos reported by Lintian
+
+	  Change-Id: Ie4216e972e3fa66205ffb64bf23cff139af32b76
+
+2016-10-31 23:56 +0000 [50f51dc4b7]  Tzafrir Cohen <tzafrir.cohen@xorcom.com>
+
+	* Add a .gitreview file
+
+	  Add a .gitreview file to allow posting reviews to Gerrit with git review.
+
+	  Change-Id: I938e607cab4dce848a98d48097605c6d0efd46bf
+
+2016-03-16 13:57 +0000 [4c5d458803]  Richard Mudgett <rmudgett@digium.com>
+
+	* Add .gitignore
+
+	  Change-Id: I068e59b57102551e3ef7c10eb5774ac071a7c5b6
+
+2014-06-16  Asterisk Development Team <asteriskteam@digium.com>
+
+	* libss7 2.0.0 Released.
+
+2014-06-16 15:17 +0000 [r324]  bebuild <bebuild@localhost>:
+
+	* / (added): Create libss7 2.0 branch
+
+2014-06-09 19:48 +0000 [r323]  Richard Mudgett <rmudgett@digium.com>
+
+	* ss7_internal.h, isup.c, mtp3.c, isup.h, libss7.h, ss7linktest.c:
+	  libss7: Dual seizure improvements. * Dual seizure - check for IAM
+	  pending in addition to IAM sent. * ISUP_RSC - we should still
+	  respond to RSC. * Ignore unexpected messages when relevant timers
+	  are active and we are waiting for RLC. - Thanks to Pavel Troller
+	  for discovering and suggested fix. * Check both DPC and OPC when
+	  receiving a message to confirm it is for us. - Thanks to Pavel
+	  Troller and Gustavo Marsico for discovering. * Fixed handling of
+	  got_sent_msg flags on RSC/REL/RLC - no more stale channels or
+	  missed blocking messages. * Check for DPC only for signalling
+	  messages in mtp3_receive(). * Minor FAR message fixes, added FRJ
+	  message support. * Improve SS7 debug message decoding to know
+	  about more fields. SS7-27 Reported by: adomjan Patches:
+	  SS7-27_libss7_trunk2_v13.diff (license #5506) patch uploaded by
+	  Kaloyan Kovachev Review: https://reviewboard.asterisk.org/r/2150/
+
+2013-11-06 22:40 +0000 [r322]  Richard Mudgett <rmudgett@digium.com>
+
+	* ss7.c, mtp3.c: Fix set but not used warnings from gcc 4.6.
+	  (closes issue SS7-54) Reported by: Tzafrir Cohen
+
+2012-10-01 20:05 +0000 [r320]  Richard Mudgett <rmudgett@digium.com>
+
+	* ss7linktest.c, ss7_internal.h, isup.c, mtp2.c, mtp3.c: Quiet
+	  unconditional libss7 debug messages unless enabled. Patches:
+	  SS7-27_libss7_trunk2_v3.diff (license #5506) patch uploaded by
+	  Kaloyan Kovachev With some modifications.
+
+2012-09-26 15:58 +0000 [r319]  Richard Mudgett <rmudgett@digium.com>
+
+	* Makefile: Allow passing compiler flags (CFLAGS, LDFLAGS)
+	  ......... Merged -r318 from
+	  https://origsvn.digium.com/svn/libss7/branches/1.0
+
+2012-09-14 19:05 +0000 [r317]  Richard Mudgett <rmudgett@digium.com>
+
+	* libss7.h, isup.c: Change isup_start_digittimeout() to return if
+	  the timer started.
+
+2012-08-31 20:19 +0000 [r315-316]  Richard Mudgett <rmudgett@digium.com>
+
+	* libss7.h, isup.c: Fix ANSI double send of GRS causing message
+	  loop. * Fix got_sent_msg are flags that should be (re)set as
+	  such. (issue SS7-27) Patches: SS7-27_libss7_trunk2_v2.diff
+	  (license #5506) patch uploaded by Kaloyan Kovachev Tested by:
+	  rmudgett
+
+	* isup.c: Don't kill the call if isup_far() chooses to not send the
+	  message.
+
+2012-08-09 18:11 +0000 [r309-314]  Richard Mudgett <rmudgett@digium.com>
+
+	* libss7.h: Added ABI compatibility define.
+
+	* isup.c, mtp2.c, parser_debug.c, mtp3.c, isup.h, mtp2.h, libss7.h,
+	  mtp3.h, ss7linktest.c, Makefile, ss7.c, ss7test.c,
+	  ss7_internal.h: Omnibus libss7 update. Kaloyan Kovachev added
+	  additional cause codes, Transmission Medium Requirement setting
+	  and connected line to CPG messages + code cleanup. Big thanks to
+	  Kaloyan Kovachev for pushing to get this completed. Large patch
+	  that improves ISUP timers and Q.764 compatibility. (issue SS7-27)
+	  Reported by: adomjan Listing other issues that are either
+	  included or addressed by this patch. I am not going to
+	  investigate each one to see if they are complete or not at this
+	  time. (issue SS7-7) (issue SS7-21) (issue SS7-28) (issue SS7-33)
+	  (issue SS7-36) (issue SS7-38) (issue SS7-39) (issue SS7-40)
+	  (issue SS7-42) (issue SS7-43) (issue SS7-45) (issue SS7-46)
+	  (issue SS7-47) (issue SS7-48) (issue SS7-49) (issue SS7-51)
+	  (issue SS7-52) (issue SS7-53) (issue SS7-54) Review:
+	  https://reviewboard.asterisk.org/r/1653/
+
+	* mtp2.h, libss7.h, mtp3.h, ss7linktest.c, Makefile, ss7.c,
+	  ss7test.c, ss7_internal.h, isup.c, isup_masq.c (removed), mtp2.c,
+	  parser_debug.c, mtp3.c, isup.h: Reset trunk to current v1.0
+	  branch.
+
+	* libss7.h, ss7test.c, ss7.c, README, ss7_internal.h, / (added),
+	  build_tools/make_version, isup.c, ss7_sched.c, mtp2.c,
+	  build_tools/make_version_c, mtp3.c, NEWS-05-30-2008,
+	  NEWS-09-11-2006, isup.h, NEWS-08-12-2008, NEWS-08-23-2006,
+	  mtp2.h, mtp3.h, ss7linktest.c, NEWS-09-27-2006, Makefile,
+	  build_tools, isup_masq.c, LICENSE, parser_debug.c: Restore trunk
+	  for further use.
+
+2011-09-16 19:18 +0000 [r292-293]  Richard Mudgett <rmudgett@digium.com>
+
+	* ss7.c, ss7_internal.h: Global function pointer variables need to
+	  be declared in a similar manner to other global variables.
+
+	* isup.c: Fix some uninitialized values reported by valgrind.
+	  Initialize the local isup_call structure in isup_cqr() and
+	  isup_send_message_ciconly().
+
+2010-11-30 17:00 +0000 [r290]  Matthew Fredrickson <creslin@digium.com>
+
+	* mtp2.c: Fix MTP2 so that we check for potential need for
+	  retransmission even on repeated FISUs. (#18393)
+
+2009-08-21 21:49 +0000 [r272]  Jason Parker <jparker@digium.com>
+
+	* ss7.c: Correct logic in a name comparison. (closes issue #14677)
+	  Reported by: Safari
+
+2009-08-18 18:49 +0000 [r271]  Jeff Peeler <jpeeler@digium.com>
+
+	* Makefile: Fix ldconfig error when building with fakeroot This
+	  patch copies the built shared libraries along with the symlinks.
+	  Also, ldconfig is always attempted with errors ignored since
+	  while using fakeroot updating the cache will fail. People running
+	  making install not as root are going to encounter problems before
+	  the removed root check anyway. (closes issue #13313) Reported by:
+	  tzafrir Patches: libss7_ldconfig.diff uploaded by tzafrir
+	  (license 46) Tested by: tzafrir
+
+2009-07-13 14:57 +0000 [r269]  Russell Bryant <russell@russellbryant.com>
+
+	* README: Update LibSS7 README regarding version compatibility.
+	  (closes issue #14678) Reported by: Safari
+
+2009-07-07 21:17 +0000 [r267]  Mark Michelson <mmichelson@digium.com>
+
+	* mtp2.c: Don't write past the end of the buffer. It's bad. (closes
+	  issue #14676) Reported by: Safari
+
+2009-04-29 16:22 +0000 [r258-266]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c: Adding in isup.c-grsfix patch from #13495
+
+	* mtp3.c, mtp3.h, ss7.c: Merge in MTP3 T21 support patch (#13495)
+
+	* isup.c, isup.h: Add ISUP T8 and T24 continuity related timers
+
+	* isup.c, isup.h, libss7.h: Add libss7 support for COT on previous
+	  CIC (#13495)
+
+	* ss7.c, isup.c, libss7.h: Add support for setting the ISDN access
+	  indicator bits (#13495)
+
+	* isup.c: Add COT check to SAM message (#13495)
+
+	* isup.c, libss7.h: Add support for setting calling party category
+
+	* isup.h: Fix CUG parameter number to be correct
+
+2009-03-05 17:53 +0000 [r257]  Matthew Fredrickson <creslin@digium.com>
+
+	* isup.c, isup_masq.c (added), mtp2.c, parser_debug.c, mtp3.c,
+	  isup.h, mtp2.h, libss7.h, mtp3.h, ss7linktest.c, Makefile, ss7.c,
+	  ss7test.c, ss7_internal.h:
+	  ------------------------------------------------------------------------
+	  r220 | mattf | 2008-12-01 12:15:08 -0600 (Mon, 01 Dec 2008) | 1
+	  line Commit updated version of #13495 patches (with various
+	  fixes) so that we can work off of this branch
+	  ------------------------------------------------------------------------
+	  r221 | mattf | 2008-12-01 15:09:15 -0600 (Mon, 01 Dec 2008) | 1
+	  line Fix a couple of coding style issues in ss7.c
+	  ------------------------------------------------------------------------
+	  r222 | mattf | 2008-12-01 16:14:54 -0600 (Mon, 01 Dec 2008) | 1
+	  line Bunch of style related cleanups in mtp3.c
+	  ------------------------------------------------------------------------
+	  r223 | mattf | 2008-12-03 10:18:01 -0600 (Wed, 03 Dec 2008) | 1
+	  line Apply patch from #13495 for moving clearing of GOT_IAM flag
+	  into isup.c
+	  ------------------------------------------------------------------------
+	  r224 | mattf | 2008-12-03 10:31:12 -0600 (Wed, 03 Dec 2008) | 1
+	  line Fix a couple of random function definitons
+	  ------------------------------------------------------------------------
+	  r225 | mattf | 2008-12-03 10:45:51 -0600 (Wed, 03 Dec 2008) | 1
+	  line Remove erroneous return statement
+	  ------------------------------------------------------------------------
+	  r226 | mattf | 2008-12-03 11:31:02 -0600 (Wed, 03 Dec 2008) | 1
+	  line Add echo control reporting and setting ability to libss7
+	  (#13495)
+	  ------------------------------------------------------------------------
+	  r227 | mattf | 2008-12-03 13:47:08 -0600 (Wed, 03 Dec 2008) | 1
+	  line ss7linktest builds again
+	  ------------------------------------------------------------------------
+	  r228 | mattf | 2008-12-05 15:43:44 -0600 (Fri, 05 Dec 2008) | 1
+	  line Let's not complain if we can't find the SLC specified
+	  ------------------------------------------------------------------------
+	  r229 | mattf | 2008-12-05 15:55:23 -0600 (Fri, 05 Dec 2008) | 1
+	  line Fix spelling error in the word adjacent
+	  ------------------------------------------------------------------------
+	  r230 | mattf | 2008-12-05 16:30:43 -0600 (Fri, 05 Dec 2008) | 1
+	  line Add support for SLC specification of an mtp2 link
+	  ------------------------------------------------------------------------
+	  r231 | mattf | 2008-12-05 16:52:46 -0600 (Fri, 05 Dec 2008) | 1
+	  line Make sure we set the optparm filed for ANSI GRA and GRS
+	  ------------------------------------------------------------------------
+	  r232 | mattf | 2008-12-06 11:03:39 -0600 (Sat, 06 Dec 2008) | 1
+	  line Add a new point code to string function and fix a bug in
+	  finding a link where two links have the same point code
+	  ------------------------------------------------------------------------
+	  r233 | mattf | 2008-12-06 11:07:14 -0600 (Sat, 06 Dec 2008) | 1
+	  line Ooops, make sure we print out the adjpc on all message
+	  types, not just FISUs
+	  ------------------------------------------------------------------------
+	  r234 | mattf | 2008-12-06 11:40:46 -0600 (Sat, 06 Dec 2008) | 1
+	  line Add a function that checks a link's DPC when sending MTP3
+	  management messages
+	  ------------------------------------------------------------------------
+	  r235 | mattf | 2008-12-06 11:50:02 -0600 (Sat, 06 Dec 2008) | 1
+	  line Fix the point code output for ANSI networks on ss7 show
+	  linkset x
+	  ------------------------------------------------------------------------
+	  r236 | mattf | 2008-12-06 12:45:01 -0600 (Sat, 06 Dec 2008) | 1
+	  line Change ss7_add_link API to include the Adjacent Point Code
+	  as well
+	  ------------------------------------------------------------------------
+	  r237 | mattf | 2008-12-08 12:04:19 -0600 (Mon, 08 Dec 2008) | 1
+	  line Fix another mild code style problem in
+	  isup_handle_unexpected
+	  ------------------------------------------------------------------------
+	  r238 | mattf | 2008-12-08 14:40:30 -0600 (Mon, 08 Dec 2008) | 1
+	  line Make sure we send GRS twice on ANSI links. Why, oh why, oh
+	  why?
+	  ------------------------------------------------------------------------
+	  r239 | mattf | 2008-12-11 11:31:07 -0600 (Thu, 11 Dec 2008) | 1
+	  line Using this as development branch until we get ANSI support
+	  tested. Starting on ISUP masquerade and clustering support,
+	  initial check in of this code.
+	  ------------------------------------------------------------------------
+	  r240 | mattf | 2008-12-11 11:59:26 -0600 (Thu, 11 Dec 2008) | 1
+	  line Forgot to add the new isup_masq.c file
+	  ------------------------------------------------------------------------
+	  r241 | mattf | 2008-12-11 13:42:57 -0600 (Thu, 11 Dec 2008) | 1
+	  line Fix some poll flags for TCP
+	  ------------------------------------------------------------------------
+	  r242 | mattf | 2008-12-12 11:46:16 -0600 (Fri, 12 Dec 2008) | 1
+	  line A little more debug would help for short reads
+	  ------------------------------------------------------------------------
+	  r243 | mattf | 2008-12-12 15:04:50 -0600 (Fri, 12 Dec 2008) | 1
+	  line Make sure TCP links default to UP
+	  ------------------------------------------------------------------------
+	  r244 | mattf | 2008-12-12 15:06:38 -0600 (Fri, 12 Dec 2008) | 1
+	  line Give some sense of direction with message debug on TCP links
+	  ------------------------------------------------------------------------
+	  r245 | mattf | 2008-12-12 15:33:40 -0600 (Fri, 12 Dec 2008) | 1
+	  line Take some of this code out for now...
+	  ------------------------------------------------------------------------
+	  r246 | mattf | 2008-12-23 11:52:12 -0600 (Tue, 23 Dec 2008) | 1
+	  line Add support for working client side TCP! Note: the message
+	  format will change, this is only for testing the socket code to
+	  make sure we have good read/write socket servicing code.
+	  ------------------------------------------------------------------------
+	  r247 | mattf | 2008-12-23 16:10:31 -0600 (Tue, 23 Dec 2008) | 1
+	  line Add support for the new TCP message format
+	  ------------------------------------------------------------------------
+	  r248 | mattf | 2008-12-24 17:20:01 -0600 (Wed, 24 Dec 2008) | 1
+	  line Milestone reached. Able to forward messages to the given
+	  client properly with ISUP TCP masquerading
+	  ------------------------------------------------------------------------
+	  r249 | mattf | 2009-01-06 18:36:40 -0600 (Tue, 06 Jan 2009) | 1
+	  line Masquerade functionality works in both directions. Now we
+	  have to figure out what to do about TCP link state (losing the
+	  socket fd and replacing it with a new one when the link comes up
+	  again)
+	  ------------------------------------------------------------------------
+	  r252 | mattf | 2009-01-24 15:59:06 -0600 (Sat, 24 Jan 2009) | 1
+	  line Change API so that we are able to handle IP based links that
+	  change file descriptors when they go up and down
+	  ------------------------------------------------------------------------
+	  r253 | mattf | 2009-01-24 16:30:31 -0600 (Sat, 24 Jan 2009) | 1
+	  line Make sure that we pass a link down event up when the TCP
+	  link goes down
+	  ------------------------------------------------------------------------
+	  r254 | mattf | 2009-02-11 03:50:31 -0600 (Wed, 11 Feb 2009) | 1
+	  line Add support for ANSI message priority in transmission...
+	  ------------------------------------------------------------------------
+
+2009-01-16 14:38 +0000 [r251]  Sean Bright <sean@malleable.com>
+
+	* README: Properly reference the GNU GPL version 2. (closes issue
+	  #13684) Reported by: cjac
+
