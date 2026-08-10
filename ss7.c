@@ -36,7 +36,7 @@
 #include <string.h>
 #include <time.h>
 #include <sys/ioctl.h>
-#include <sys/poll.h>
+#include <poll.h>
 #include "libss7.h"
 #include "ss7_internal.h"
 #include "mtp2.h"

@@ -36,7 +36,7 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
-#include <sys/poll.h>
+#include <poll.h>
 #include <sys/ioctl.h>
 #include <pthread.h>
 #include <errno.h>
