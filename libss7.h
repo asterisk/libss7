@@ -518,10 +518,10 @@ const char *ss7_get_version(void);
 
 int ss7_pollflags(struct ss7 *ss7, int fd);
 
-int ss7_set_mtp3_timer(struct ss7 *ss7, char *name, int ms);
+int ss7_set_mtp3_timer(struct ss7 *ss7, const char *name, int ms);
 
 /* ISUP call related message functions */
-int ss7_set_isup_timer(struct ss7 *ss7, char *name, int ms);
+int ss7_set_isup_timer(struct ss7 *ss7, const char *name, int ms);
 
 struct isup_call * isup_free_call_if_clear(struct ss7 *ss7, struct isup_call *c);
 
@@ -675,7 +675,7 @@ const char * mtp3_net_mng(struct ss7 *ss7, unsigned int slc, const char *cmd, un
 
 void mtp3_init_restart(struct ss7 *ss7, int slc);
 
-int ss7_set_mtp3_timer(struct ss7 *ss7, char *name, int ms);
+int ss7_set_mtp3_timer(struct ss7 *ss7, const char *name, int ms);
 
 void ss7_pc_to_str(int ss7type, unsigned int pc, char *str);
 

@@ -2032,7 +2032,7 @@ const char * mtp3_net_mng(struct ss7 *ss7, unsigned int slc, const char *cmd, un
 	return "OK\n";
 }
 
-int ss7_set_mtp3_timer(struct ss7 *ss7, char *name, int ms)
+int ss7_set_mtp3_timer(struct ss7 *ss7, const char *name, int ms)
 {
 	if (!strcasecmp(name, "t1")) {
 		ss7->mtp3_timers[MTP3_TIMER_T1] = ms;

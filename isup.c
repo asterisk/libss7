@@ -5258,7 +5258,7 @@ void isup_show_calls(struct ss7 *ss7, ss7_printf_cb cust_printf, int fd)
 	free(tmp_buf);
 }
 
-int ss7_set_isup_timer(struct ss7 *ss7, char *name, int ms)
+int ss7_set_isup_timer(struct ss7 *ss7, const char *name, int ms)
 {
 	if (!strcasecmp(name, "t1")) {
 		ss7->isup_timers[ISUP_TIMER_T1] = ms;
